@@ -1,0 +1,10 @@
+docling
+langchain
+langchain-text-splitters
+langchain-openai
+langchain-community
+qdrant-client
+fastapi
+uvicorn
+streamlit
+python-dotenv
