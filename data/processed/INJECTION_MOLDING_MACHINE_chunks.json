@@ -1,0 +1,176 @@
+[
+    {
+        "chunk_id": 1,
+        "content": "## 1. Machine Overview  \nThe IMM-750 is a hydraulically driven injection molding machine with a clamping force of 750 tonnes, designed for the production of medium to large plastic components. The machine features a reciprocating screw plasticating unit, closed-loop temperature control across six independent heating zones, and a servo-hydraulic drive system for energy-efficient operation.  \nThe IMM-750 is suitable for processing a wide range of thermoplastic materials including ABS, PP, PE, PC, and PA. All setup and parameter changes must be performed by a qualified process technician. Maintenance and repair activities must be performed by certified equipment technicians only.",
+        "metadata": {
+            "Section": "1. Machine Overview",
+            "machine_id": "INJECTION_MOLDING_MACHINE",
+            "source_file": "INJECTION_MOLDING_MACHINE.pdf",
+            "section_id": "1. Machine Overview",
+            "page_start": 1,
+            "page_number": 1,
+            "is_safety": true,
+            "is_troubleshooting": false,
+            "chunk_type": "overview",
+            "error_code": null,
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 2,
+        "content": "## 2. Technical Specifications  \n| Parameter         | Specification   |\n|-------------------|-----------------|\n| Clamping Force    | 750 tonnes      |\n| Shot Volume (max) | 1,200 cm³       |\n| Screw Diameter    | 70 mm           |\n| Screw L/D Ratio   | 22:1            |  \n  \n| Injection Pressure (max)        | 180 MPa                       |\n|---------------------------------|-------------------------------|\n| Injection Speed (max)           | 180 mm/s                      |\n| Plasticating Rate               | 42 kg/hr (PP reference)       |\n| Number of Heating Zones         | 6 (barrel zones 1-5 + nozzle) |\n| Barrel Temperature Range        | 100°C - 400°C per zone        |\n| Hydraulic System Pressure (max) | 17.5 MPa                      |\n| Hydraulic Oil Tank Capacity     | 420 litres                    |\n| Mold Thickness Range            | 250 mm - 750 mm               |\n| Tie Bar Spacing (H × V)         | 730 mm × 730 mm               |\n| Operating Voltage               | 3-phase, 380V / 50Hz          |\n| Total Motor Power               | 37 kW                         |\n| Machine Weight                  | 18,500 kg                     |\n| Overall Dimensions (L×W×H)      | 7,200 × 2,100 × 2,350 mm      |  \n  \n| Operating Temperature Range   | 10°C - 40°C   |\n|-------------------------------|---------------|",
+        "metadata": {
+            "Section": "2. Technical Specifications",
+            "machine_id": "INJECTION_MOLDING_MACHINE",
+            "source_file": "INJECTION_MOLDING_MACHINE.pdf",
+            "section_id": "2. Technical Specifications",
+            "page_start": 2,
+            "page_number": 3,
+            "is_safety": false,
+            "is_troubleshooting": false,
+            "chunk_type": "specification",
+            "error_code": null,
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 3,
+        "content": "## 3. Normal Operating Parameters  \n| Parameter                                    | Normal Range       |\n|----------------------------------------------|--------------------|\n| Hydraulic oil temperature                    | 35°C - 50°C        |\n| Hydraulic system pressure (during injection) | 12 - 16 MPa        |\n| Barrel zone temperatures                     | Set point ± 5°C    |\n| Screw back pressure                          | 3 - 8 MPa          |\n| Cooling water inlet temperature              | 15°C - 25°C        |\n| Cooling water flow rate                      | 20 - 35 litres/min |\n| Clamping pressure                            | 13 - 16 MPa        |\n| Cycle time deviation from set                | Within ± 2 seconds |",
+        "metadata": {
+            "Section": "3. Normal Operating Parameters",
+            "machine_id": "INJECTION_MOLDING_MACHINE",
+            "source_file": "INJECTION_MOLDING_MACHINE.pdf",
+            "section_id": "3. Normal Operating Parameters",
+            "page_start": 4,
+            "page_number": 4,
+            "is_safety": false,
+            "is_troubleshooting": false,
+            "chunk_type": "specification",
+            "error_code": null,
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 4,
+        "content": "## Error Code E-01 - Barrel Zone Temperature Deviation  \nDescription: One or more barrel heating zones has deviated more than 10°C from the set point temperature for longer than 60 seconds. Machine halts injection until temperature is restored.\n\n## Common causes:  \n- Heater band failure in the affected zone\n- Thermocouple fault - incorrect temperature reading\n- PID controller parameter drift after power interruption\n\n## Resolution Steps:  \n1. Identify the affected zone from the temperature display panel - the deviating zone is highlighted in red.\n2. Check whether the temperature is below or above set point. Below set point suggests heater failure. Above set point suggests thermocouple or controller fault.\n3. If below set point - check the heater band indicator light for the affected zone. If the light is off during heating, the heater band has failed and must be replaced. Contact the equipment engineering team.\n4. If above set point - the thermocouple reading may be incorrect. Cross-check with a handheld infrared thermometer pointed at the barrel surface near that zone. If the surface temperature matches the set point but the display reads high, the thermocouple needs replacement.",
+        "metadata": {
+            "Section": "Error Code E-01 - Barrel Zone Temperature Deviation",
+            "machine_id": "INJECTION_MOLDING_MACHINE",
+            "source_file": "INJECTION_MOLDING_MACHINE.pdf",
+            "section_id": "Error Code E-01 - Barrel Zone Temperature Deviation",
+            "page_start": 4,
+            "page_number": 4,
+            "is_safety": false,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "E-01",
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 5,
+        "content": "## Error Code E-02 - Hydraulic Oil Temperature High  \nDescription: Hydraulic oil temperature has exceeded 55°C. Continued operation at elevated oil temperature degrades oil viscosity and accelerates seal wear.\n\n## Common causes:  \n- Oil cooler water flow insufficient or water temperature too high\n- Hydraulic oil level low - insufficient thermal mass\n- Oil cooler heat exchanger fouled with scale or debris\n\n## Resolution Steps:  \n1. Check the hydraulic oil level sight glass on the tank - must be between MIN and MAX marks.\n2. Check the cooling water flow rate to the oil cooler - must be above 20 litres per minute. If low, check the water supply valve is fully open.\n3. Pause production and allow the machine to idle for 10 minutes with the hydraulic pump running - monitor whether temperature stabilises or continues rising.  \n  \n4. If temperature continues rising with adequate water flow and oil level, the oil cooler heat exchanger is likely fouled. Contact the equipment engineering team for cooler cleaning.\n5. If oil temperature drops to below 50°C during idle, resume production at reduced cycle rate and monitor closely.",
+        "metadata": {
+            "Section": "Error Code E-02 - Hydraulic Oil Temperature High",
+            "machine_id": "INJECTION_MOLDING_MACHINE",
+            "source_file": "INJECTION_MOLDING_MACHINE.pdf",
+            "section_id": "Error Code E-02 - Hydraulic Oil Temperature High",
+            "page_start": 5,
+            "page_number": 5,
+            "is_safety": false,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "E-02",
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 6,
+        "content": "## Error Code E-03 - Injection Pressure Not Reached  \nDescription: The actual injection pressure did not reach the set injection pressure within the set fill time. Shot may be incomplete (short shot).\n\n## Common causes:  \n- Material viscosity higher than expected - barrel temperatures too low\n- Injection speed set too low for the mold geometry\n- Nozzle partially blocked with degraded material\n- Check valve (non-return valve) on screw tip worn or stuck open\n\n## Resolution Steps:  \n1. Check the part - confirm whether a short shot has occurred. If the part is incomplete, do not release it to production.\n2. Verify barrel zone temperatures are at set point - refer to E-01 procedure if any zone is deviating.\n3. Increase injection speed by 10% and run a trial shot. Inspect the result.\n4. If the issue persists, purge the barrel - run 3 to 5 purge shots with the nozzle disconnected from the mold to clear any degraded material from the nozzle tip.\n5. If purging does not resolve the issue, the check valve on the screw tip is likely worn and allowing material back-flow during injection. This requires screw removal contact the equipment engineering team.\n6. Document the number of short shots that occurred and the lot number affected for QC notification.",
+        "metadata": {
+            "Section": "Error Code E-03 - Injection Pressure Not Reached",
+            "machine_id": "INJECTION_MOLDING_MACHINE",
+            "source_file": "INJECTION_MOLDING_MACHINE.pdf",
+            "section_id": "Error Code E-03 - Injection Pressure Not Reached",
+            "page_start": 5,
+            "page_number": 5,
+            "is_safety": false,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "E-03",
+            "cross_references": [
+                "E-01"
+            ]
+        }
+    },
+    {
+        "chunk_id": 7,
+        "content": "## Error Code E-04 - Clamping Force Not Reached  \nDescription: The measured tie bar stretch (used to calculate clamping force) is below the required value. The mold may not be adequately clamped, creating a risk of flash or mold damage.\n\n## Common causes:  \n- Hydraulic pressure to the clamping cylinder is insufficient\n- Tie bar elongation sensor drift - requires recalibration\n- Mold thickness setting incorrect after a mold change  \n\n\n## Resolution Steps:  \n1. Stop the cycle immediately - do not inject into an inadequately clamped mold.\n2. Check the hydraulic system pressure gauge - clamping pressure must be between 13 and 16 MPa during clamp-up. If low, refer to E-06 for hydraulic pressure fault procedures.\n3. If hydraulic pressure is normal, check the mold thickness setting in the machine parameters - after any mold change, the mold thickness must be re-entered correctly and the clamping force recalibrated.\n4. To recalibrate clamping force: navigate to Setup → Mold Clamping → Auto-Calibrate and follow the on-screen procedure. This takes approximately 3 minutes.\n5. If the error persists after recalibration with correct hydraulic pressure, the tie bar elongation sensors require inspection. Contact the equipment engineering team.",
+        "metadata": {
+            "Section": "Error Code E-04 - Clamping Force Not Reached",
+            "machine_id": "INJECTION_MOLDING_MACHINE",
+            "source_file": "INJECTION_MOLDING_MACHINE.pdf",
+            "section_id": "Error Code E-04 - Clamping Force Not Reached",
+            "page_start": 6,
+            "page_number": 6,
+            "is_safety": false,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "E-04",
+            "cross_references": [
+                "E-06"
+            ]
+        }
+    },
+    {
+        "chunk_id": 8,
+        "content": "## Error Code E-05 - Screw Rotation Fault  \nDescription: The screw has failed to complete the plasticating (recovery) stroke within the set recovery time. The next shot cannot be prepared.\n\n## Common causes:  \n- Material bridging in the hopper - no material feeding to the screw\n- Back pressure set too high for the material being processed\n- Screw drive motor overload - material too cold or too viscous\n\n## Resolution Steps:  \n1. Check the material hopper - confirm material is present and flowing freely. Bridging is common with hygroscopic materials or pellets stored in humid conditions. Break up any bridge manually using the hopper rod.\n2. Check barrel temperatures - if the material is too cold, the screw torque requirement increases. Increase zone temperatures by 5°C and wait 3 minutes for temperatures to stabilise before retrying.\n3. Reduce back pressure setting by 2 MPa and attempt recovery.\n4. If the screw still does not complete recovery, check the screw drive motor load on the diagnostics screen. If load is above 90%, stop and contact the equipment engineering team - forced operation risks screw damage.",
+        "metadata": {
+            "Section": "Error Code E-05 - Screw Rotation Fault",
+            "machine_id": "INJECTION_MOLDING_MACHINE",
+            "source_file": "INJECTION_MOLDING_MACHINE.pdf",
+            "section_id": "Error Code E-05 - Screw Rotation Fault",
+            "page_start": 6,
+            "page_number": 6,
+            "is_safety": false,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "E-05",
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 9,
+        "content": "## Error Code E-06 - Hydraulic System Pressure Fault  \nDescription: The hydraulic system pressure has dropped below 10 MPa or exceeded 18 MPa. Both conditions prevent safe machine operation.\n\n## Common causes (low pressure):  \n  \n- Hydraulic pump wear - reduced output capacity\n- Internal hydraulic circuit leak - pressure relief valve stuck open\n- Hydraulic oil level critically low\n\n## Common causes (high pressure):  \n- Pressure relief valve stuck closed or set point too high\n- Blocked hydraulic line or valve\n\n## Resolution Steps:  \n1. Check the hydraulic oil level immediately - if critically low, stop the machine and do not restart until oil is topped up to the correct level with the specified grade (see Appendix C).\n2. Note whether the fault is low pressure or high pressure from the alarm display.\n3. For low pressure: check all accessible hydraulic line connections for visible leaks oil pooling under the machine or wet fittings indicate a leak. Tag the machine and contact the equipment engineering team.\n4. For high pressure: do not attempt to adjust the pressure relief valve setting without authorisation. Stop the machine and contact the equipment engineering team immediately.\n5. Do not restart the machine with an unresolved hydraulic pressure fault - hydraulic failure under load can cause rapid mold opening and serious injury.",
+        "metadata": {
+            "Section": "Error Code E-06 - Hydraulic System Pressure Fault",
+            "machine_id": "INJECTION_MOLDING_MACHINE",
+            "source_file": "INJECTION_MOLDING_MACHINE.pdf",
+            "section_id": "Error Code E-06 - Hydraulic System Pressure Fault",
+            "page_start": 7,
+            "page_number": 7,
+            "is_safety": true,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "E-06",
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 10,
+        "content": "## Error Code E-07 - Cooling Water Flow Fault  \nDescription: The cooling water flow rate to the mold has dropped below the minimum threshold. Parts produced without adequate mold cooling will have dimensional and surface quality issues.\n\n## Common causes:  \n- Cooling water supply valve partially closed\n- Mold cooling channels blocked with scale deposits\n- Cooling water pump fault at the facility level\n\n## Resolution Steps:  \n1. Check the cooling water supply valve at the machine - confirm it is fully open.\n2. Check the flow meter reading - must be above 20 litres per minute. If below, check whether other machines on the same cooling line are also affected (facility pump issue).\n3. If only this machine is affected, disconnect the mold cooling hoses and check for blockage by briefly opening the supply valve into a bucket - flow should be strong and unobstructed.",
+        "metadata": {
+            "Section": "Error Code E-07 - Cooling Water Flow Fault",
+            "machine_id": "INJECTION_MOLDING_MACHINE",
+            "source_file": "INJECTION_MOLDING_MACHINE.pdf",
+            "section_id": "Error Code E-07 - Cooling Water Flow Fault",
+            "page_start": 8,
+            "page_number": 10,
+            "is_safety": false,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "E-07",
+            "cross_references": []
+        }
+    }
+]

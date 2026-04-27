@@ -25,7 +25,7 @@ def test_manual_processing() -> None:
     """Run the full PDF → Markdown → Chunks → JSON pipeline and validate output."""
 
     # Fix #10: underscore filename to match file on disk
-    test_pdf = "data/uploads/LASER CUTTING MACHINE.pdf"
+    test_pdf = "data/uploads/INJECTION MOLDING MACHINE.pdf"
 
     if not os.path.exists(test_pdf):
         print(f"❌ Error: PDF not found at '{test_pdf}'")

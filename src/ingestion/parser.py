@@ -1,4 +1,21 @@
+"""
+parser.py — PDF → Markdown with [PAGE_BREAK:N] page sentinels.
+
+Fixes applied (Round 1):
+  #7  Per-page export uses join() instead of concatenation to prevent content
+      duplication at page boundaries.  Empty pages emit a sentinel placeholder
+      so page numbering stays gapless for the chunker.
+
+The [PAGE_BREAK:N] sentinel encodes the physical PDF page number (1-based).
+It does NOT reflect any printed page number inside the document — PDFs
+without visible page numbers are handled correctly because the sentinel
+is injected by the parser, not read from the document content.
+"""
+
+from __future__ import annotations
+
 import os
+
 from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling.datamodel.pipeline_options import PdfPipelineOptions
 from docling.datamodel.base_models import InputFormat
@@ -6,28 +23,27 @@ from docling.datamodel.base_models import InputFormat
 
 def convert_to_markdown(pdf_path: str) -> str:
     """
-    Converts a PDF to a single markdown string with [PAGE_BREAK:N] sentinels
-    injected at every page boundary.
+    Convert a PDF file to a single markdown string.
 
-    The sentinel is consumed by the chunker to track which PDF page each
-    chunk originated from. Page numbers here reflect physical PDF page
-    positions (1-based), NOT any printed page numbers inside the document.
+    A [PAGE_BREAK:N] sentinel is injected before each page's content so that
+    chunker.py can track which physical PDF page each chunk originated from.
 
     Args:
-        pdf_path: Absolute or relative path to the source PDF file.
+        pdf_path: Absolute or relative path to the source PDF.
 
     Returns:
-        A markdown string with [PAGE_BREAK:N] markers between pages.
+        A markdown string with [PAGE_BREAK:N] markers separating pages.
 
     Raises:
-        FileNotFoundError: If the PDF does not exist at the given path.
-        RuntimeError: If docling fails to convert the document.
+        FileNotFoundError: If no file exists at *pdf_path*.
+        RuntimeError:      If docling fails to convert the document or returns
+                           zero pages.
     """
     if not os.path.exists(pdf_path):
         raise FileNotFoundError(f"PDF not found at: {pdf_path}")
 
     pipeline_options = PdfPipelineOptions()
-    pipeline_options.do_ocr = False          # Keep off for speed/memory
+    pipeline_options.do_ocr = False           # keep off for speed / memory
     pipeline_options.do_table_structure = True
 
     converter = DocumentConverter(
@@ -38,35 +54,32 @@ def convert_to_markdown(pdf_path: str) -> str:
 
     try:
         result = converter.convert(pdf_path)
-    except Exception as e:
-        raise RuntimeError(f"Docling conversion failed for '{pdf_path}': {e}") from e
+    except Exception as exc:
+        raise RuntimeError(
+            f"Docling conversion failed for '{pdf_path}': {exc}"
+        ) from exc
 
     pages = list(result.document.pages)
     if not pages:
         raise RuntimeError(f"Docling returned no pages for '{pdf_path}'.")
 
+    # Fix #7: build segments list then join — avoids accidental duplication
+    # from repeated string concatenation, and keeps the logic clear.
     segments: list[str] = []
 
     for page_no, _page in enumerate(pages, start=1):
-        # --- FIX (Issue #7): export per page and deduplicate ---
-        # export_to_markdown(page_no=N) scopes output to that page.
-        # Docling may emit the same element on two adjacent pages when it
-        # straddles a page boundary. We keep a set of seen content hashes
-        # so cross-boundary duplicates never enter the final text.
+        # Always emit the sentinel first, even for empty pages, so the
+        # chunker's page counter is never missing a number.
+        segments.append(f"[PAGE_BREAK:{page_no}]")
+
         try:
             page_md = result.document.export_to_markdown(page_no=page_no)
         except Exception:
-            # If a specific page export fails, emit an empty placeholder
-            # so page numbering stays consistent for the chunker.
-            page_md = ""
+            # If a single page export fails, skip its content but keep the
+            # sentinel so downstream page numbering remains consistent.
+            continue
 
-        # Strip surrounding whitespace so empty pages don't add noise
         page_md = page_md.strip()
-
-        # Always inject the sentinel first, even for empty pages, so that
-        # the chunker's page counter never skips a number.
-        segments.append(f"[PAGE_BREAK:{page_no}]")
-
         if page_md:
             segments.append(page_md)
 
