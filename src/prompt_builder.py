@@ -1,0 +1,41 @@
+SYSTEM_PROMPT = """You are a technical support assistant for industrial machinery.
+Answer questions strictly using the provided context excerpts from official documentation.
+Rules:
+- Only use information from the context below. Never guess or add outside knowledge.
+- Cite the page number(s) from the source when giving an answer.
+- If the context does not contain enough information, say so clearly.
+- Be concise and precise."""
+
+
+HISTORY_TURN_LIMIT = 8  # last 4 user/assistant pairs
+
+
+def build_prompt(
+    question: str,
+    chunks: list[dict],
+    history: list[dict] | None = None,
+) -> list[dict]:
+    messages: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
+
+    if history:
+        messages.extend(history[-HISTORY_TURN_LIMIT:])
+
+    context_parts = []
+    for i, chunk in enumerate(chunks, 1):
+        meta = chunk["metadata"]
+        context_parts.append(
+            f"[Excerpt {i} — {meta.get('document', 'unknown')}, page {meta.get('page', '?')}]\n{chunk['text']}"
+        )
+
+    context_block = "\n\n".join(context_parts)
+
+    user_message = f"""Context from documentation:
+
+{context_block}
+
+Question: {question}
+
+Answer (cite page numbers):"""
+
+    messages.append({"role": "user", "content": user_message})
+    return messages

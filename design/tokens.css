@@ -1,0 +1,126 @@
+/* SmartFix — Design Tokens
+ * Tecdia brand identity: cyan-teal primary, white canvas, deep slate structure.
+ * Aesthetic: industrial elegance — restraint, generous whitespace, semantic colour only when meaningful.
+ */
+
+:root {
+  /* ── Brand ───────────────────────────────────────────────────── */
+  --color-brand-50:  #E0F7FA;
+  --color-brand-100: #B2EBF2;
+  --color-brand-200: #80DEEA;
+  --color-brand-300: #4DD0E1;
+  --color-brand-400: #26C6DA;
+  --color-brand-500: #00ACC1; /* Tecdia primary cyan-teal */
+  --color-brand-600: #0097A7;
+  --color-brand-700: #00838F;
+  --color-brand-800: #006978;
+  --color-brand-900: #004D5C;
+
+  /* ── Slate (structural / typographic neutrals) ───────────────── */
+  --color-slate-50:  #F8FAFC;
+  --color-slate-100: #F1F5F9;
+  --color-slate-200: #E2E8F0;
+  --color-slate-300: #CBD5E1;
+  --color-slate-400: #94A3B8;
+  --color-slate-500: #64748B;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1E293B;
+  --color-slate-900: #0F172A;
+  --color-slate-950: #0A1218;
+
+  /* ── Semantic ────────────────────────────────────────────────── */
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error:   #DC2626;
+  --color-info:    var(--color-brand-500);
+
+  /* ── Light theme aliases ─────────────────────────────────────── */
+  --bg:               #FFFFFF;
+  --bg-subtle:        var(--color-slate-50);
+  --bg-muted:         var(--color-slate-100);
+  --surface:          #FFFFFF;
+  --surface-raised:   #FFFFFF;
+  --border:           var(--color-slate-200);
+  --border-strong:    var(--color-slate-300);
+
+  --text-primary:     var(--color-slate-900);
+  --text-secondary:   var(--color-slate-600);
+  --text-muted:       var(--color-slate-400);
+  --text-on-brand:    #FFFFFF;
+
+  --accent:           var(--color-brand-500);
+  --accent-hover:     var(--color-brand-600);
+  --accent-subtle:    var(--color-brand-50);
+  --accent-ring:      rgba(0, 172, 193, 0.35);
+
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+
+  /* ── Typography ──────────────────────────────────────────────── */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+
+  --font-size-xs:   12px;
+  --font-size-sm:   14px;
+  --font-size-base: 16px;
+  --font-size-lg:   18px;
+  --font-size-xl:   22px;
+  --font-size-2xl:  28px;
+  --font-size-3xl:  36px;
+
+  --line-height-tight: 1.2;
+  --line-height-base:  1.5;
+  --line-height-relaxed: 1.7;
+
+  /* ── Geometry ────────────────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --easing: cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+
+/* ── Dark theme ───────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg:               var(--color-slate-950);
+  --bg-subtle:        var(--color-slate-900);
+  --bg-muted:         var(--color-slate-800);
+  --surface:          #131C24;
+  --surface-raised:   #1A2530;
+  --border:           var(--color-slate-800);
+  --border-strong:    var(--color-slate-700);
+
+  --text-primary:     #F1F5F9;
+  --text-secondary:   var(--color-slate-400);
+  --text-muted:       var(--color-slate-500);
+  --text-on-brand:    var(--color-slate-950);
+
+  --accent:           #22D3EE;       /* brighter for dark contrast */
+  --accent-hover:     #67E8F9;
+  --accent-subtle:    rgba(34, 211, 238, 0.12);
+  --accent-ring:      rgba(34, 211, 238, 0.4);
+
+  --color-success: #34D399;
+  --color-warning: #FBBF24;
+  --color-error:   #F87171;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+}

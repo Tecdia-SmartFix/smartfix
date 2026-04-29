@@ -4,7 +4,11 @@ langchain-text-splitters
 langchain-openai
 langchain-community
 qdrant-client
-fastapi
-uvicorn
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
 streamlit
-python-dotenv
+python-dotenv>=1.0.0
+chromadb>=0.5.0
+sentence-transformers>=3.0.0
+groq>=0.9.0
+pydantic>=2.0.0
