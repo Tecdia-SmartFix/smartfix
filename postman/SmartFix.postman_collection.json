@@ -1,0 +1,396 @@
+{
+  "info": {
+    "name": "SmartFix API v2",
+    "description": "Live API for SmartFix — Tecdia machine troubleshooting RAG. Updated post-meeting (2026-05-02) to cover worker domain sessions, machine category/significance fields, severity scoring on /query, and the new alerts API.\n\nServer must be running locally on http://127.0.0.1:8000 (see README for `uvicorn` command).\n\nFolders are organized in demo order — start at the top of each folder and work down.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",          "value": "http://127.0.0.1:8000" },
+    { "key": "machine_filter",    "value": "INJECTION_MOLDING_MACHINE" },
+    { "key": "worker_domain",     "value": "Manufacturing" },
+    { "key": "job_id",            "value": "" },
+    { "key": "machine_to_delete", "value": "HP-500" }
+  ],
+  "item": [
+    {
+      "name": "0 · Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Liveness probe. No auth. Returns `{status, version}`. Run this first to confirm the server is up."
+          }
+        }
+      ]
+    },
+    {
+      "name": "1 · Auth — Worker (domain selector)",
+      "item": [
+        {
+          "name": "POST /auth/worker-session",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"domain\": \"{{worker_domain}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/worker-session",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "worker-session"]
+            },
+            "description": "Open a worker session by selecting an expertise domain. No email needed — the workstation is trusted by physical presence.\n\nAllowed values for `domain`: `General`, `Manufacturing`, `Additive Manufacturing`, `Fabrication`, `Automation`, `Heavy Machinery`, `All Access`.\n\nSets cookie `worker_session` (HttpOnly, SameSite=Lax, 12h TTL). Postman captures the cookie automatically — subsequent requests in this folder will be treated as a worker."
+          }
+        },
+        {
+          "name": "POST /auth/worker-session — invalid domain",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"domain\": \"Marketing\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/worker-session",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "worker-session"]
+            },
+            "description": "Sends an unknown domain. Server rejects with 400 in the contract envelope: `{detail, code: 'invalid_domain'}`."
+          }
+        },
+        {
+          "name": "GET /auth/me — as worker",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Run after `/auth/worker-session`. Returns `{authenticated, role: 'worker', domain, email: null, session_expires_at}`.\n\nThe frontend uses this as the single source of truth for the current user — never assume how the user authenticated."
+          }
+        },
+        {
+          "name": "POST /auth/logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Clears the worker session cookie + in-memory session. Returns `{ok: true}`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 · Auth — Admin (magic link, stub)",
+      "item": [
+        {
+          "name": "POST /auth/request-link",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"kana@tecdia.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/request-link",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "request-link"]
+            },
+            "description": "Step 1 of magic-link login (managers/admins). Always returns 200 so attackers can't enumerate valid emails.\n\n**Stub:** does not actually send mail yet. Awaiting Tecdia domain decision for Resend/SMTP."
+          }
+        },
+        {
+          "name": "GET /auth/verify (stub — accepts any token)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/verify?token=demo-token",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "verify"],
+              "query": [{ "key": "token", "value": "demo-token" }]
+            },
+            "description": "Step 2 of magic-link login: user clicks the email link. Server validates the token, sets a session cookie, redirects to `/`.\n\n**Stub:** accepts any token."
+          }
+        },
+        {
+          "name": "GET /auth/me — as admin (no worker cookie)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "When there is no worker_session cookie, the stub returns the admin user. Returns `{authenticated, email, role: 'admin', domain: 'All Access', session_expires_at}`.\n\nFlip `STUB_ROLE` in src/api.py to test alternate paths.\n\n**Tip:** if you ran `/auth/worker-session` first, run `/auth/logout` to clear the worker cookie before hitting this."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 · Worker (chat)",
+      "item": [
+        {
+          "name": "GET /machines",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/machines",
+              "host": ["{{base_url}}"],
+              "path": ["machines"]
+            },
+            "description": "Returns the list of machines available for the worker. Each machine includes `id`, `display_name`, `chunk_count`, `description`, `category`, `significance` (1–5), and `icon`.\n\nWorkers should only see machines whose `category` matches their domain (or all machines if domain is `All Access`). Admins see all machines."
+          }
+        },
+        {
+          "name": "POST /query — factual (real chunks)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What is the maximum clamping force of this machine?\",\n  \"machine_filter\": \"{{machine_filter}}\",\n  \"history\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/query",
+              "host": ["{{base_url}}"],
+              "path": ["query"]
+            },
+            "description": "Real RAG: retrieve → prompt → Groq → cited answer.\n\nResponse now includes:\n- `severity_level` (1–5, LLM-assessed)\n- `alert_score` (severity × machine_significance)\n- `machine_significance` (echoed)\n- `alert_fired` (bool — true if score ≥ ALERT_THRESHOLD, default 12)\n\nFor a factual query like this, expect low severity (1–2) and no alert fired."
+          }
+        },
+        {
+          "name": "POST /query — error code lookup (likely fires alert)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What does error code E-04 indicate and how do I resolve it?\",\n  \"machine_filter\": \"{{machine_filter}}\",\n  \"history\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/query",
+              "host": ["{{base_url}}"],
+              "path": ["query"]
+            },
+            "description": "Multi-step troubleshooting. Returns a structured procedure with page references.\n\nINJECTION_MOLDING_MACHINE has machine_significance=5; if the LLM rates severity as 3+ (likely), alert_score ≥ 15 and `alert_fired: true`. Check `/admin/alerts` after this to see the auto-created record."
+          }
+        },
+        {
+          "name": "POST /query — follow-up (chat memory)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"How do I fix it?\",\n  \"machine_filter\": \"{{machine_filter}}\",\n  \"history\": [\n    {\"role\": \"user\",      \"content\": \"What does error code E-06 mean?\"},\n    {\"role\": \"assistant\", \"content\": \"Error E-06 indicates a hydraulic system pressure fault.\"}\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/query",
+              "host": ["{{base_url}}"],
+              "path": ["query"]
+            },
+            "description": "Demonstrates conversation memory. The bare question 'How do I fix it?' would be ambiguous on its own; with history, retrieval correctly pulls the E-06 chunk and the LLM answers with the full E-06 procedure."
+          }
+        },
+        {
+          "name": "POST /query — out-of-scope (honest refusal)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Who is the prime minister of India?\",\n  \"machine_filter\": \"{{machine_filter}}\",\n  \"history\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/query",
+              "host": ["{{base_url}}"],
+              "path": ["query"]
+            },
+            "description": "Demonstrates the refusal discipline: the model declines to answer and explains that the documentation only covers the indexed machines.\n\nExpected severity: 1 (informational). Expected alert_fired: false."
+          }
+        },
+        {
+          "name": "POST /query — domain access denied (run after worker-session=Manufacturing)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What is the max cutting power?\",\n  \"machine_filter\": \"LASER_CUTTING_MACHINE\",\n  \"history\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/query",
+              "host": ["{{base_url}}"],
+              "path": ["query"]
+            },
+            "description": "Demonstrates domain-based access control.\n\nPrerequisite: open a worker session with domain=Manufacturing (folder 1).\n\nLASER_CUTTING_MACHINE has category=Fabrication. The Manufacturing worker is denied with 403 in the contract envelope: `{detail, code: 'access_denied'}`.\n\nIf you skipped the worker session, this request will pass through (admin/no-cookie callers are not gated)."
+          }
+        },
+        {
+          "name": "POST /query — validation error (oversize)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\n  \"machine_filter\": \"{{machine_filter}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/query",
+              "host": ["{{base_url}}"],
+              "path": ["query"]
+            },
+            "description": "600-character question. Pydantic rejects with 422 in the contract envelope: `{detail, code: 'validation_error'}`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 · Admin — Machines",
+      "item": [
+        {
+          "name": "GET /admin/machines",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/machines",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "machines"]
+            },
+            "description": "Admin view of /machines. Includes everything in the worker view (category, significance, description, icon) plus admin-only fields: `uploaded_at`, `uploaded_by`, `pdf_size_bytes`."
+          }
+        },
+        {
+          "name": "POST /admin/machines (upload PDF + new fields)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 202) {",
+                  "  const data = pm.response.json();",
+                  "  pm.collectionVariables.set('job_id', data.job_id);",
+                  "  console.log('Captured job_id:', data.job_id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file",          "type": "file", "src": [] },
+                { "key": "machine_id",    "type": "text", "value": "DEMO_NEW_MACHINE" },
+                { "key": "display_name",  "type": "text", "value": "Demo New Machine" },
+                { "key": "description",   "type": "text", "value": "Demo machine added from Postman" },
+                { "key": "category",      "type": "text", "value": "Manufacturing" },
+                { "key": "significance",  "type": "text", "value": "3" },
+                { "key": "icon",          "type": "file", "src": [], "disabled": true }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/machines",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "machines"]
+            },
+            "description": "Multipart upload. Pick any PDF file in the `file` row before sending.\n\nNew form fields per v2 contract:\n- `description` (string, optional) — shown on machine card\n- `category` (string, optional, default 'General') — used for worker domain access control\n- `significance` (int 1–5, optional, default 3) — business impact\n- `icon` (file, optional) — enable the row to upload an icon\n\nReturns 202 with a `job_id`; the test script captures it into the `job_id` collection variable so the next request works automatically.\n\nDuplicate machine_id returns 409 in the contract envelope. Significance outside 1–5 returns 422."
+          }
+        },
+        {
+          "name": "GET /admin/jobs/:job_id (poll)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/jobs/{{job_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "jobs", "{{job_id}}"]
+            },
+            "description": "Poll this every ~2 seconds after upload. Returns status across the lifecycle: queued → parsing → chunking → embedding → indexing → done. Stub progresses over ~10s for demo purposes (real ingestion takes longer)."
+          }
+        },
+        {
+          "name": "DELETE /admin/machines/:machine_id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/machines/{{machine_to_delete}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "machines", "{{machine_to_delete}}"]
+            },
+            "description": "Remove a machine and all its indexed chunks. Default target is the demo fixture HP-500 — change `machine_to_delete` variable to delete something else.\n\nReal endpoint — actually deletes from ChromaDB and clears the machine's metadata."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 · Admin — Alerts",
+      "item": [
+        {
+          "name": "GET /admin/alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/alerts",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "alerts"]
+            },
+            "description": "List all alerts (newest first) plus the active alert threshold.\n\nAlert records are auto-created by `/query` when `severity_level × machine_significance ≥ ALERT_THRESHOLD` (default 12).\n\nEach alert: `{alert_id, machine_id, score, severity_level, machine_significance, question, answer_excerpt, email_notified, notified_at}`. Matches the shape rendered in the admin UI's Critical Fault Alerts panel."
+          }
+        },
+        {
+          "name": "POST /admin/alerts/test (inject synthetic alert)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/alerts/test",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "alerts", "test"]
+            },
+            "description": "Injects a synthetic alert into the in-memory store. Useful for verifying the email pipeline once it's wired (currently `email_notified` is a stub flag).\n\nReturns 201 with the created alert record."
+          }
+        },
+        {
+          "name": "DELETE /admin/alerts (clear all)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/alerts",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "alerts"]
+            },
+            "description": "Clears the alert history. Maps to the 'Clear All History' button in the admin UI. Returns `{ok: true, cleared: <count>}`."
+          }
+        }
+      ]
+    }
+  ]
+}

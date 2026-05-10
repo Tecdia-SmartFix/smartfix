@@ -7,3 +7,8 @@ venv/
 *.egg-info/
 dist/
 build/
+
+# Claude Code local context — not shared
+CLAUDE.md
+.claude/
+

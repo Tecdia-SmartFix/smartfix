@@ -1,3 +1,4 @@
+import os
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -5,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import Cookie, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -23,6 +24,44 @@ ml_models: dict = {}
 # In-memory job store for the /admin/jobs stub. Replaced with a real queue
 # (RQ + Redis) when we cloud-deploy.
 _jobs: dict[str, dict] = {}
+
+# Worker domain sessions: cookie value → {domain, created_at}.
+# Replaced with proper session storage when auth is hardened.
+_worker_sessions: dict[str, dict] = {}
+
+# Per-machine metadata captured at admin upload time. Until ingestion is real,
+# this also seeds metadata for the existing indexed machines.
+_machine_metadata: dict[str, dict] = {
+    "INJECTION_MOLDING_MACHINE": {
+        "description": "Tecdia injection molding line — IMM-750 series.",
+        "category": "Manufacturing",
+        "significance": 5,
+        "icon": None,
+    },
+    "LASER_CUTTING_MACHINE": {
+        "description": "Tecdia precision laser cutter — LC-2040 series.",
+        "category": "Fabrication",
+        "significance": 4,
+        "icon": None,
+    },
+}
+
+# Alert log (in-memory). Each entry matches the shape rendered in the admin UI.
+_alerts: list[dict] = []
+
+ALERT_THRESHOLD = int(os.getenv("ALERT_THRESHOLD", "12"))
+DEFAULT_SIGNIFICANCE = 3
+
+# Allowed worker domains. "All Access" bypasses the per-machine domain check.
+ALLOWED_DOMAINS = {
+    "General",
+    "Manufacturing",
+    "Additive Manufacturing",
+    "Fabrication",
+    "Automation",
+    "Heavy Machinery",
+    "All Access",
+}
 
 
 @asynccontextmanager
@@ -112,17 +151,78 @@ class QueryResponse(BaseModel):
     status: str
     answer: str
     sources: list[Source]
+    severity_level: int = 1
+    alert_score: int = 0
+    machine_significance: int = DEFAULT_SIGNIFICANCE
+    alert_fired: bool = False
+
+
+def _domain_allows_machine(domain: str, machine_id: str) -> bool:
+    if domain == "All Access":
+        return True
+    machine_category = _machine_metadata.get(machine_id, {}).get("category")
+    if not machine_category:
+        return True  # unknown category — fail open for now, tighten when ingestion is real
+    return machine_category == domain
 
 
 @app.post("/query", response_model=QueryResponse)
-async def query(req: QueryRequest):
-    return run_query(
+async def query(
+    req: QueryRequest,
+    worker_session: Optional[str] = Cookie(default=None),
+):
+    # Domain access control: only enforced for actual worker sessions.
+    # Admin / unauthenticated callers (Postman, curl) are not gated yet.
+    if worker_session and worker_session in _worker_sessions and req.machine_filter:
+        domain = _worker_sessions[worker_session]["domain"]
+        if not _domain_allows_machine(domain, req.machine_filter):
+            raise APIError(
+                403,
+                f"Machine '{req.machine_filter}' is not in your domain '{domain}'",
+                "access_denied",
+            )
+
+    result = run_query(
         question=req.question,
         embedder=ml_models["embedder"],
         collection=ml_models["collection"],
         machine_filter=req.machine_filter,
         history=[t.model_dump() for t in req.history] if req.history else None,
     )
+
+    severity = result.get("severity_level", 1)
+    machine_sig = (
+        _machine_metadata.get(req.machine_filter, {}).get(
+            "significance", DEFAULT_SIGNIFICANCE
+        )
+        if req.machine_filter
+        else DEFAULT_SIGNIFICANCE
+    )
+    alert_score = severity * machine_sig
+    alert_fired = False
+
+    if alert_score >= ALERT_THRESHOLD and result.get("status") == "success":
+        alert_fired = True
+        _alerts.append(
+            {
+                "alert_id": f"alert_{uuid.uuid4().hex[:8]}",
+                "machine_id": req.machine_filter or "unknown",
+                "score": alert_score,
+                "severity_level": severity,
+                "machine_significance": machine_sig,
+                "question": req.question,
+                "answer_excerpt": result["answer"][:280],
+                "email_notified": True,  # stub: email send wired when Resend is set up
+                "notified_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+
+    return {
+        **result,
+        "alert_score": alert_score,
+        "machine_significance": machine_sig,
+        "alert_fired": alert_fired,
+    }
 
 
 # ── /machines ──────────────────────────────────────────────────────────────
@@ -148,8 +248,17 @@ def _list_machines_basic() -> list[dict]:
         display_name = DISPLAY_NAME_OVERRIDES.get(
             machine_id, machine_id.replace("_", " ").title()
         )
+        meta = _machine_metadata.get(machine_id, {})
         machines.append(
-            {"id": machine_id, "display_name": display_name, "chunk_count": count}
+            {
+                "id": machine_id,
+                "display_name": display_name,
+                "chunk_count": count,
+                "description": meta.get("description", ""),
+                "category": meta.get("category", "General"),
+                "significance": meta.get("significance", DEFAULT_SIGNIFICANCE),
+                "icon": meta.get("icon"),
+            }
         )
     return machines
 
@@ -194,13 +303,62 @@ async def auth_verify(token: str):
     return response
 
 
+class WorkerSessionBody(BaseModel):
+    domain: str
+
+
+@app.post("/auth/worker-session")
+async def auth_worker_session(body: WorkerSessionBody):
+    if body.domain not in ALLOWED_DOMAINS:
+        raise APIError(400, f"Invalid domain '{body.domain}'", "invalid_domain")
+
+    session_id = f"ws_{uuid.uuid4().hex}"
+    _worker_sessions[session_id] = {
+        "domain": body.domain,
+        "created_at": datetime.now(timezone.utc),
+    }
+    response = JSONResponse(
+        {
+            "authenticated": True,
+            "role": "worker",
+            "domain": body.domain,
+            "email": None,
+        }
+    )
+    response.set_cookie(
+        "worker_session",
+        session_id,
+        httponly=True,
+        samesite="lax",
+        max_age=60 * 60 * 12,  # 12 hours, matches a working day
+    )
+    return response
+
+
 @app.get("/auth/me")
-async def auth_me():
-    # Stub: returns a fixture user. Real version reads the session cookie.
+async def auth_me(
+    worker_session: Optional[str] = Cookie(default=None),
+    stub_session: Optional[str] = Cookie(default=None),
+):
+    # Worker (domain-selector) session takes precedence
+    if worker_session and worker_session in _worker_sessions:
+        s = _worker_sessions[worker_session]
+        return {
+            "authenticated": True,
+            "role": "worker",
+            "domain": s["domain"],
+            "email": None,
+            "session_expires_at": (
+                s["created_at"] + timedelta(hours=12)
+            ).isoformat(),
+        }
+
+    # Manager / admin session (still stubbed via magic-link endpoints)
     return {
         "authenticated": True,
         "email": STUB_EMAIL,
         "role": STUB_ROLE,
+        "domain": "All Access" if STUB_ROLE == "admin" else "General",
         "session_expires_at": (
             datetime.now(timezone.utc) + timedelta(days=30)
         ).isoformat(),
@@ -208,9 +366,14 @@ async def auth_me():
 
 
 @app.post("/auth/logout")
-async def auth_logout():
+async def auth_logout(
+    worker_session: Optional[str] = Cookie(default=None),
+):
+    if worker_session:
+        _worker_sessions.pop(worker_session, None)
     response = JSONResponse({"ok": True})
     response.delete_cookie("stub_session")
+    response.delete_cookie("worker_session")
     return response
 
 
@@ -222,13 +385,27 @@ async def admin_create_machine(
     file: UploadFile = File(...),
     machine_id: str = Form(...),
     display_name: str = Form(...),
+    description: str = Form(""),
+    category: str = Form("General"),
+    significance: int = Form(DEFAULT_SIGNIFICANCE),
+    icon: Optional[UploadFile] = File(None),
 ):
     if file.size and file.size > 50 * 1024 * 1024:
         raise APIError(413, "File exceeds 50 MB", "file_too_large")
 
+    if not 1 <= significance <= 5:
+        raise APIError(422, "significance must be 1–5", "validation_error")
+
     existing = {m["id"] for m in _list_machines_basic()}
     if machine_id in existing:
         raise APIError(409, "Machine already exists", "machine_exists")
+
+    _machine_metadata[machine_id] = {
+        "description": description,
+        "category": category,
+        "significance": significance,
+        "icon": icon.filename if icon else None,
+    }
 
     job_id = f"job_{uuid.uuid4().hex[:8]}"
     _jobs[job_id] = {
@@ -301,4 +478,38 @@ async def admin_delete_machine(machine_id: str):
     if not ids:
         raise APIError(404, "Machine not found", "not_found")
     collection.delete(ids=ids)
+    _machine_metadata.pop(machine_id, None)
     return {"ok": True, "deleted_chunks": len(ids)}
+
+
+# ── /admin/alerts ──────────────────────────────────────────────────────────
+
+
+@app.get("/admin/alerts")
+async def admin_list_alerts():
+    # Newest first — matches the UI rendering order
+    return {"alerts": list(reversed(_alerts)), "threshold": ALERT_THRESHOLD}
+
+
+@app.delete("/admin/alerts")
+async def admin_clear_alerts():
+    cleared = len(_alerts)
+    _alerts.clear()
+    return {"ok": True, "cleared": cleared}
+
+
+@app.post("/admin/alerts/test", status_code=201)
+async def admin_test_alert():
+    test_alert = {
+        "alert_id": f"alert_{uuid.uuid4().hex[:8]}",
+        "machine_id": "INJECTION_MOLDING_MACHINE",
+        "score": 15,
+        "severity_level": 5,
+        "machine_significance": 3,
+        "question": "TEST — synthetic alert for setup verification",
+        "answer_excerpt": "This is a test alert. Email pipeline can be verified here.",
+        "email_notified": False,
+        "notified_at": datetime.now(timezone.utc).isoformat(),
+    }
+    _alerts.append(test_alert)
+    return test_alert
