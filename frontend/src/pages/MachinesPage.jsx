@@ -43,14 +43,14 @@ const MachinesPage = () => {
 
     if (!matchesSearch) return false;
 
-    // 2. Expertise filter
-    if (user.expertise === 'All Access') return true;
-    
+    // 2. Domain filter (per API contract — AuthContext exposes user.domain)
+    if (user.domain === 'All Access') return true;
+
     // Always show General machines
     if (m.category === 'General') return true;
 
-    // Show machines matching user expertise
-    return m.category === user.expertise;
+    // Show machines matching the worker's domain
+    return m.category === user.domain;
   });
 
   return (

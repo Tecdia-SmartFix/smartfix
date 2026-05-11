@@ -119,11 +119,15 @@ const ChatPage = () => {
     setIsLoading(true);
 
     try {
+      // Per API contract: machine_filter is Optional[str]. Omit it entirely for
+      // "All Machines" — sending a sentinel like 'ALL' would mismatch every chunk.
       const body = {
         question: questionText,
-        machine_filter: dynamicMachine?.id || 'ALL',
         history: queryHistory, // [{role, content}] — last N turns, server caps at 8
       };
+      if (dynamicMachine?.id) {
+        body.machine_filter = dynamicMachine.id;
+      }
 
       const data = await fetchApi('/query', {
         method: 'POST',

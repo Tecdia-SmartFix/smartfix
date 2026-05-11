@@ -45,7 +45,7 @@ const COLOR_OPTIONS = [
   { label: 'Theme Blue', value: 'text-tecdia-accent', glow: 'rgba(0,169,255,0.15)', border: 'hover:border-tecdia-accent/40', dot: 'bg-tecdia-accent' },
 ];
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB — matches backend cap (API_CONTRACT §4.3)
 const ALLOWED_TYPES = {
   'application/pdf': 'pdf',
   'image/jpeg': 'image',
@@ -191,7 +191,8 @@ const AdminDashboard = () => {
     if (form.description) fd.append('description',  form.description);
     if (form.category)    fd.append('category',     form.category);
     fd.append('significance', String(form.significance));
-    if (form.iconFile)    fd.append('icon',         form.iconFile);
+    // Backend expects a Lucide icon name string (e.g. "Printer"), not an image File.
+    if (form.icon)        fd.append('icon',         form.icon);
     const result = await addMachine(fd);
     setIsSubmitting(false);
     if (result.success) {
@@ -233,7 +234,8 @@ const AdminDashboard = () => {
   };
 
   const PreviewIcon = ICON_MAP[form.icon] || Settings2;
-  const isDefault = (id) => ['all','injection','printer','laser','robot','hydraulic'].includes(id);
+  // Default seeded machines — match backend `_machine_metadata` slugs in src/api.py.
+  const isDefault = (id) => ['INJECTION_MOLDING_MACHINE', 'LASER_CUTTING_MACHINE'].includes(id);
 
   return (
     <div className="min-h-screen text-tecdia-text pt-[76px]">

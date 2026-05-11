@@ -6,9 +6,25 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/auth': 'http://localhost:8000',
-      '/admin': 'http://localhost:8000',
-      '/machines': 'http://localhost:8000',
+      // ── Backend-only paths (no React route at the same URL) ──
+      '/auth':           'http://localhost:8000',
+      '/admin/machines': 'http://localhost:8000',
+      '/admin/jobs':     'http://localhost:8000',
+      '/admin/alerts':   'http://localhost:8000',
+      '/query':          'http://localhost:8000',
+      '/health':         'http://localhost:8000',
+
+      // ── SPA-vs-API collision: /machines is both a React route and a backend GET.
+      // Serve the SPA when the browser asks for HTML; proxy to the API otherwise.
+      '/machines': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        bypass(req) {
+          if (req.method === 'GET' && req.headers.accept?.includes('text/html')) {
+            return '/index.html';
+          }
+        },
+      },
     }
   }
 })

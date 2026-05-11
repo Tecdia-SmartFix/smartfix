@@ -36,13 +36,14 @@ _machine_metadata: dict[str, dict] = {
         "description": "Tecdia injection molding line — IMM-750 series.",
         "category": "Manufacturing",
         "significance": 5,
-        "icon": None,
+        # Lucide icon name; frontend resolves via ICON_MAP. Filename strings would also work for future image-based icons.
+        "icon": "Factory",
     },
     "LASER_CUTTING_MACHINE": {
         "description": "Tecdia precision laser cutter — LC-2040 series.",
         "category": "Fabrication",
         "significance": 4,
-        "icon": None,
+        "icon": "Scissors",
     },
 }
 
@@ -388,7 +389,8 @@ async def admin_create_machine(
     description: str = Form(""),
     category: str = Form("General"),
     significance: int = Form(DEFAULT_SIGNIFICANCE),
-    icon: Optional[UploadFile] = File(None),
+    # Lucide icon name string (e.g. "Printer"). Frontend resolves via ICON_MAP.
+    icon: Optional[str] = Form(None),
 ):
     if file.size and file.size > 50 * 1024 * 1024:
         raise APIError(413, "File exceeds 50 MB", "file_too_large")
@@ -404,7 +406,7 @@ async def admin_create_machine(
         "description": description,
         "category": category,
         "significance": significance,
-        "icon": icon.filename if icon else None,
+        "icon": icon,
     }
 
     job_id = f"job_{uuid.uuid4().hex[:8]}"
