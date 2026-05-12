@@ -13,6 +13,9 @@ import ChatPage from './pages/ChatPage';
 import MachinesPage from './pages/MachinesPage';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import FeaturesPage from './pages/FeaturesPage';
+import IntegrationsPage from './pages/IntegrationsPage';
+import CookiePolicy from './pages/CookiePolicy';
 
 /**
  * Wraps <ChatPage /> with a React `key` derived from the ?machine= URL param.
@@ -42,6 +45,10 @@ const AnimatedRoutes = () => {
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           <Route path="/"             element={<LandingPage />} />
+          <Route path="/features"     element={<FeaturesPage />} />
+          <Route path="/integrations" element={<IntegrationsPage />} />
+          <Route path="/cookie-policy" element={<CookiePolicy />} />
+          <Route path="/integration"  element={<IntegrationsPage />} />
           <Route path="/machines"     element={<MachinesPage />} />
           <Route path="/chat"         element={<ChatRoute />} />
           <Route path="/admin/login"  element={<AdminLogin />} />

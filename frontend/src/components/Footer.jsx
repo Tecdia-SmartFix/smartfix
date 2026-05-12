@@ -25,11 +25,12 @@ const Footer = () => (
       <div>
         <h4 className="text-sm font-bold text-tecdia-textDeep mb-5 uppercase tracking-widest">Product</h4>
         <ul className="space-y-3 text-sm text-tecdia-text/60">
-          {['Features', 'Integrations', 'Enterprise', 'Pricing'].map(item => (
-            <li key={item}>
-              <a href="#" className="transition-colors duration-200 hover:text-tecdia-accent">{item}</a>
-            </li>
-          ))}
+          <li>
+            <Link to="/features" className="transition-colors duration-200 hover:text-tecdia-accent">Features</Link>
+          </li>
+          <li>
+            <Link to="/integrations" className="transition-colors duration-200 hover:text-tecdia-accent">Integrations</Link>
+          </li>
         </ul>
       </div>
 
@@ -37,7 +38,10 @@ const Footer = () => (
       <div>
         <h4 className="text-sm font-bold text-tecdia-textDeep mb-5 uppercase tracking-widest">Company</h4>
         <ul className="space-y-3 text-sm text-tecdia-text/60">
-          {['About Us', 'Careers', 'Privacy Policy', 'Terms of Service'].map(item => (
+          <li>
+            <Link to="/cookie-policy" className="transition-colors duration-200 hover:text-tecdia-accent">Cookie Policy</Link>
+          </li>
+          {['Privacy Policy', 'Terms of Service'].map(item => (
             <li key={item}>
               <a href="#" className="transition-colors duration-200 hover:text-tecdia-accent">{item}</a>
             </li>

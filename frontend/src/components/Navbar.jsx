@@ -38,11 +38,9 @@ const Navbar = () => {
   
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-7">
-            {['Features', 'About'].map(item => (
-              <Link key={item} to="/"
-                className="text-sm font-medium text-tecdia-text/60 hover:text-tecdia-accent transition-colors duration-200"
-              >{item}</Link>
-            ))}
+            <Link to="/features"
+              className="text-sm font-medium text-tecdia-text/60 hover:text-tecdia-accent transition-colors duration-200"
+            >Features</Link>
   
             <div className="h-4 w-px bg-tecdia-border" />
   
@@ -81,8 +79,8 @@ const Navbar = () => {
             transition={{ duration: 0.2 }}
             className="md:hidden absolute top-[76px] left-4 right-4 rounded-2xl p-6 flex flex-col gap-4 bg-tecdia-surface border border-tecdia-border shadow-xl backdrop-blur-xl"
           >
-            <Link to="/" onClick={() => setIsMenuOpen(false)} className="text-sm font-medium text-tecdia-text/60 hover:text-tecdia-accent transition-colors">Features</Link>
-            <Link to="/" onClick={() => setIsMenuOpen(false)} className="text-sm font-medium text-tecdia-text/60 hover:text-tecdia-accent transition-colors">About</Link>
+            <Link to="/features" onClick={() => setIsMenuOpen(false)} className="text-sm font-medium text-tecdia-text/60 hover:text-tecdia-accent transition-colors">Features</Link>
+
             <hr className="border-tecdia-border" />
             <Link to="/admin/login" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 text-sm font-medium text-tecdia-accent/70 hover:text-tecdia-accent transition-colors">
               <ShieldCheck size={14} /> Admin Login
