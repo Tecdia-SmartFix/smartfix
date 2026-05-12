@@ -1,4 +1,6 @@
 import os
+import tempfile
+import threading
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -381,6 +383,73 @@ async def auth_logout(
 # ── /admin (stubs) ─────────────────────────────────────────────────────────
 
 
+def _run_ingestion(job_id: str, machine_id: str, pdf_path: str, filename: str):
+    """
+    Background thread: parse PDF → embed chunks → store in ChromaDB.
+    Updates _jobs[job_id] at each stage so the frontend poll reflects real progress.
+    Cleans up the temp file when done.
+    """
+    def _update(status, step, progress, error=None):
+        _jobs[job_id].update({
+            "status": status,
+            "step": step,
+            "progress": progress,
+            "error": error,
+            "finished_at": datetime.now(timezone.utc).isoformat() if status in ("done", "failed") else None,
+        })
+
+    try:
+        # ── Stage 1: Parse PDF → chunks ────────────────────────────────────
+        _update("parsing", "Parsing PDF", 0.1)
+        from .ingestion.parser_chunker import process_and_chunk
+        chunks = process_and_chunk(pdf_path, filename, machine_id=machine_id)
+
+        if not chunks:
+            _update("failed", "No content extracted from PDF", 0.0, "empty_pdf")
+            return
+
+        _update("chunking", f"Chunked into {len(chunks)} sections", 0.4)
+
+        # ── Stage 2: Embed ─────────────────────────────────────────────────
+        _update("embedding", "Embedding chunks", 0.6)
+        embedder = ml_models["embedder"]
+        texts = [c["text"] for c in chunks]
+        embeddings = embedder.encode(texts, batch_size=32, show_progress_bar=False)
+
+        # ── Stage 3: Index into ChromaDB ───────────────────────────────────
+        _update("indexing", "Indexing into database", 0.85)
+        collection = ml_models["collection"]
+
+        ids, docs, metas, vecs = [], [], [], []
+        for i, (chunk, emb) in enumerate(zip(chunks, embeddings)):
+            meta = chunk.get("metadata", {})
+            # ChromaDB rejects None values and lists — sanitise
+            clean_meta = {"machine": machine_id}
+            for k, v in meta.items():
+                if isinstance(v, (str, int, float, bool)):
+                    clean_meta[k] = v
+                elif isinstance(v, list) and v:
+                    clean_meta[k] = str(v[0])  # page_numbers list → first page
+            ids.append(f"{machine_id}_chunk_{i}")
+            docs.append(chunk["text"])
+            metas.append(clean_meta)
+            vecs.append(emb.tolist())
+
+        collection.add(ids=ids, embeddings=vecs, documents=docs, metadatas=metas)
+        _update("done", f"Complete — {len(chunks)} chunks indexed", 1.0)
+
+    except Exception as exc:
+        import traceback
+        traceback.print_exc()
+        _update("failed", "Ingestion error", 0.0, str(exc))
+    finally:
+        # Always clean up temp file
+        try:
+            os.unlink(pdf_path)
+        except OSError:
+            pass
+
+
 @app.post("/admin/machines", status_code=202)
 async def admin_create_machine(
     file: UploadFile = File(...),
@@ -389,7 +458,6 @@ async def admin_create_machine(
     description: str = Form(""),
     category: str = Form("General"),
     significance: int = Form(DEFAULT_SIGNIFICANCE),
-    # Lucide icon name string (e.g. "Printer"). Frontend resolves via ICON_MAP.
     icon: Optional[str] = Form(None),
 ):
     if file.size and file.size > 50 * 1024 * 1024:
@@ -402,6 +470,13 @@ async def admin_create_machine(
     if machine_id in existing:
         raise APIError(409, "Machine already exists", "machine_exists")
 
+    # Save uploaded PDF to a temp file the background thread can read
+    contents = await file.read()
+    suffix = ".pdf"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(contents)
+        tmp_path = tmp.name
+
     _machine_metadata[machine_id] = {
         "description": description,
         "category": category,
@@ -411,12 +486,27 @@ async def admin_create_machine(
 
     job_id = f"job_{uuid.uuid4().hex[:8]}"
     _jobs[job_id] = {
+        "job_id": job_id,
         "machine_id": machine_id,
         "display_name": display_name,
+        "status": "queued",
+        "step": "Queued",
+        "progress": 0.0,
         "started_at": datetime.now(timezone.utc),
+        "finished_at": None,
+        "error": None,
         "uploaded_by": STUB_EMAIL,
-        "pdf_size_bytes": file.size or 0,
+        "pdf_size_bytes": len(contents),
     }
+
+    # Kick off real ingestion in a background thread (non-blocking)
+    thread = threading.Thread(
+        target=_run_ingestion,
+        args=(job_id, machine_id, tmp_path, file.filename or f"{machine_id}.pdf"),
+        daemon=True,
+    )
+    thread.start()
+
     return {"job_id": job_id, "status": "queued"}
 
 
@@ -426,38 +516,15 @@ async def admin_get_job(job_id: str):
     if not job:
         raise APIError(404, "Job not found", "not_found")
 
-    elapsed = (datetime.now(timezone.utc) - job["started_at"]).total_seconds()
-
-    # Stub: simulate progression over ~10s so the frontend can exercise
-    # its polling UX without real ingestion latency.
-    if elapsed < 1:
-        status, step, progress = "queued", "Queued", 0.0
-    elif elapsed < 3:
-        status, step, progress = "parsing", "Parsing PDF", 0.2
-    elif elapsed < 5:
-        status, step, progress = "chunking", "Chunking text", 0.4
-    elif elapsed < 7:
-        status, step, progress = "embedding", "Embedding chunks", 0.7
-    elif elapsed < 9:
-        status, step, progress = "indexing", "Indexing", 0.9
-    else:
-        status, step, progress = "done", "Complete", 1.0
-
-    finished_at = (
-        (job["started_at"] + timedelta(seconds=9)).isoformat()
-        if status == "done"
-        else None
-    )
-
     return {
         "job_id": job_id,
         "machine_id": job["machine_id"],
-        "status": status,
-        "step": step,
-        "progress": progress,
-        "started_at": job["started_at"].isoformat(),
-        "finished_at": finished_at,
-        "error": None,
+        "status": job["status"],
+        "step": job.get("step", ""),
+        "progress": job.get("progress", 0.0),
+        "started_at": job["started_at"].isoformat() if isinstance(job["started_at"], datetime) else job["started_at"],
+        "finished_at": job.get("finished_at"),
+        "error": job.get("error"),
     }
 
 
