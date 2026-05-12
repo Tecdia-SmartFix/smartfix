@@ -1,10 +1,10 @@
 import os
-import tempfile
 import threading
 import time
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, EmailStr, Field
 from sentence_transformers import SentenceTransformer
 
+from . import workstations
 from .db import get_chroma_collection
 from .rag_pipeline import run_query
 
@@ -55,6 +56,12 @@ _alerts: list[dict] = []
 ALERT_THRESHOLD = int(os.getenv("ALERT_THRESHOLD", "12"))
 DEFAULT_SIGNIFICANCE = 3
 
+# Archive location for uploaded PDFs. Each new machine is stored as
+# `{machine_id}.pdf` so it can be re-ingested, audited, or downloaded later.
+# Replaces the previous tempfile-then-delete flow.
+UPLOADS_DIR = Path("./data/uploads")
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
 # Allowed worker domains. "All Access" bypasses the per-machine domain check.
 ALLOWED_DOMAINS = {
     "General",
@@ -72,6 +79,9 @@ async def lifespan(app: FastAPI):
     start = time.time()
     ml_models["embedder"] = SentenceTransformer("all-MiniLM-L6-v2")
     ml_models["collection"] = get_chroma_collection()
+    # Workstation IP→machine bindings (see src/workstations.py + data/workstations.json).
+    # Loaded once at startup; restart uvicorn after editing the bindings file.
+    workstations.load_bindings()
     print(f"startup complete in {time.time() - start:.2f}s", flush=True)
     yield
     ml_models.clear()
@@ -169,14 +179,43 @@ def _domain_allows_machine(domain: str, machine_id: str) -> bool:
     return machine_category == domain
 
 
+def _caller_ip(request: Request) -> str:
+    """Best-effort caller-IP resolution for workstation binding.
+
+    Honors X-Forwarded-For (first hop = originating client) when present, so
+    deployments behind nginx/caddy keep working. Falls back to the immediate
+    socket peer. CORS is dev-permissive today; tighten when deploying.
+    """
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
 @app.post("/query", response_model=QueryResponse)
 async def query(
     req: QueryRequest,
+    request: Request,
     worker_session: Optional[str] = Cookie(default=None),
 ):
-    # Domain access control: only enforced for actual worker sessions.
-    # Admin / unauthenticated callers (Postman, curl) are not gated yet.
-    if worker_session and worker_session in _worker_sessions and req.machine_filter:
+    # ── Workstation-binding enforcement (authoritative) ────────────────────
+    # If the caller's IP is registered in data/workstations.json, force the
+    # query to filter on the bound machine — even if the frontend sent a
+    # different machine_filter (stale tab, tampered request, etc.). Chunk
+    # isolation in ChromaDB is guaranteed via retriever.py's `where=` clause.
+    bound_machine = workstations.get_binding(_caller_ip(request))
+    if bound_machine:
+        if req.machine_filter and req.machine_filter != bound_machine:
+            print(
+                f"workstation override: ip={_caller_ip(request)} "
+                f"sent machine_filter={req.machine_filter!r}, "
+                f"forcing to {bound_machine!r}",
+                flush=True,
+            )
+        req.machine_filter = bound_machine
+        # Domain check is redundant once IP is authoritative — skip it.
+    elif worker_session and worker_session in _worker_sessions and req.machine_filter:
+        # Unbound IP — keep existing worker-session-based domain gate.
         domain = _worker_sessions[worker_session]["domain"]
         if not _domain_allows_machine(domain, req.machine_filter):
             raise APIError(
@@ -271,6 +310,60 @@ async def list_machines():
     return {"machines": _list_machines_basic()}
 
 
+# ── /workstation ───────────────────────────────────────────────────────────
+
+
+@app.get("/workstation")
+async def get_workstation(request: Request):
+    """Resolve the caller's IP to a bound machine (if any).
+
+    The frontend hits this once on app mount. If `bound: true`, it skips
+    LandingPage + MachinesPage and routes straight into the bound machine's
+    chat. If `bound: false`, the existing domain+machine selector flow runs.
+
+    Side effect on a successful bind: a worker_session cookie is created
+    so the immediate next /query (or /auth/me) has a valid session without
+    requiring an explicit domain pick from the worker.
+    """
+    ip = _caller_ip(request)
+    machine_id = workstations.get_binding(ip)
+    if not machine_id:
+        return {"bound": False, "ip": ip}
+
+    machine = next(
+        (m for m in _list_machines_basic() if m["id"] == machine_id), None
+    )
+    if not machine:
+        # Binding points at a machine that isn't indexed — log and fail open
+        # so a typo in workstations.json doesn't brick the workstation.
+        print(
+            f"workstation: bound machine {machine_id!r} not found in index "
+            f"for ip={ip}; treating as unbound",
+            flush=True,
+        )
+        return {"bound": False, "ip": ip, "error": "bound_machine_missing"}
+
+    session_id = f"ws_{uuid.uuid4().hex}"
+    _worker_sessions[session_id] = {
+        # Match the bound machine's category so any future domain check passes.
+        "domain": machine.get("category") or "General",
+        "machine_id": machine_id,
+        "workstation_ip": ip,
+        "created_at": datetime.now(timezone.utc),
+    }
+    response = JSONResponse(
+        {"bound": True, "ip": ip, "machine": machine}
+    )
+    response.set_cookie(
+        "worker_session",
+        session_id,
+        httponly=True,
+        samesite="lax",
+        max_age=60 * 60 * 12,  # 12h, matches a working day
+    )
+    return response
+
+
 # ── /auth (stubs — wired up when real auth lands) ──────────────────────────
 #
 # These satisfy the API contract shape so the frontend can integrate against
@@ -343,7 +436,7 @@ async def auth_me(
     worker_session: Optional[str] = Cookie(default=None),
     stub_session: Optional[str] = Cookie(default=None),
 ):
-    # Worker (domain-selector) session takes precedence
+    # Worker (domain-selector or workstation-bound) session takes precedence
     if worker_session and worker_session in _worker_sessions:
         s = _worker_sessions[worker_session]
         return {
@@ -351,6 +444,10 @@ async def auth_me(
             "role": "worker",
             "domain": s["domain"],
             "email": None,
+            # Populated only for workstation-bound sessions (created via /workstation).
+            # Null for sessions created via /auth/worker-session (domain selector).
+            "machine_id": s.get("machine_id"),
+            "workstation_ip": s.get("workstation_ip"),
             "session_expires_at": (
                 s["created_at"] + timedelta(hours=12)
             ).isoformat(),
@@ -387,7 +484,8 @@ def _run_ingestion(job_id: str, machine_id: str, pdf_path: str, filename: str):
     """
     Background thread: parse PDF → embed chunks → store in ChromaDB.
     Updates _jobs[job_id] at each stage so the frontend poll reflects real progress.
-    Cleans up the temp file when done.
+    The PDF at `pdf_path` is archived under UPLOADS_DIR and intentionally kept on disk
+    (success or failure) so admins can re-ingest, audit, or download the original.
     """
     def _update(status, step, progress, error=None):
         _jobs[job_id].update({
@@ -442,12 +540,7 @@ def _run_ingestion(job_id: str, machine_id: str, pdf_path: str, filename: str):
         import traceback
         traceback.print_exc()
         _update("failed", "Ingestion error", 0.0, str(exc))
-    finally:
-        # Always clean up temp file
-        try:
-            os.unlink(pdf_path)
-        except OSError:
-            pass
+    # PDF is intentionally NOT deleted — it stays in data/uploads/ for re-ingest/audit.
 
 
 @app.post("/admin/machines", status_code=202)
@@ -470,18 +563,20 @@ async def admin_create_machine(
     if machine_id in existing:
         raise APIError(409, "Machine already exists", "machine_exists")
 
-    # Save uploaded PDF to a temp file the background thread can read
+    # Archive uploaded PDF under data/uploads/{machine_id}.pdf so it can be
+    # re-ingested or audited later. Overwrites if the same machine_id is re-added
+    # after a delete.
     contents = await file.read()
-    suffix = ".pdf"
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        tmp.write(contents)
-        tmp_path = tmp.name
+    pdf_path = UPLOADS_DIR / f"{machine_id}.pdf"
+    pdf_path.write_bytes(contents)
 
     _machine_metadata[machine_id] = {
         "description": description,
         "category": category,
         "significance": significance,
         "icon": icon,
+        # Original filename the admin uploaded — useful for display/audit.
+        "original_filename": file.filename or f"{machine_id}.pdf",
     }
 
     job_id = f"job_{uuid.uuid4().hex[:8]}"
@@ -502,7 +597,7 @@ async def admin_create_machine(
     # Kick off real ingestion in a background thread (non-blocking)
     thread = threading.Thread(
         target=_run_ingestion,
-        args=(job_id, machine_id, tmp_path, file.filename or f"{machine_id}.pdf"),
+        args=(job_id, machine_id, str(pdf_path), file.filename or f"{machine_id}.pdf"),
         daemon=True,
     )
     thread.start()
@@ -548,6 +643,13 @@ async def admin_delete_machine(machine_id: str):
         raise APIError(404, "Machine not found", "not_found")
     collection.delete(ids=ids)
     _machine_metadata.pop(machine_id, None)
+
+    # Remove the archived PDF if we have one for this machine.
+    # Seeded machines (uploaded outside the admin flow) may not have a
+    # `{machine_id}.pdf` on disk — that's fine, missing_ok handles it.
+    archived_pdf = UPLOADS_DIR / f"{machine_id}.pdf"
+    archived_pdf.unlink(missing_ok=True)
+
     return {"ok": True, "deleted_chunks": len(ids)}
 
 

@@ -1,7 +1,13 @@
 import os
 from groq import Groq, APIError, APIConnectionError, RateLimitError
 
-MODEL = "llama-3.3-70b-versatile"
+# llama-3.1-8b-instant on Groq: ~30K tokens/min on the free tier vs
+# llama-3.3-70b-versatile's 12K tokens/min — fewer rate-limit hits during
+# active testing/use, much faster TTFT, and good enough for RAG paraphrasing
+# where the model is summarizing retrieved chunks, not reasoning from scratch.
+# Flip back to "llama-3.3-70b-versatile" if you need richer reasoning and can
+# tolerate the lower throughput.
+MODEL = "llama-3.1-8b-instant"
 MAX_TOKENS = 512
 TEMPERATURE = 0.1
 

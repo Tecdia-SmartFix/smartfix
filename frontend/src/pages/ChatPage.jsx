@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
 import MessageContent from '../components/MessageContent';
 import { useChatHistory } from '../hooks/useChatHistory';
 import { useChatSession } from '../hooks/useChatSession';
+import { useWorkstation } from '../hooks/useWorkstation';
 import {
   Bot, Plus, User, Send, Mic, MicOff, Menu, Settings2,
   Printer, Scissors, Wrench, Gauge, X, FileText, Cpu, Factory,
@@ -59,15 +60,35 @@ const ChatPage = () => {
   const { machines } = useMachines();
   const { user } = useAuth();
   const { refreshAlerts } = useAlerts();
+  const ws = useWorkstation();
 
-  // useChatHistory manages the sidebar chat list (multi-session, localStorage)
-  const { chats, currentChatId, currentChat, setCurrentChatId, createNewChat, addMessage, deleteChat } = useChatHistory();
+  // Canonical per-machine key used to namespace chat history + session storage.
+  // Matches the wrapper key in App.jsx ChatRoute so storage layout stays in sync
+  // with the React remount boundary.
+  const machineParam = searchParams.get('machine');
+  const machineKey = (machineParam || 'ALL').replace(/[^A-Za-z0-9]+/g, '_').toUpperCase();
 
-  // useChatSession manages the /query history array (15-min idle, smartfix.history)
-  const { history: queryHistory, appendTurn, clearHistory: clearQueryHistory, updateLastActivity } = useChatSession();
+  // useChatHistory manages the sidebar chat list (multi-session, localStorage), per machine
+  const { chats, currentChatId, currentChat, setCurrentChatId, createNewChat, addMessage, deleteChat } = useChatHistory(machineKey);
 
-  const machineName = searchParams.get('machine') || 'All Machines';
-  const dynamicMachine = machines.find(m => m.name === machineName || m.display_name === machineName);
+  // useChatSession manages the /query history array (15-min idle, smartfix.history), per machine
+  const { history: queryHistory, appendTurn, clearHistory: clearQueryHistory, updateLastActivity } = useChatSession(machineKey);
+
+  const machineName = machineParam || 'All Machines';
+  const dynamicMachine = machines.find(
+    m => m.name === machineName || m.display_name === machineName || m.id === machineParam
+  );
+
+  // ── Workstation binding guard ──
+  // If this client's IP is bound to a machine, force the URL to point at that
+  // machine. Computed here (no early return — Rules of Hooks) and acted on
+  // after all hooks have been declared, just below.
+  const workstationRedirectTo = (() => {
+    if (!(ws.bound && ws.machine?.id)) return null;
+    const onCorrectMachine =
+      machineParam === ws.machine.id || machineName === ws.machine.display_name;
+    return onCorrectMachine ? null : ws.machine.id;
+  })();
 
   // ── Access control (uses user.domain per contract) ──────────────────────
   const hasAccess =
@@ -222,6 +243,11 @@ const ChatPage = () => {
     recognition.start();
   }, [isListening]);
 
+  // ── Workstation redirect (after all hooks, per Rules of Hooks) ───────────
+  if (workstationRedirectTo) {
+    return <Navigate to={`/chat?machine=${encodeURIComponent(workstationRedirectTo)}`} replace />;
+  }
+
   // ── Access denied screen ─────────────────────────────────────────────────
   if (!hasAccess) {
     return (
@@ -235,9 +261,16 @@ const ChatPage = () => {
             Your current domain (<span className="font-bold text-tecdia-accent">{user.domain}</span>)
             does not grant access to the <span className="font-bold">{machineName}</span> diagnostics.
           </p>
-          <Link to="/machines" className="btn-primary flex items-center gap-2">
-            <ArrowLeft size={18} /> Back to Machines
-          </Link>
+          {ws.bound ? (
+            // Bound workstation — nowhere to go back to; surface a contact hint instead.
+            <p className="text-tecdia-text/50 text-sm">
+              Contact your shift manager if you believe this workstation is mis-configured.
+            </p>
+          ) : (
+            <Link to="/machines" className="btn-primary flex items-center gap-2">
+              <ArrowLeft size={18} /> Back to Machines
+            </Link>
+          )}
         </div>
       </PageWrapper>
     );
@@ -257,8 +290,12 @@ const ChatPage = () => {
         />
 
         <main className="flex-1 flex flex-col relative h-full w-full overflow-hidden">
-          {/* ── Header ── */}
-          <header className="h-16 flex items-center justify-between px-4 border-b border-tecdia-border bg-white/40 backdrop-blur-md relative z-20">
+          {/* ── Header ──
+              shrink-0 is essential: when the textarea auto-grows as the user
+              types a multi-line follow-up, the input bar (shrink-0, growing)
+              competes with this header for space inside <main>. Without
+              shrink-0 the header gets collapsed to 0px by flex distribution. */}
+          <header className="h-16 shrink-0 flex items-center justify-between px-4 border-b border-tecdia-border bg-white/40 backdrop-blur-md relative z-20">
             <div className="flex items-center gap-4">
               <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 text-tecdia-text/60 hover:text-tecdia-text">
                 <Menu size={20} />
@@ -283,8 +320,16 @@ const ChatPage = () => {
               </div>
             </div>
 
-            {/* Start Over button */}
-            {currentChat && currentChat.messages.length > 0 && (
+            {/* Chat actions — always visible so the user can branch / reset
+                regardless of conversation state or sidebar visibility. */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={createNewChat}
+                title="Start a new chat thread for this machine"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-tecdia-text/60 hover:text-tecdia-accent hover:bg-tecdia-accent/5 border border-transparent hover:border-tecdia-accent/20 transition-all"
+              >
+                <Plus size={13} /> New chat
+              </button>
               <button
                 onClick={handleStartOver}
                 title="Clear session history and start a new conversation"
@@ -292,11 +337,14 @@ const ChatPage = () => {
               >
                 <RefreshCw size={13} /> Start over
               </button>
-            )}
+            </div>
           </header>
 
-          {/* ── Messages ── */}
-          <div className="flex-1 overflow-y-auto pt-4 flex flex-col items-center">
+          {/* ── Messages ──
+              min-h-0 is essential: without it the flex child won't shrink below
+              its content size, so the scroll viewport overflows the parent and
+              bleeds behind the input bar. */}
+          <div className="flex-1 min-h-0 overflow-y-auto pt-4 flex flex-col items-center">
             {!currentChat || currentChat.messages.length === 0 ? (
               /* Empty state with suggestions */
               <div className="flex-1 flex flex-col items-center justify-center -mt-16 px-4 w-full">
@@ -334,7 +382,7 @@ const ChatPage = () => {
               </div>
             ) : (
               /* Message list */
-              <div className="w-full max-w-3xl px-4 space-y-8 pb-36">
+              <div className="w-full max-w-3xl px-4 space-y-8 pb-6">
                 <AnimatePresence>
                   {currentChat.messages.map((message) => (
                     <motion.div key={message.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -432,8 +480,12 @@ const ChatPage = () => {
             )}
           </div>
 
-          {/* ── Input Bar ── */}
-          <div className="absolute bottom-0 left-0 w-full p-4 md:p-6 bg-gradient-to-t from-tecdia-surface/20 via-transparent to-transparent z-10">
+          {/* ── Input Bar ──
+              Normal flex child (no absolute positioning) so the scroll area
+              above it has a real bottom boundary. Transparent background —
+              the form pill (bg-white) is the only thing that visually sits
+              on top of the page gradient. */}
+          <div className="shrink-0 w-full px-4 md:px-6 pt-2 pb-0 bg-transparent">
             <div className="max-w-3xl mx-auto">
               <form onSubmit={handleSend}
                 className="input-glow glass p-2 pl-4 pr-2 rounded-2xl border flex items-end gap-2 bg-white transition-all duration-300 shadow-lg">
@@ -472,7 +524,7 @@ const ChatPage = () => {
                   </button>
                 </div>
               </form>
-              <p className="text-[11px] text-center mt-2.5 text-tecdia-text/40 font-medium">
+              <p className="text-[10px] text-center mt-1 text-tecdia-text/40 font-medium">
                 Tecdia SmartFix can make mistakes. Always verify critical decisions with a qualified engineer.
               </p>
             </div>

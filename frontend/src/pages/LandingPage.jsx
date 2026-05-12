@@ -1,9 +1,10 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Zap, Wrench, ChevronRight, CheckCircle } from 'lucide-react';
 import Footer from '../components/Footer';
 import { useAuth, EXPERTISE_DOMAINS } from '../context/AuthContext';
+import { useWorkstation } from '../hooks/useWorkstation';
 import { Shield } from 'lucide-react';
 
 const fadeUp = (delay = 0) => ({
@@ -76,6 +77,21 @@ const PageWrapper = ({ children }) => (
 
 const LandingPage = () => {
   const { user, login } = useAuth();
+  const ws = useWorkstation();
+
+  // Workstation-bound IPs skip the landing+selector flow entirely and land
+  // straight in the chat for the bound machine. Unbound IPs (dev/admin) see
+  // the existing landing page below.
+  if (ws.loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-tecdia-text/60 text-sm">
+        Checking workstation…
+      </div>
+    );
+  }
+  if (ws.bound && ws.machine?.id) {
+    return <Navigate to={`/chat?machine=${encodeURIComponent(ws.machine.id)}`} replace />;
+  }
 
   return (
     <PageWrapper>

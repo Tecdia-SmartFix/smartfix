@@ -23,7 +23,7 @@ const Sidebar = ({
 
       <aside
         className={`
-          fixed md:relative z-40 w-[280px] h-screen flex flex-col border-r border-[#89CFF3] transition-transform duration-300 ease-in-out
+          fixed md:relative z-40 w-[280px] h-full flex flex-col border-r border-[#89CFF3] transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}
         style={{ background: '#A0E9FF' }}

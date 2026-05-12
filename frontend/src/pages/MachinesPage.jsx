@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Settings2, Printer, Scissors, Bot, Wrench, Gauge, Cpu,
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useMachines } from '../context/MachineContext';
 import { useAuth } from '../context/AuthContext';
+import { useWorkstation } from '../hooks/useWorkstation';
 import { ShieldAlert } from 'lucide-react';
 
 
@@ -31,7 +32,13 @@ const PageWrapper = ({ children }) => (
 const MachinesPage = () => {
   const { machines } = useMachines();
   const { user } = useAuth();
+  const ws = useWorkstation();
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Bound workstations don't get a picker — they go straight to their machine's chat.
+  if (ws.bound && ws.machine?.id) {
+    return <Navigate to={`/chat?machine=${encodeURIComponent(ws.machine.id)}`} replace />;
+  }
 
   const filteredMachines = machines.filter((m) => {
     // 1. Search filter

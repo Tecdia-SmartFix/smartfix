@@ -1,27 +1,32 @@
 /**
- * useChatSession — API Contract v2 §7 compliant chat history hook.
+ * useChatSession — API Contract v2 §7 compliant chat history hook, scoped per machine.
  *
- * Storage key : smartfix.history
+ * Storage key : smartfix.history:{machineKey}
  * Shape stored: { history: [{role, content}], lastActivity: number }
  * Idle expiry : 15 minutes of inactivity clears history on next app load.
  *
  * The `history` array is sent directly as the `history` field in POST /query.
  * Each turn is a { role: "user" | "assistant", content: string } object.
+ *
+ * Scoped per machine so follow-up context never leaks across machines — asking
+ * "and what about the next step?" on the laser-cutter chat must NOT carry an
+ * injection-molding question in as the prior turn.
  */
 
 import { useState, useEffect, useCallback } from 'react';
 
-const STORAGE_KEY = 'smartfix.history';
+const PREFIX = 'smartfix.history';
 const IDLE_MS = 15 * 60 * 1000; // 15 minutes
 
-const loadFromStorage = () => {
+const keyFor = (machineKey) => `${PREFIX}:${machineKey || 'ALL'}`;
+
+const loadFromStorage = (storageKey) => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey);
     if (!raw) return { history: [], lastActivity: Date.now() };
     const parsed = JSON.parse(raw);
-    // Expire if idle too long
     if (Date.now() - (parsed.lastActivity || 0) > IDLE_MS) {
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(storageKey);
       return { history: [], lastActivity: Date.now() };
     }
     return parsed;
@@ -30,21 +35,14 @@ const loadFromStorage = () => {
   }
 };
 
-export const useChatSession = () => {
-  const [session, setSession] = useState(() => loadFromStorage());
+export const useChatSession = (machineKey = 'ALL') => {
+  const storageKey = keyFor(machineKey);
+  const [session, setSession] = useState(() => loadFromStorage(storageKey));
 
-  // Persist to localStorage whenever session changes
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-  }, [session]);
+    localStorage.setItem(storageKey, JSON.stringify(session));
+  }, [session, storageKey]);
 
-  /**
-   * Append one user turn and one assistant turn after a successful /query response.
-   * Both are appended atomically so history is always in user/assistant pairs.
-   *
-   * @param {string} userContent     The question the user sent.
-   * @param {string} assistantContent The answer returned by the API.
-   */
   const appendTurn = useCallback((userContent, assistantContent) => {
     setSession(prev => ({
       history: [
@@ -56,23 +54,16 @@ export const useChatSession = () => {
     }));
   }, []);
 
-  /**
-   * Update lastActivity timestamp (call on every user interaction).
-   */
   const updateLastActivity = useCallback(() => {
     setSession(prev => ({ ...prev, lastActivity: Date.now() }));
   }, []);
 
-  /**
-   * "Start over" — clears history and storage.
-   */
   const clearHistory = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(storageKey);
     setSession({ history: [], lastActivity: Date.now() });
-  }, []);
+  }, [storageKey]);
 
   return {
-    /** Array of { role, content } — pass directly as `history` in POST /query body */
     history: session.history,
     appendTurn,
     updateLastActivity,

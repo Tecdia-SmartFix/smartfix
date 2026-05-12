@@ -1,18 +1,37 @@
 import { useState, useEffect } from 'react';
 
-const STORAGE_KEY = 'tecdia_chat_history';
+/**
+ * useChatHistory — sidebar chat list, scoped per machine.
+ *
+ * Storage key  : tecdia_chat_history:{machineKey}
+ * Lifetime     : persists in localStorage forever (until cleared by the user)
+ *
+ * Each machine gets its own isolated history — switching machines must remount
+ * this hook (via a React `key` prop on ChatPage) so we read fresh data from the
+ * new namespace. Without remount the `useState` initializer wouldn't re-run.
+ */
 
-export const useChatHistory = () => {
-  const [chats, setChats] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
-  });
-  
+const PREFIX = 'tecdia_chat_history';
+const keyFor = (machineKey) => `${PREFIX}:${machineKey || 'ALL'}`;
+
+const loadChats = (storageKey) => {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const useChatHistory = (machineKey = 'ALL') => {
+  const storageKey = keyFor(machineKey);
+
+  const [chats, setChats] = useState(() => loadChats(storageKey));
   const [currentChatId, setCurrentChatId] = useState(null);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
-  }, [chats]);
+    localStorage.setItem(storageKey, JSON.stringify(chats));
+  }, [chats, storageKey]);
 
   const currentChat = chats.find(c => c.id === currentChatId) || null;
 
@@ -31,12 +50,12 @@ export const useChatHistory = () => {
   const addMessage = (chatId, message) => {
     setChats(prevChats => prevChats.map(chat => {
       if (chat.id === chatId) {
-        const updatedMessages = [...chat.messages, { 
-          ...message, 
+        const updatedMessages = [...chat.messages, {
+          ...message,
           id: message.id || Date.now() + Math.random(),
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }];
-        
+
         // Update title if it's the first message
         let newTitle = chat.title;
         if (chat.messages.length === 0 && message.sender === 'user') {

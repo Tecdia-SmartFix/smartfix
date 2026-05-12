@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useSearchParams } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './context/AuthContext';
 import { AdminAuthProvider } from './context/AdminAuthContext';
@@ -14,6 +14,26 @@ import MachinesPage from './pages/MachinesPage';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 
+/**
+ * Wraps <ChatPage /> with a React `key` derived from the ?machine= URL param.
+ * Changing machines forces a full remount so the chat-history and chat-session
+ * hooks read from the new machine's localStorage namespace cleanly — no stale
+ * sidebar entries or follow-up context bleeding across machines.
+ *
+ * Normalizes display names ("Injection Molding Machine") and slugs
+ * ("INJECTION_MOLDING_MACHINE") to the same canonical key.
+ */
+const machineKeyFromParam = (param) =>
+  (param || 'ALL').replace(/[^A-Za-z0-9]+/g, '_').toUpperCase();
+
+const ChatRoute = () => {
+  const [params] = useSearchParams();
+  const machineKey = machineKeyFromParam(params.get('machine'));
+  return <ChatPage key={machineKey} />;
+};
+// (machineKeyFromParam is intentionally not exported — keeping App.jsx
+// component-only so Vite fast-refresh stays happy.)
+
 const AnimatedRoutes = () => {
   const location = useLocation();
   return (
@@ -23,7 +43,7 @@ const AnimatedRoutes = () => {
         <Routes location={location} key={location.pathname}>
           <Route path="/"             element={<LandingPage />} />
           <Route path="/machines"     element={<MachinesPage />} />
-          <Route path="/chat"         element={<ChatPage />} />
+          <Route path="/chat"         element={<ChatRoute />} />
           <Route path="/admin/login"  element={<AdminLogin />} />
           <Route path="/admin"        element={
             <ProtectedAdminRoute>
@@ -35,6 +55,7 @@ const AnimatedRoutes = () => {
     </>
   );
 };
+
 
 function App() {
   return (
