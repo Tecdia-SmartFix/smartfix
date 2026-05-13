@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
 import MessageContent from '../components/MessageContent';
 import { useChatHistory } from '../hooks/useChatHistory';
-import { useChatSession } from '../hooks/useChatSession';
 import { useWorkstation } from '../hooks/useWorkstation';
 import {
   Bot, Plus, User, Send, Mic, MicOff, Menu, Settings2,
@@ -71,8 +70,19 @@ const ChatPage = () => {
   // useChatHistory manages the sidebar chat list (multi-session, localStorage), per machine
   const { chats, currentChatId, currentChat, setCurrentChatId, createNewChat, addMessage, deleteChat } = useChatHistory(machineKey);
 
-  // useChatSession manages the /query history array (15-min idle, smartfix.history), per machine
-  const { history: queryHistory, appendTurn, clearHistory: clearQueryHistory, updateLastActivity } = useChatSession(machineKey);
+  // /query history is DERIVED from the current chat's messages, not stored
+  // separately. This makes context strictly per-chat: clicking "+ New chat"
+  // resets currentChat.messages to [] → queryHistory becomes [] → the LLM
+  // gets a clean slate, no bleed from previous chats on the same machine.
+  // Cap at last 8 messages (≈4 turns) to fit Groq's TPM budget. Recomputed
+  // every render — cheap, and the React Compiler will memoize if needed.
+  const queryHistory = (currentChat?.messages || [])
+    .filter(m => !m.isErrorMessage && m.text)
+    .slice(-8)
+    .map(m => ({
+      role: m.sender === 'user' ? 'user' : 'assistant',
+      content: m.text,
+    }));
 
   const machineName = machineParam || 'All Machines';
   const dynamicMachine = machines.find(
@@ -133,7 +143,6 @@ const ChatPage = () => {
     setInput('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setQueryError(null);
-    updateLastActivity();
 
     // Add user message to sidebar chat immediately
     addMessage(chatId, { text: questionText, sender: 'user' });
@@ -170,8 +179,8 @@ const ChatPage = () => {
         sources: data.sources || [],         // [{document, page}]
       });
 
-      // Append to query history for next request
-      appendTurn(questionText, aiText);
+      // (No separate appendTurn call — queryHistory derives from currentChat.messages,
+      // and addMessage above already updated them.)
 
       // If an alert was fired server-side, refresh the alert list
       if (data.alert_fired) {
@@ -213,10 +222,12 @@ const ChatPage = () => {
     }, 0);
   };
 
-  // ── "Start over" — clears smartfix.history (15-min session) ──────────────
+  // ── "Start over" — same effect as "+ New chat" now that queryHistory
+  // derives from currentChat.messages: a new chat = empty messages = empty
+  // history. Kept as a separate button for UX clarity (the worker reads it
+  // as "wipe the slate").
   const handleStartOver = () => {
-    clearQueryHistory();
-    if (currentChatId) createNewChat();
+    createNewChat();
   };
 
   // ── Voice input ──────────────────────────────────────────────────────────

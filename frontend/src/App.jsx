@@ -15,7 +15,10 @@ import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import FeaturesPage from './pages/FeaturesPage';
 import IntegrationsPage from './pages/IntegrationsPage';
-import CookiePolicy from './pages/CookiePolicy';
+// Filename intentionally has no "cookie"/"cookies" substring: ad blockers
+// (EasyList etc.) match any path containing those words and block the module
+// fetch, which would crash the whole React tree on mount.
+import CookiePolicy from './pages/LegalNotice';
 
 /**
  * Wraps <ChatPage /> with a React `key` derived from the ?machine= URL param.

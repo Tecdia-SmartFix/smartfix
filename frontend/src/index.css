@@ -154,6 +154,16 @@
 }
 
 
+/* Animated diagonal stripes for the ingestion progress bar
+   (matches the Elisa Design System in-progress treatment). */
+.ingestion-stripes {
+  animation: ingestion-stripes-move 1.2s linear infinite;
+}
+@keyframes ingestion-stripes-move {
+  from { background-position: 0 0; }
+  to   { background-position: 34px 0; }
+}
+
 /* ── Keyframes ── */
 @keyframes shimmer {
   0% {

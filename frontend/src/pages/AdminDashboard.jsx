@@ -98,31 +98,158 @@ const InputField = ({ label, ...props }) => (
 const toSlug = (name) =>
   name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 
-// Job status lifecycle labels
-const JOB_STEPS = { queued: 0, parsing: 20, chunking: 40, embedding: 60, indexing: 80, done: 100, failed: 0 };
+// Ingestion job lifecycle. Order matters — drives the stage display.
+const JOB_STAGES = [
+  { key: 'queued',    label: 'Queued',    pct: 0   },
+  { key: 'parsing',   label: 'Parsing',   pct: 20  },
+  { key: 'chunking',  label: 'Chunking',  pct: 40  },
+  { key: 'embedding', label: 'Embedding', pct: 65  },
+  { key: 'indexing',  label: 'Indexing',  pct: 85  },
+  { key: 'done',      label: 'Done',      pct: 100 },
+];
+const STAGE_PCT = Object.fromEntries(JOB_STAGES.map(s => [s.key, s.pct]));
 
+/**
+ * Ingestion progress, Elisa-style:
+ *   - Single horizontal bar with rounded ends, soft background, accent fill.
+ *   - Animated diagonal stripes overlay while the job is in-progress; turns
+ *     solid (no stripes) on done / failed.
+ *   - Stage chips beneath the bar light up as the job advances, so the worker
+ *     can see exactly which step is running.
+ *   - Header pill shows the active stage label + percentage.
+ *
+ * Reference: https://designsystem.elisa.fi/9b207b2c3/p/159293-progressbar
+ */
 const IngestionProgress = ({ job, onDismiss }) => {
   if (!job) return null;
   const isFailed = job.status === 'failed';
   const isDone   = job.status === 'done';
-  const pct      = isDone ? 100 : (job.progress != null ? Math.round(job.progress * 100) : JOB_STEPS[job.status] ?? 0);
+  const isActive = !isFailed && !isDone;
+  const pct      = isDone ? 100
+                 : (job.progress != null ? Math.round(job.progress * 100)
+                    : STAGE_PCT[job.status] ?? 0);
+  const currentStageIdx = JOB_STAGES.findIndex(s => s.key === job.status);
+  const headerLabel = isFailed
+    ? 'Ingestion failed'
+    : (JOB_STAGES.find(s => s.key === job.status)?.label || 'Working');
+
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
-      className={`mb-6 rounded-2xl border p-5 shadow-sm ${ isFailed ? 'bg-red-50 border-red-200' : isDone ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-tecdia-border' }`}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2 text-sm font-bold text-tecdia-textDeep">
-          {isFailed ? '❌' : isDone ? '✅' : '⚙️'}
-          {isFailed ? 'Ingestion failed' : isDone ? 'Machine added successfully!' : `Ingesting — ${job.status}`}
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 8 }}
+      className={`mb-6 rounded-2xl border p-5 shadow-sm transition-colors duration-300 ${
+        isFailed ? 'bg-red-50 border-red-200'
+        : isDone ? 'bg-emerald-50 border-emerald-200'
+        : 'bg-white border-tecdia-border'
+      }`}
+    >
+      {/* ── Header: status pill + dismiss ───────────────────────────────── */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <span
+            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-wide ${
+              isFailed ? 'bg-red-100 text-red-700 border border-red-200'
+              : isDone ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+              : 'bg-tecdia-accent/10 text-tecdia-accent border border-tecdia-accent/20'
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${
+              isFailed ? 'bg-red-500'
+              : isDone ? 'bg-emerald-500'
+              : 'bg-tecdia-accent animate-pulse'
+            }`} />
+            {isFailed ? 'FAILED' : isDone ? 'COMPLETE' : 'IN PROGRESS'}
+          </span>
+          <span className="text-sm font-bold text-tecdia-textDeep">
+            {headerLabel}
+          </span>
+          {!isFailed && (
+            <span className="text-xs font-mono font-semibold text-tecdia-text/50 tabular-nums">
+              {pct}%
+            </span>
+          )}
         </div>
         {(isDone || isFailed) && (
-          <button onClick={onDismiss} className="text-xs text-tecdia-text/40 hover:text-tecdia-text transition-colors">Dismiss</button>
+          <button
+            onClick={onDismiss}
+            className="text-xs font-medium text-tecdia-text/40 hover:text-tecdia-text px-2 py-1 rounded-md hover:bg-white/60 transition-all"
+          >
+            Dismiss
+          </button>
         )}
       </div>
-      <div className="w-full bg-tecdia-background rounded-full h-2 mb-2 overflow-hidden">
-        <motion.div animate={{ width: `${pct}%` }} transition={{ duration: 0.4 }}
-          className={`h-2 rounded-full ${ isFailed ? 'bg-red-400' : isDone ? 'bg-emerald-400' : 'bg-tecdia-accent' }`} />
+
+      {/* ── Bar ─────────────────────────────────────────────────────────── */}
+      <div
+        className={`relative w-full rounded-full h-3 mb-4 overflow-hidden ${
+          isFailed ? 'bg-red-100' : isDone ? 'bg-emerald-100' : 'bg-tecdia-background'
+        }`}
+      >
+        <motion.div
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className={`relative h-3 rounded-full overflow-hidden ${
+            isFailed ? 'bg-red-400'
+            : isDone ? 'bg-emerald-500'
+            : 'bg-tecdia-accent'
+          }`}
+        >
+          {/* Diagonal stripes shimmer — only while in-progress */}
+          {isActive && (
+            <div
+              className="absolute inset-0 opacity-30 ingestion-stripes"
+              style={{
+                backgroundImage:
+                  'repeating-linear-gradient(45deg, transparent 0 6px, rgba(255,255,255,0.8) 6px 12px)',
+                backgroundSize: '17px 17px',
+              }}
+            />
+          )}
+        </motion.div>
       </div>
-      <p className="text-[11px] text-tecdia-text/50">{isFailed ? (job.error || 'Unknown error') : (job.step || `${pct}%`)}</p>
+
+      {/* ── Stage chips ──────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {JOB_STAGES.slice(0, -1).map((stage, i) => {
+          const reached = currentStageIdx >= i || isDone;
+          const isCurrent = !isFailed && !isDone && job.status === stage.key;
+          return (
+            <div
+              key={stage.key}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase transition-all ${
+                isFailed && reached
+                  ? 'bg-red-100 text-red-600'
+                  : isCurrent
+                    ? 'bg-tecdia-accent text-white shadow-sm'
+                    : reached
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-tecdia-background text-tecdia-text/30'
+              }`}
+            >
+              <span className={`w-1 h-1 rounded-full ${
+                isCurrent ? 'bg-white animate-pulse'
+                : reached ? (isFailed ? 'bg-red-500' : 'bg-emerald-500')
+                : 'bg-tecdia-text/20'
+              }`} />
+              {stage.label}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Live step / error message ───────────────────────────────────── */}
+      <p className={`mt-3 text-[11px] font-medium ${
+        isFailed ? 'text-red-600'
+        : isDone ? 'text-emerald-700'
+        : 'text-tecdia-text/60'
+      }`}>
+        {isFailed
+          ? (job.error || 'Unknown error during ingestion')
+          : isDone
+            ? (job.step || 'Machine indexed and ready for worker queries.')
+            : (job.step || 'Working…')}
+      </p>
     </motion.div>
   );
 };
@@ -329,6 +456,15 @@ const AdminDashboard = () => {
           })}
         </div>
 
+        {/* ── Global ingestion progress bar ──
+            Rendered OUTSIDE the tab content blocks so it remains visible
+            after handleAddMachine() switches the active tab to 'machines'.
+            Without this, the bar mounted inside the Add tab and was
+            immediately unmounted on tab switch — user never saw it. */}
+        <AnimatePresence>
+          {activeJob && <IngestionProgress job={activeJob} onDismiss={clearActiveJob} />}
+        </AnimatePresence>
+
         {/* ══════════════ TAB: Machines ══════════════ */}
         {activeTab === 'machines' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
@@ -388,7 +524,8 @@ const AdminDashboard = () => {
         {/* ══════════════ TAB: Add Machine ══════════════ */}
         {activeTab === 'add' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-            <AnimatePresence>{activeJob && <IngestionProgress job={activeJob} onDismiss={clearActiveJob} />}</AnimatePresence>
+            {/* (Progress bar moved above tabs — it's rendered globally
+                so it stays visible after the auto-switch to Machines tab.) */}
             <form onSubmit={handleAddMachine}>
               {/* Two-column grid */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

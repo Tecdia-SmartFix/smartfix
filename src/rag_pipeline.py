@@ -56,8 +56,24 @@ def run_query(
 
     answer, severity = _parse_severity(raw_answer)
 
+    # Be flexible about metadata key naming so chunks ingested via either
+    # path (scripts/build_index OR admin upload) render correctly.
+    # Admin uploads before this normalisation landed used `source_file` /
+    # `page_number`; offline builds and new uploads use `document` / `page`.
     sources = [
-        {"document": c["metadata"].get("document", ""), "page": c["metadata"].get("page")}
+        {
+            "document": (
+                c["metadata"].get("document")
+                or c["metadata"].get("source_file")
+                or c["metadata"].get("source")
+                or ""
+            ),
+            "page": (
+                c["metadata"].get("page")
+                or c["metadata"].get("page_number")
+                or c["metadata"].get("page_start")
+            ),
+        }
         for c in chunks
     ]
 

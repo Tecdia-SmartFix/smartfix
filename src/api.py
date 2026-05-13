@@ -521,9 +521,23 @@ def _run_ingestion(job_id: str, machine_id: str, pdf_path: str, filename: str):
         ids, docs, metas, vecs = [], [], [], []
         for i, (chunk, emb) in enumerate(zip(chunks, embeddings)):
             meta = chunk.get("metadata", {})
-            # ChromaDB rejects None values and lists — sanitise
-            clean_meta = {"machine": machine_id}
+            # ChromaDB rejects None values and lists — sanitise.
+            # IMPORTANT: also normalize the parser's verbose key names
+            # (source_file, page_number) into the short ones that the
+            # rag_pipeline emits in /query responses (document, page).
+            # Without this, admin uploads produce chunks whose source chips
+            # render as blank "· p." in the UI. This matches what
+            # scripts/build_index.py does for offline-built JSONs.
+            clean_meta = {
+                "machine":  machine_id,
+                "document": (meta.get("source_file") or meta.get("document")
+                             or f"{machine_id}.pdf"),
+                "page":     (meta.get("page_number") or meta.get("page_start")
+                             or meta.get("page") or 0),
+            }
             for k, v in meta.items():
+                if k in clean_meta:
+                    continue  # keep the normalized values above
                 if isinstance(v, (str, int, float, bool)):
                     clean_meta[k] = v
                 elif isinstance(v, list) and v:
