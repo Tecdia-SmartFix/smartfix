@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -6,11 +6,12 @@ import {
   Printer, Scissors, Bot, Wrench, Gauge, Cpu, ChevronRight,
   CheckCircle, X, LayoutDashboard, Package, Database, Shield, AlertCircle,
   Factory, Cog, Activity, Flame, Monitor, Layers, Radio, Thermometer,
-  HardDrive, Truck, FlaskConical, Pipette, BellRing
+  HardDrive, Truck, FlaskConical, Pipette, BellRing, BarChart3, TrendingUp,
 } from 'lucide-react';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useMachines } from '../context/MachineContext';
 import { useAlerts } from '../context/AlertContext';
+import { fetchApi } from '../api/apiClient';
 
 const ICON_OPTIONS = [
   { label: 'Settings',  value: 'Settings2',   icon: Settings2   },
@@ -254,6 +255,332 @@ const IngestionProgress = ({ job, onDismiss }) => {
   );
 };
 
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AnalyticsPanel
+// ───────────────────────────────────────────────────────────────────────────
+// Fetches GET /admin/analytics on mount and renders five widgets:
+//   1. KPI cards            (totals: queries, alerts, alert-rate, machines)
+//   2. Per-machine table    (per-machine activity + top codes + avg severity)
+//   3. Code frequency bars  (top 15 alarm/error codes globally)
+//   4. Severity donut       (distribution across the five severity levels)
+//   5. 24h activity bars    (queries per hour, last 24h)
+//
+// All charts use plain <div>s with width%/clip-path so no extra dep is needed.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SEVERITY_PALETTE = {
+  '1': { color: '#16a34a', label: 'Informational' },
+  '2': { color: '#ca8a04', label: 'Minor' },
+  '3': { color: '#ea580c', label: 'Degraded' },
+  '4': { color: '#dc2626', label: 'Production Impact' },
+  '5': { color: '#991b1b', label: 'Safety Risk' },
+};
+
+const MACHINE_COLORS = ['#00A9FF', '#89CFF3', '#0066aa', '#A0E9FF', '#00d4ff', '#0a3a5e'];
+
+const AnalyticsPanel = () => {
+  const [data, setData]       = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const d = await fetchApi('/admin/analytics');
+      setData(d);
+      setError(null);
+    } catch (e) {
+      setError(e.detail || e.message || 'Failed to load analytics');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { load(); }, []);
+
+  if (loading) {
+    return (
+      <div className="p-12 text-center text-tecdia-text/50 text-sm">
+        Loading analytics…
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="p-8 rounded-2xl bg-red-50 border border-red-200 text-red-700">
+        {error}
+      </div>
+    );
+  }
+  if (!data) return null;
+
+  const { totals, per_machine, code_frequency, severity_distribution, queries_per_hour_24h, top_questions } = data;
+  const isEmpty = totals.queries === 0;
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+      {/* ── header + refresh ───────────────────────────────────────── */}
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-lg font-bold text-tecdia-textDeep flex items-center gap-2">
+          <TrendingUp size={20} className="text-tecdia-accent" />
+          Fleet Analytics
+        </h2>
+        <button
+          onClick={load}
+          className="text-xs font-bold text-tecdia-accent hover:text-tecdia-accent/80 transition-colors"
+        >
+          Refresh
+        </button>
+      </div>
+
+      {isEmpty && (
+        <div className="bg-tecdia-accent/5 border border-tecdia-accent/20 rounded-2xl p-5 mb-6 text-sm text-tecdia-text/70">
+          <span className="font-bold text-tecdia-textDeep">No query data yet.</span>
+          {' '}Run <code className="bg-white/60 px-1.5 py-0.5 rounded font-mono text-xs border border-tecdia-border">python3 -m scripts.seed_analytics</code> to populate, or wait for workers to start asking questions.
+        </div>
+      )}
+
+      {/* ── 1. KPI cards ───────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <KpiCard label="Total Queries"  value={totals.queries.toLocaleString()} accent="bg-tecdia-accent/10 text-tecdia-accent border-tecdia-accent/20" />
+        <KpiCard label="Alerts Fired"   value={totals.alerts.toLocaleString()}   accent="bg-red-50 text-red-600 border-red-200" />
+        <KpiCard label="Alert Rate"     value={`${totals.alert_rate_pct}%`}      accent="bg-orange-50 text-orange-600 border-orange-200" />
+        <KpiCard label="Machines"       value={totals.machines}                  accent="bg-emerald-50 text-emerald-600 border-emerald-200" />
+      </div>
+
+      {/* ── 2. Per-machine table ───────────────────────────────────── */}
+      <SectionCard className="mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Database size={16} className="text-tecdia-accent" />
+          <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Per-machine activity</h3>
+        </div>
+        {per_machine.length === 0 ? (
+          <p className="text-sm text-tecdia-text/40 italic">No machines have been queried yet.</p>
+        ) : (
+          <div className="overflow-x-auto -mx-2">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-[10px] font-bold uppercase tracking-widest text-tecdia-text/40">
+                  <th className="text-left px-2 py-2">Machine</th>
+                  <th className="text-right px-2 py-2">Queries</th>
+                  <th className="text-right px-2 py-2">Alerts</th>
+                  <th className="text-right px-2 py-2">Alert rate</th>
+                  <th className="text-right px-2 py-2">Avg severity</th>
+                  <th className="text-left px-2 py-2">Top codes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {per_machine.map((m, i) => (
+                  <tr key={m.machine_id} className="border-t border-tecdia-border/40 hover:bg-tecdia-background/40 transition-colors">
+                    <td className="px-2 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full" style={{ background: MACHINE_COLORS[i % MACHINE_COLORS.length] }} />
+                        <span className="font-bold text-tecdia-textDeep">{m.display_name}</span>
+                      </div>
+                    </td>
+                    <td className="px-2 py-2.5 text-right font-mono tabular-nums text-tecdia-text">{m.query_count}</td>
+                    <td className="px-2 py-2.5 text-right font-mono tabular-nums text-red-600">{m.alert_count}</td>
+                    <td className="px-2 py-2.5 text-right font-mono tabular-nums text-tecdia-text/70">{m.alert_rate_pct}%</td>
+                    <td className="px-2 py-2.5 text-right">
+                      <SeverityPill value={m.avg_severity} />
+                    </td>
+                    <td className="px-2 py-2.5">
+                      <div className="flex flex-wrap gap-1">
+                        {m.most_asked_codes.length === 0 ? (
+                          <span className="text-[10px] text-tecdia-text/30">—</span>
+                        ) : (
+                          m.most_asked_codes.map(([code, count]) => (
+                            <span key={code} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-tecdia-accent/10 text-tecdia-accent border border-tecdia-accent/20">
+                              {code} <span className="text-tecdia-text/40">×{count}</span>
+                            </span>
+                          ))
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </SectionCard>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* ── 3. Code frequency bars ────────────────────────────────── */}
+        <SectionCard>
+          <div className="flex items-center gap-2 mb-4">
+            <AlertCircle size={16} className="text-orange-600" />
+            <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Top error / alarm codes</h3>
+          </div>
+          {code_frequency.length === 0 ? (
+            <p className="text-sm text-tecdia-text/40 italic">No coded queries yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {code_frequency.map((c, i) => {
+                const maxCount = code_frequency[0]?.count || 1;
+                const pct = (c.count / maxCount) * 100;
+                const sev = Math.round(c.avg_severity);
+                const colorObj = SEVERITY_PALETTE[String(sev)] || SEVERITY_PALETTE['1'];
+                return (
+                  <div key={`${c.code}_${c.machine}_${i}`} className="flex items-center gap-3 text-sm">
+                    <span className="w-20 font-mono font-bold text-tecdia-textDeep flex-shrink-0">{c.code}</span>
+                    <div className="flex-1 h-5 bg-tecdia-background rounded-md overflow-hidden relative">
+                      <div
+                        className="h-full rounded-md transition-all duration-500"
+                        style={{ width: `${pct}%`, background: colorObj.color, opacity: 0.85 }}
+                      />
+                    </div>
+                    <span className="w-10 text-right font-mono tabular-nums text-tecdia-text">{c.count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </SectionCard>
+
+        {/* ── 4. Severity donut ─────────────────────────────────────── */}
+        <SectionCard>
+          <div className="flex items-center gap-2 mb-4">
+            <Activity size={16} className="text-tecdia-accent" />
+            <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Severity distribution</h3>
+          </div>
+          <SeverityDonut distribution={severity_distribution} />
+        </SectionCard>
+      </div>
+
+      {/* ── 5. Last 24h activity bars ──────────────────────────────── */}
+      <SectionCard className="mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 size={16} className="text-tecdia-accent" />
+          <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Query volume — last 24h (UTC)</h3>
+        </div>
+        <ActivityBars buckets={queries_per_hour_24h} />
+      </SectionCard>
+
+      {/* ── Top questions (bonus, sparse table) ────────────────────── */}
+      {top_questions.length > 0 && (
+        <SectionCard>
+          <div className="flex items-center gap-2 mb-4">
+            <FileText size={16} className="text-tecdia-accent" />
+            <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Most-asked questions</h3>
+          </div>
+          <div className="space-y-1.5">
+            {top_questions.map((q, i) => (
+              <div key={i} className="flex items-center gap-3 text-sm py-1.5 border-b border-tecdia-border/30 last:border-0">
+                <span className="font-mono tabular-nums w-6 text-tecdia-text/30">{i + 1}.</span>
+                <span className="flex-1 text-tecdia-text truncate">{q.question}</span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-tecdia-background border border-tecdia-border text-tecdia-text/60">{q.machine.replaceAll('_', ' ')}</span>
+                <span className="w-12 text-right font-mono tabular-nums font-bold text-tecdia-textDeep">×{q.count}</span>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      )}
+    </motion.div>
+  );
+};
+
+const KpiCard = ({ label, value, accent }) => (
+  <div className={`rounded-2xl p-4 border ${accent}`}>
+    <div className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1">{label}</div>
+    <div className="text-2xl font-bold font-mono tabular-nums">{value}</div>
+  </div>
+);
+
+const SeverityPill = ({ value }) => {
+  const sev = Math.round(value || 1);
+  const obj = SEVERITY_PALETTE[String(sev)] || SEVERITY_PALETTE['1'];
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border tabular-nums"
+      style={{ borderColor: `${obj.color}40`, color: obj.color, background: `${obj.color}10` }}
+    >
+      <span className="w-1 h-1 rounded-full" style={{ background: obj.color }} />
+      {(value || 0).toFixed(2)}
+    </span>
+  );
+};
+
+// Pure CSS conic-gradient donut — no chart library needed.
+const SeverityDonut = ({ distribution }) => {
+  const entries = Object.entries(distribution).sort((a, b) => Number(a[0]) - Number(b[0]));
+  const total = entries.reduce((sum, [, c]) => sum + c, 0);
+  if (total === 0) {
+    return <p className="text-sm text-tecdia-text/40 italic">No queries to distribute yet.</p>;
+  }
+  // Build CSS conic-gradient stops cumulatively. Use reduce so the React
+  // Compiler's immutability checker is happy with the running accumulator.
+  const { stops } = entries.reduce(
+    (acc, [sev, count]) => {
+      const start = (acc.consumed / total) * 360;
+      const newConsumed = acc.consumed + count;
+      const end = (newConsumed / total) * 360;
+      const color = SEVERITY_PALETTE[sev].color;
+      acc.stops.push(`${color} ${start}deg ${end}deg`);
+      return { stops: acc.stops, consumed: newConsumed };
+    },
+    { stops: [], consumed: 0 },
+  );
+  const gradient = stops.join(', ');
+  return (
+    <div className="flex items-center gap-6">
+      <div
+        className="relative w-32 h-32 rounded-full flex-shrink-0"
+        style={{ background: `conic-gradient(${gradient})` }}
+      >
+        <div className="absolute inset-3 bg-white rounded-full flex items-center justify-center flex-col">
+          <div className="text-[10px] font-bold uppercase tracking-widest text-tecdia-text/40">Total</div>
+          <div className="text-xl font-bold font-mono tabular-nums text-tecdia-textDeep">{total}</div>
+        </div>
+      </div>
+      <div className="flex-1 space-y-1.5">
+        {entries.map(([sev, count]) => {
+          const obj = SEVERITY_PALETTE[sev];
+          const pct = total ? Math.round((count / total) * 100) : 0;
+          return (
+            <div key={sev} className="flex items-center gap-2 text-xs">
+              <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: obj.color }} />
+              <span className="flex-1 text-tecdia-text">
+                <span className="font-bold">Sev {sev}</span>
+                <span className="text-tecdia-text/50 ml-1">— {obj.label}</span>
+              </span>
+              <span className="font-mono tabular-nums text-tecdia-text/70">{count}</span>
+              <span className="font-mono tabular-nums text-tecdia-text/40 w-8 text-right">{pct}%</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const ActivityBars = ({ buckets }) => {
+  const max = Math.max(1, ...buckets.map(b => b.count));
+  return (
+    <div className="flex items-end gap-0.5 h-32 overflow-x-auto">
+      {buckets.map(b => (
+        <div key={b.hour} className="flex-1 min-w-[14px] flex flex-col items-center group">
+          <div
+            className="w-full bg-tecdia-accent rounded-t-sm transition-all duration-300 hover:bg-tecdia-accent/80 relative"
+            style={{ height: `${(b.count / max) * 100}%`, minHeight: b.count > 0 ? 2 : 0 }}
+            title={`${b.hour} — ${b.count} queries`}
+          >
+            {b.count > 0 && (
+              <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-tecdia-textDeep opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                {b.count}
+              </span>
+            )}
+          </div>
+          <span className="text-[9px] text-tecdia-text/40 mt-1 tabular-nums">{b.hour.slice(0, 2)}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+
 const AdminDashboard = () => {
   const { adminLogout } = useAdminAuth();
   const { machines, addMachine, deleteMachine, activeJob, clearActiveJob } = useMachines();
@@ -430,9 +757,10 @@ const AdminDashboard = () => {
         {/* ── Tab Bar ── */}
         <div className="flex gap-1 p-1 bg-white border border-tecdia-border rounded-2xl mb-8 w-fit shadow-sm">
           {[
-            { id: 'machines', label: 'All Machines', icon: Package },
-            { id: 'add',      label: 'Add Machine',  icon: Plus },
-            { id: 'alerts',   label: 'Alert History', icon: BellRing, count: alerts.length },
+            { id: 'machines',  label: 'All Machines',  icon: Package },
+            { id: 'add',       label: 'Add Machine',   icon: Plus },
+            { id: 'alerts',    label: 'Alert History', icon: BellRing, count: alerts.length },
+            { id: 'analytics', label: 'Analytics',     icon: BarChart3 },
           ].map(tab => {
             const Icon = tab.icon;
             return (
@@ -839,6 +1167,9 @@ const AdminDashboard = () => {
             )}
           </motion.div>
         )}
+
+        {/* ══════════════ TAB: Analytics ══════════════ */}
+        {activeTab === 'analytics' && <AnalyticsPanel />}
       </div>
 
       {/* Toast */}

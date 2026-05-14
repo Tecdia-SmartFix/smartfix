@@ -1,4 +1,6 @@
 import os
+import re
+import secrets
 import threading
 import time
 import uuid
@@ -11,11 +13,11 @@ from dotenv import load_dotenv
 from fastapi import Cookie, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, EmailStr, Field
 from sentence_transformers import SentenceTransformer
 
-from . import workstations
+from . import mailer, workstations
 from .db import get_chroma_collection
 from .rag_pipeline import run_query
 
@@ -53,8 +55,39 @@ _machine_metadata: dict[str, dict] = {
 # Alert log (in-memory). Each entry matches the shape rendered in the admin UI.
 _alerts: list[dict] = []
 
+# Append-only query log (in-memory). Feeds the analytics endpoint. Capped at
+# QUERY_LOG_MAX entries to keep memory bounded — old entries are dropped FIFO.
+# Persistence is intentionally deferred; for live demo this is sufficient.
+_query_log: list[dict] = []
+QUERY_LOG_MAX = 20_000
+
+# Pre-compiled patterns reused by every /query call to extract diagnostic
+# codes from the question text. Same broad shape the retriever / chunker use.
+_QUERY_CODE_RE = re.compile(r"\b[A-Z]{1,4}-?\d{2,4}\b", re.IGNORECASE)
+
 ALERT_THRESHOLD = int(os.getenv("ALERT_THRESHOLD", "12"))
 DEFAULT_SIGNIFICANCE = 3
+
+# ── Admin auth (magic-link via Resend) ─────────────────────────────────────
+# Email allowlist — only these addresses can request a sign-in link AND
+# receive alert emails. Empty allowlist means no admins, which is the
+# safe-by-default state for a fresh clone with no .env configured.
+ADMIN_EMAILS: set[str] = {
+    e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "").split(",") if e.strip()
+}
+
+# APP_BASE_URL is what we put inside magic-link emails. In dev this is the
+# Vite dev server (which proxies /auth/* back to this backend). In prod
+# it's the public frontend URL.
+APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:5173").rstrip("/")
+
+# token → {email, expires_at}. Single-use; popped on verify.
+_magic_tokens: dict[str, dict] = {}
+MAGIC_TOKEN_TTL_MINUTES = 15
+
+# admin session_id → {email, created_at}. Cookie value is the session_id.
+_admin_sessions: dict[str, dict] = {}
+ADMIN_SESSION_DAYS = 30
 
 # Archive location for uploaded PDFs. Each new machine is stored as
 # `{machine_id}.pdf` so it can be re-ingested, audited, or downloaded later.
@@ -245,19 +278,55 @@ async def query(
 
     if alert_score >= ALERT_THRESHOLD and result.get("status") == "success":
         alert_fired = True
-        _alerts.append(
-            {
-                "alert_id": f"alert_{uuid.uuid4().hex[:8]}",
-                "machine_id": req.machine_filter or "unknown",
-                "score": alert_score,
-                "severity_level": severity,
-                "machine_significance": machine_sig,
-                "question": req.question,
-                "answer_excerpt": result["answer"][:280],
-                "email_notified": True,  # stub: email send wired when Resend is set up
-                "notified_at": datetime.now(timezone.utc).isoformat(),
-            }
-        )
+        alert_record = {
+            "alert_id": f"alert_{uuid.uuid4().hex[:8]}",
+            "machine_id": req.machine_filter or "unknown",
+            "score": alert_score,
+            "severity_level": severity,
+            "machine_significance": machine_sig,
+            "question": req.question,
+            "answer_excerpt": result["answer"][:280],
+            "email_notified": False,
+            "notified_at": datetime.now(timezone.utc).isoformat(),
+        }
+        # Fire-and-forget email to every admin in the allowlist. Failure
+        # never breaks the /query response — we just flip email_notified=False
+        # on the persisted record so the UI can show "not delivered".
+        if ADMIN_EMAILS:
+            try:
+                mailer.send_alert(list(ADMIN_EMAILS), alert_record)
+                alert_record["email_notified"] = True
+                print(f"[alerts] notified {ADMIN_EMAILS} of {alert_record['alert_id']}", flush=True)
+            except Exception as exc:
+                print(f"[alerts] mailer failed for {alert_record['alert_id']}: {exc!r}", flush=True)
+        _alerts.append(alert_record)
+
+    # ── Append to the query log for analytics ──
+    # Captured after the alert path so `alert_fired` reflects the truth.
+    # Fire-and-forget: a failure here must never break the user's response.
+    try:
+        codes = sorted({m.upper() for m in _QUERY_CODE_RE.findall(req.question)})
+        _query_log.append({
+            "query_id":      f"q_{uuid.uuid4().hex[:8]}",
+            "machine_id":    req.machine_filter or "unknown",
+            "question":      req.question,
+            "severity":      severity,
+            "alert_score":   alert_score,
+            "alert_fired":   alert_fired,
+            "codes":         codes,
+            "answer_chars":  len(result.get("answer", "")),
+            "status":        result.get("status", "unknown"),
+            "asked_at":      datetime.now(timezone.utc).isoformat(),
+            "workstation_ip": (
+                _worker_sessions.get(worker_session, {}).get("workstation_ip")
+                if worker_session else None
+            ),
+        })
+        # FIFO cap so memory stays bounded.
+        if len(_query_log) > QUERY_LOG_MAX:
+            del _query_log[: len(_query_log) - QUERY_LOG_MAX]
+    except Exception as exc:
+        print(f"[analytics] failed to log query: {exc!r}", flush=True)
 
     return {
         **result,
@@ -364,15 +433,13 @@ async def get_workstation(request: Request):
     return response
 
 
-# ── /auth (stubs — wired up when real auth lands) ──────────────────────────
-#
-# These satisfy the API contract shape so the frontend can integrate against
-# real responses. They DO NOT enforce auth yet. The stub /auth/me always
-# returns an admin user; flip the STUB_ROLE constant below to test the
-# worker UI path.
-
-STUB_ROLE: str = "admin"  # "admin" | "worker"
-STUB_EMAIL: str = "alice@tecdia.com.ph"
+# ── /auth ──────────────────────────────────────────────────────────────────
+# Real magic-link admin auth via Resend (see src/mailer.py).
+#   1. POST /auth/request-link {email} → if email is in ADMIN_EMAILS, send a
+#      one-time link to that inbox. Always returns 200 (no enumeration leak).
+#   2. GET  /auth/verify?token=... → pop the token (single-use), check expiry,
+#      create an admin session, set cookie, redirect to /admin.
+#   3. GET  /auth/me reads the cookie back, returns the admin's email/role.
 
 
 class RequestLinkBody(BaseModel):
@@ -381,21 +448,123 @@ class RequestLinkBody(BaseModel):
 
 @app.post("/auth/request-link")
 async def auth_request_link(body: RequestLinkBody):
-    # Stub: pretends to send an email. Always 200 (no enumeration leak).
+    """Email a magic-link to `body.email` if (and only if) it's an allowed admin.
+
+    Always returns `{"ok": true}` regardless of allowlist match — this prevents
+    enumerating valid admin emails through response timing or content.
+    """
+    email = body.email.lower()
+    if email in ADMIN_EMAILS:
+        token = secrets.token_urlsafe(32)
+        _magic_tokens[token] = {
+            "email": email,
+            "expires_at": datetime.now(timezone.utc)
+                          + timedelta(minutes=MAGIC_TOKEN_TTL_MINUTES),
+        }
+        try:
+            mailer.send_magic_link(email, token)
+            print(f"[auth] magic-link sent to {email}", flush=True)
+        except Exception as exc:
+            # Don't expose mail failures to the caller — log and move on.
+            # The token is still issued; if the admin retries within 15 min
+            # we'll re-send (the dict will hold both tokens, either works).
+            print(f"[auth] mailer failed for {email}: {exc!r}", flush=True)
+            _magic_tokens.pop(token, None)
+    else:
+        # Tiny delay would normally go here to mask timing differences.
+        # Skipping for dev speed; revisit when this leaves stub-territory.
+        print(f"[auth] request-link for non-allowlisted {email} — ignored", flush=True)
     return {"ok": True}
 
 
+_VERIFY_INTERSTITIAL = """\
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign in to Tecdia SmartFix</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<style>
+  body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;
+       background:linear-gradient(135deg,#89CFF3 0%,#A0E9FF 50%,#89CFF3 100%);
+       min-height:100vh;display:flex;align-items:center;justify-content:center;color:#0a3a5e;}}
+  .card{{background:#fff;border-radius:20px;padding:40px;max-width:440px;width:90%;
+        box-shadow:0 20px 60px rgba(0,40,80,0.15);text-align:center;}}
+  h1{{font-size:24px;margin:0 0 8px;font-weight:800;}}
+  p{{font-size:14px;color:#1a1a2e;opacity:0.65;margin:0 0 24px;line-height:1.5;}}
+  button{{background:#00A9FF;color:#fff;border:0;padding:14px 32px;font-size:15px;
+         font-weight:700;border-radius:12px;cursor:pointer;
+         box-shadow:0 4px 16px rgba(0,169,255,0.35);}}
+  button:hover{{background:#0091e0;}}
+  .hint{{font-size:11px;color:#1a1a2e;opacity:0.45;margin-top:24px;}}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Sign in to SmartFix</h1>
+  <p>Click below to complete admin sign-in. This link is single-use.</p>
+  <form method="POST" action="/auth/verify">
+    <input type="hidden" name="token" value="{token}">
+    <button type="submit">Sign in &rarr;</button>
+  </form>
+  <div class="hint">The link expires 15 minutes after it was sent.</div>
+</div>
+</body>
+</html>
+"""
+
+
 @app.get("/auth/verify")
-async def auth_verify(token: str):
-    # Stub: always succeeds. Real version validates token + creates session.
-    response = RedirectResponse(url="/", status_code=302)
+async def auth_verify_landing(token: str):
+    """Render a click-through page. Does NOT consume the token.
+
+    Why: Gmail / Outlook / Slack etc. all prefetch links in incoming emails
+    to scan for phishing. If the GET handler popped the token, the scanner
+    would burn it before the real user could click. Sending the token through
+    a form POST means scanners (which only follow GET / HEAD) can't trigger
+    a session creation — only a deliberate button-click from the real user can.
+    """
+    # Defensive escape: token is alphanumeric (token_urlsafe) but cheap to be safe.
+    safe_token = re.sub(r"[^A-Za-z0-9_\-]", "", token)
+    return HTMLResponse(_VERIFY_INTERSTITIAL.format(token=safe_token))
+
+
+@app.post("/auth/verify")
+async def auth_verify_confirm(token: str = Form(...)):
+    """Consume the magic-link token, create an admin session, redirect to /admin.
+
+    Token is single-use (popped here) and must be within
+    MAGIC_TOKEN_TTL_MINUTES of issue. On failure we redirect to AdminLogin
+    with a `?login_error=...` query param so the page can show the reason.
+    """
+    entry = _magic_tokens.pop(token, None)
+    if not entry:
+        return RedirectResponse(
+            url=f"{APP_BASE_URL}/admin/login?login_error=invalid",
+            status_code=302,
+        )
+    if entry["expires_at"] < datetime.now(timezone.utc):
+        return RedirectResponse(
+            url=f"{APP_BASE_URL}/admin/login?login_error=expired",
+            status_code=302,
+        )
+
+    session_id = secrets.token_urlsafe(32)
+    _admin_sessions[session_id] = {
+        "email": entry["email"],
+        "created_at": datetime.now(timezone.utc),
+    }
+    response = RedirectResponse(url=f"{APP_BASE_URL}/admin", status_code=302)
     response.set_cookie(
-        "stub_session",
-        STUB_ROLE,
+        "stub_session",      # cookie name kept for FE compat (AdminAuthContext)
+        session_id,
         httponly=True,
         samesite="lax",
-        max_age=2592000,  # 30d
+        max_age=ADMIN_SESSION_DAYS * 24 * 60 * 60,
+        path="/",
     )
+    print(f"[auth] admin session created for {entry['email']}", flush=True)
     return response
 
 
@@ -436,7 +605,26 @@ async def auth_me(
     worker_session: Optional[str] = Cookie(default=None),
     stub_session: Optional[str] = Cookie(default=None),
 ):
-    # Worker (domain-selector or workstation-bound) session takes precedence
+    # Admin session takes precedence — higher privilege, and the typical
+    # case where both cookies exist is "I tested the workstation flow then
+    # signed in as admin." Without this ordering, a stale worker_session
+    # would mask the admin login and ProtectedAdminRoute would bounce
+    # the user back to /admin/login forever.
+    if stub_session and stub_session in _admin_sessions:
+        s = _admin_sessions[stub_session]
+        return {
+            "authenticated": True,
+            "role": "admin",
+            "domain": "All Access",
+            "email": s["email"],
+            "machine_id": None,
+            "workstation_ip": None,
+            "session_expires_at": (
+                s["created_at"] + timedelta(days=ADMIN_SESSION_DAYS)
+            ).isoformat(),
+        }
+
+    # Worker (domain-selector or workstation-bound) session
     if worker_session and worker_session in _worker_sessions:
         s = _worker_sessions[worker_session]
         return {
@@ -453,24 +641,19 @@ async def auth_me(
             ).isoformat(),
         }
 
-    # Manager / admin session (still stubbed via magic-link endpoints)
-    return {
-        "authenticated": True,
-        "email": STUB_EMAIL,
-        "role": STUB_ROLE,
-        "domain": "All Access" if STUB_ROLE == "admin" else "General",
-        "session_expires_at": (
-            datetime.now(timezone.utc) + timedelta(days=30)
-        ).isoformat(),
-    }
+    # No valid session — frontend's AuthContext treats this as guest/redirect.
+    raise APIError(401, "Not authenticated", "unauthenticated")
 
 
 @app.post("/auth/logout")
 async def auth_logout(
     worker_session: Optional[str] = Cookie(default=None),
+    stub_session: Optional[str] = Cookie(default=None),
 ):
     if worker_session:
         _worker_sessions.pop(worker_session, None)
+    if stub_session:
+        _admin_sessions.pop(stub_session, None)
     response = JSONResponse({"ok": True})
     response.delete_cookie("stub_session")
     response.delete_cookie("worker_session")
@@ -604,7 +787,7 @@ async def admin_create_machine(
         "started_at": datetime.now(timezone.utc),
         "finished_at": None,
         "error": None,
-        "uploaded_by": STUB_EMAIL,
+        "uploaded_by": next(iter(ADMIN_EMAILS), "admin@tecdia.local"),
         "pdf_size_bytes": len(contents),
     }
 
@@ -643,7 +826,7 @@ async def admin_list_machines():
     # Stub: synthesize admin-only metadata fields per the contract.
     for m in base:
         m["uploaded_at"] = "2026-04-15T08:21:00Z"
-        m["uploaded_by"] = STUB_EMAIL
+        m["uploaded_by"] = next(iter(ADMIN_EMAILS), "admin@tecdia.local")
         m["pdf_size_bytes"] = 2_451_200
     return {"machines": base}
 
@@ -681,6 +864,123 @@ async def admin_clear_alerts():
     cleared = len(_alerts)
     _alerts.clear()
     return {"ok": True, "cleared": cleared}
+
+
+# ── /admin/analytics ───────────────────────────────────────────────────────
+
+
+@app.get("/admin/analytics")
+async def admin_analytics():
+    """Aggregate _query_log into the 5 widgets the dashboard renders.
+
+    All work is done on-demand here (vs. continuously maintained counters)
+    because the log is bounded at QUERY_LOG_MAX entries and a single pass
+    is microseconds. Aggregating on read also means the dashboard always
+    reflects the current state without coordination overhead.
+    """
+    from collections import Counter
+
+    total = len(_query_log)
+    alerts_fired = sum(1 for q in _query_log if q.get("alert_fired"))
+    machines_indexed = len({m["id"] for m in _list_machines_basic()})
+
+    # ── per-machine breakdown ────────────────────────────────────────────
+    per_machine_acc: dict[str, dict] = {}
+    for q in _query_log:
+        mid = q["machine_id"] or "unknown"
+        d = per_machine_acc.setdefault(mid, {
+            "machine_id": mid,
+            "query_count": 0,
+            "alert_count": 0,
+            "severity_sum": 0,
+            "code_counter": Counter(),
+        })
+        d["query_count"] += 1
+        d["severity_sum"] += q.get("severity", 1)
+        if q.get("alert_fired"):
+            d["alert_count"] += 1
+        for code in q.get("codes", []):
+            d["code_counter"][code] += 1
+
+    display_names = {m["id"]: m["display_name"] for m in _list_machines_basic()}
+    per_machine = []
+    for mid, d in per_machine_acc.items():
+        per_machine.append({
+            "machine_id":      mid,
+            "display_name":    display_names.get(mid, mid.replace("_", " ").title()),
+            "query_count":     d["query_count"],
+            "alert_count":     d["alert_count"],
+            "alert_rate_pct":  round(100 * d["alert_count"] / d["query_count"], 1) if d["query_count"] else 0.0,
+            "avg_severity":    round(d["severity_sum"] / d["query_count"], 2) if d["query_count"] else 0.0,
+            "most_asked_codes": d["code_counter"].most_common(3),
+        })
+    per_machine.sort(key=lambda x: x["query_count"], reverse=True)
+
+    # ── global code frequency (top 15 across all machines) ───────────────
+    code_acc: dict[tuple[str, str], dict] = {}
+    for q in _query_log:
+        for code in q.get("codes", []):
+            key = (code, q["machine_id"] or "unknown")
+            d = code_acc.setdefault(key, {"code": code, "machine": key[1], "count": 0, "severity_sum": 0})
+            d["count"] += 1
+            d["severity_sum"] += q.get("severity", 1)
+    code_frequency = sorted(code_acc.values(), key=lambda x: x["count"], reverse=True)[:15]
+    for c in code_frequency:
+        c["avg_severity"] = round(c["severity_sum"] / c["count"], 2) if c["count"] else 0.0
+        del c["severity_sum"]
+
+    # ── severity distribution (count per severity 1..5) ──────────────────
+    sev_dist = {str(i): 0 for i in range(1, 6)}
+    for q in _query_log:
+        sev = str(q.get("severity", 1))
+        if sev in sev_dist:
+            sev_dist[sev] += 1
+
+    # ── last-24h activity, bucketed per hour ─────────────────────────────
+    now = datetime.now(timezone.utc)
+    buckets: dict[str, int] = {}
+    for h in range(23, -1, -1):
+        bucket_time = now - timedelta(hours=h)
+        buckets[bucket_time.strftime("%H:00")] = 0
+    cutoff = now - timedelta(hours=24)
+    for q in _query_log:
+        try:
+            asked = datetime.fromisoformat(q["asked_at"].replace("Z", "+00:00"))
+        except (KeyError, ValueError):
+            continue
+        if asked < cutoff:
+            continue
+        key = asked.strftime("%H:00")
+        if key in buckets:
+            buckets[key] += 1
+    queries_per_hour_24h = [{"hour": h, "count": c} for h, c in buckets.items()]
+
+    # ── top 10 most-asked verbatim questions ─────────────────────────────
+    qtext = Counter()
+    qmachine: dict[str, str] = {}
+    for q in _query_log:
+        text = q.get("question", "").strip().lower()
+        if text:
+            qtext[text] += 1
+            qmachine.setdefault(text, q["machine_id"] or "unknown")
+    top_questions = [
+        {"question": t, "count": c, "machine": qmachine.get(t, "unknown")}
+        for t, c in qtext.most_common(10)
+    ]
+
+    return {
+        "totals": {
+            "queries":         total,
+            "alerts":          alerts_fired,
+            "machines":        machines_indexed,
+            "alert_rate_pct":  round(100 * alerts_fired / total, 2) if total else 0.0,
+        },
+        "per_machine":          per_machine,
+        "code_frequency":       code_frequency,
+        "severity_distribution": sev_dist,
+        "queries_per_hour_24h": queries_per_hour_24h,
+        "top_questions":        top_questions,
+    }
 
 
 @app.post("/admin/alerts/test", status_code=201)

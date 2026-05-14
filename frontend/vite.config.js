@@ -8,9 +8,10 @@ export default defineConfig({
     proxy: {
       // ── Backend-only paths (no React route at the same URL) ──
       '/auth':           'http://localhost:8000',
-      '/admin/machines': 'http://localhost:8000',
-      '/admin/jobs':     'http://localhost:8000',
-      '/admin/alerts':   'http://localhost:8000',
+      '/admin/machines':  'http://localhost:8000',
+      '/admin/jobs':      'http://localhost:8000',
+      '/admin/alerts':    'http://localhost:8000',
+      '/admin/analytics': 'http://localhost:8000',
       '/query':          'http://localhost:8000',
       '/health':         'http://localhost:8000',
       '/workstation':    'http://localhost:8000',
