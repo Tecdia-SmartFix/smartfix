@@ -1,38 +1,31 @@
 """
-parser_chunker.py — PDF → Markdown → enriched chunks, in one module.
+parser_chunker.py — PDF → enriched chunks (pypdf edition, multi-document aware).
 
-Replaces the previous two-file pipeline (parser.py + chunker.py).
+Handles all given manual formats:
+  - LASER / IMM:  "N. Section Title"  /  "Error Code E-NN — Description"
+  - HP-500:       "SECTION N — TITLE" /  "ALARM A-NN — DESCRIPTION"
+  - FDM-X300:     "Section N — Title" /  "ERR-NN — Description"
+  - RA-6200:      "N. Title"          /  "Fault Code F-NN — Description"
+  SHOULD BE MODIFIED ACCORDINGLY TO HANDLE OTHER FORMATS.
 
 Pipeline
 --------
-1. Docling converts the PDF to markdown (no OCR, table structure on).
-2. apply_universal_heuristics() downgrades `##` sub-section headers that
-   look like children of an error / maintenance block (text contains
-   "cause", "step", "resolution", "description", "note", "remedy",
-   "action", "instruction") so the splitter keeps them glued to their
-   parent ## chunk. This replaces the old chunker's explicit merge pass.
-3. MarkdownHeaderTextSplitter splits on `##` (Section) with
-   strip_headers=False so the heading stays in the chunk body.
-4. Page numbers are recovered by cross-referencing the chunk's opening
-   sample text against `doc.texts[*].text` and reading `prov.page_no`.
-5. Each chunk is enriched with classification fields that downstream
-   retrieval / prompt-building can filter on:
-     machine_id, source_file, source, section, section_id,
-     page_numbers (list), page_start (int), page_number (int),
-     is_table, is_safety, is_troubleshooting,
-     chunk_type, error_code, cross_references.
-6. Chunks whose stripped body is shorter than MIN_CHUNK_CHARS are dropped
-   (header-only noise).
+1. pypdf extracts text page-by-page.
+2. Double-spaced text (pypdf artefact) is collapsed to single spaces.
+3. Word-per-line extractions are reconstructed into full logical lines.
+4. Section boundaries detected via document-aware heading patterns.
+5. Numbered resolution steps + sub-headings (Common causes, Resolution Steps,
+   etc.) are merged INTO their parent fault chunk so each error code becomes
+   one self-contained retrievable unit with description, causes, and all steps.
+6. Each chunk enriched with classification metadata.
+7. Chunks shorter than MIN_CHUNK_CHARS are dropped.
 
 Exposes
 -------
-* `apply_universal_heuristics(md)` — heading-downgrade pass
-* `process_and_chunk(pdf_path, filename, machine_id=None)` — library entry
-* `save_chunks_to_json(chunks, output_path)` — file output compatible
-  with `scripts/build_index.py`
-* `POST /parse-manual` — HTTP entry on port 8000
-
-Run as service:  python -m uvicorn src.ingestion.parser_chunker:app --port 8000
+* process_and_chunk(pdf_path, filename, machine_id=None) → list[dict]
+* save_chunks_to_json(chunks, output_path)
+* apply_universal_heuristics(md) — API compat shim (returns md unchanged)
+* POST /parse-manual
 """
 
 from __future__ import annotations
@@ -44,278 +37,260 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from docling.document_converter import DocumentConverter, PdfFormatOption
-from docling.datamodel.base_models import InputFormat
-from docling.datamodel.pipeline_options import PdfPipelineOptions
-from langchain_text_splitters import MarkdownHeaderTextSplitter
-
+from pypdf import PdfReader
 
 app = FastAPI(title="Universal Technical Manual Parser API")
 
 # ---------------------------------------------------------------------------
-# Docling — single converter instance (heavy to construct, safe to reuse)
-# ---------------------------------------------------------------------------
-pipeline_options = PdfPipelineOptions()
-pipeline_options.do_ocr = False
-pipeline_options.do_table_structure = True
-
-converter = DocumentConverter(
-    format_options={
-        InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
-    }
-)
-
-
-# ---------------------------------------------------------------------------
-# Tuneable constants — carried over from the previous chunker
+# Constants
 # ---------------------------------------------------------------------------
 
-# Drop chunks whose body (after stripping markdown headers) is shorter than
-# this. 30 keeps "Weekly" / "Every 6 Months" checklist chunks; 50 drops them.
-MIN_CHUNK_CHARS: int = 30
+MIN_CHUNK_CHARS: int = 60
 
 SAFETY_KEYWORDS: tuple[str, ...] = (
-    # Generic hazard levels
     "DANGER", "WARNING", "CAUTION", "PROHIBITED",
-    # Laser-specific
     "CLASS 4", "FIRE HAZARD", "LASER SAFETY", "SAFETY PROTOCOL",
-    # Action-stop phrases
     "DO NOT OPERATE", "DO NOT REACH", "DO NOT RESTART",
     "EMERGENCY STOP", "IMMEDIATELY STOP",
     "STOP ALL LASER", "STOP THE MACHINE",
-    # Harm / damage language
     "TOXIC", "CARCINOGENIC", "PERMANENT DAMAGE", "IRREVERSIBLE",
     "SERIOUS INJURY", "HEALTH HAZARD",
-    # Personnel qualification
     "CERTIFIED TECHNICIAN", "QUALIFIED PROCESS", "QUALIFIED TECHNICIAN",
-    # Electrical
     "LOCK OUT", "LOCKED OUT", "ISOLATOR", "HIGH VOLTAGE",
 )
 
 _MAINTENANCE_FREQS: tuple[str, ...] = (
     "daily", "weekly", "monthly", "every 6 months", "every six months",
+    "after every print", "every 500 print hours",
 )
 
 _OVERVIEW_SECTIONS: tuple[str, ...] = (
-    "machine overview", "introduction",
-    "about this document", "product overview",
+    "machine overview", "introduction", "system overview",
+    "about this document", "product overview", "machine description",
+    "what's inside", "welcome",
 )
 
 _TROUBLE_KEYWORDS: tuple[str, ...] = (
-    "Error Code", "Fault Code", "Resolution Steps",
+    "Error Code", "Fault Code", "Alarm", "ERR-",
+    "Resolution Steps", "Diagnostic steps", "How to fix",
+    "RESOLUTION", "CAUSES", "Common causes", "Why it happens",
 )
 
-# E-01 … E-99 in either "Error Code E-XX" form or bare
-_ERROR_CODE_RE = re.compile(r"Error\s+Code\s+(E-\d{2})\b", re.IGNORECASE)
-_BARE_ERR_RE   = re.compile(r"\b(E-\d{2})\b")
-_HEADER_LINE_RE = re.compile(r"^#{1,6}\s+.*$", re.MULTILINE)
+# ---------------------------------------------------------------------------
+# Error / alarm code patterns — covers all 5 document formats
+#   E-01 (LASER, IMM) | A-01 (HP-500) | F-01 (RA-6200) | ERR-01 (FDM)
+# ---------------------------------------------------------------------------
+_CODE_PATTERN = re.compile(r'\b(?:ERR|E|A|F)-\d{2,3}\b', re.IGNORECASE)
 
-# Promotes any orphan diagnostic-code line to a `## ` heading so the splitter
-# creates a chunk boundary per code, regardless of whether Docling identified
-# it as a heading during PDF→markdown conversion.
-#
-# Recognised forms (case-insensitive, all on a single line, not already
-# prefixed with '#'):
-#
-#   Error Code E-08 — Ejector System Fault        (IMM)
-#   Alarm A-06 - Main Motor Overload              (HP-500)
-#   Fault Code F-12 — Pump Pressure Fault         (generic)
-#   ALARM A-04 - Two-Hand Control Fault           (HP-500 uppercase)
-#   ERR-04: Filament Detect Sensor Disconnect     (FDM_X300)
-#   E-08 Ejector System Fault                     (bare code at line start)
-#
-# The pattern is:
-#   (optional keyword: error/fault/alarm/err/code/alert)
-#   (optional separator: " Code " / ":" / " - ")
-#   <CODE>: 1–4 letters, optional dash, 1–4 digits
-#   <rest of line>
-#
-# A "stand-alone code line" is still promoted as long as the line starts with
-# the code itself, so manuals that use bare codes work too.
-_ORPHAN_ERROR_HEADING_RE = re.compile(
-    r"""^(?!\#)            # not already a markdown heading
-        (\s*)              # group 1: leading whitespace (preserved)
-        (                  # group 2: the full heading line
-          (?:              #   optional leading keyword
-            (?:error|fault|alarm|alert)\s+code\s+|
-            (?:error|fault|alarm|alert)\s+|
-          )
-          [A-Z]{1,4}-?\d{1,4}\b   # the actual code, e.g. E-08, ERR-04, A-06
-          [^\n]*           # everything else on the line (description)
-        )
-        $""",
-    re.MULTILINE | re.IGNORECASE | re.VERBOSE,
+_FAULT_HEADING_PATTERNS: list[re.Pattern] = [
+    re.compile(r'^Error\s+Code\s+(E-\d{2,3})\s*[—\-]',  re.IGNORECASE),
+    re.compile(r'^Fault\s+Code\s+(F-\d{2,3})\s*[—\-]',  re.IGNORECASE),
+    re.compile(r'^ALARM\s+(A-\d{2,3})\s*[—\-]',          re.IGNORECASE),
+    re.compile(r'^(ERR-\d{2,3})\s*[—\-]',                re.IGNORECASE),
+]
+
+_SECTION_HEADING_PATTERNS: list[re.Pattern] = [
+    re.compile(r'^\d+\.\s+[A-Z].{3,}$'),
+    re.compile(r'^Section\s+\d+\s*[—\-]',   re.IGNORECASE),
+    re.compile(r'^SECTION\s+\d+\s*[—\-]',   re.IGNORECASE),
+]
+
+_MAINT_HEADING_RE = re.compile(
+    r'^(Daily|Weekly|Monthly|Every\s+6\s+Months?|Every\s+\d+|'
+    r'After\s+Every|DAILY|WEEKLY|MONTHLY|EVERY)\b',
+    re.IGNORECASE,
 )
 
+# Sub-headings inside a fault section — stay in same chunk, don't start a new one
+_SUB_HEADING_RE = re.compile(
+    r'^(Common\s+causes?|Resolution\s+Steps?|Diagnostic\s+steps?|'
+    r'How\s+to\s+fix\s+it|Why\s+it\s+happens?|CAUSES?|RESOLUTION|'
+    r'Description|What\s+this\s+means|Subsystem)',
+    re.IGNORECASE,
+)
 
-def _normalize_md_for_chunking(md: str) -> str:
-    """Pre-chunking cleanup pass.
-
-    Two transforms, both targeting real bugs we hit with the IMM PDF:
-
-    1. **Dash normalization** — pages 1–7 of the IMM PDF use ASCII hyphen ("-")
-       in headings while pages 8+ use em-dash ("—"). The downstream regex and
-       string-comparison logic was tuned for the hyphen form; em-dashes made
-       error codes invisible to the heading detector.
-
-    2. **Orphan error-code promotion** — Docling sometimes fails to mark
-       "Error Code E-08 — Ejector System Fault" as a heading at all on pages
-       with non-standard formatting, so the splitter glues the whole error
-       section into whatever ## chunk preceded it (or drops it). Promoting
-       any unheaded "Error Code E-NN ..." line to `## ` guarantees a
-       chunk boundary per error.
-    """
-    # 1. Normalize Unicode dashes → ASCII hyphen
-    md = (
-        md.replace("—", "-")  # em dash
-          .replace("–", "-")  # en dash
-          .replace("−", "-")  # minus sign
-    )
-    # 2. Promote any orphan "Error Code E-NN ..." line to a ## heading
-    md = _ORPHAN_ERROR_HEADING_RE.sub(r"## \2", md)
-    return md
-
-
-def _build_pypdf_page_index(pdf_path: str) -> dict[int, str]:
-    """Return {page_no: raw_text} for the PDF. Used as a fallback when
-    Docling's `prov.page_no` lookup misses (which happens on pages where
-    Docling's layout analysis is degraded — see the IMM PDF pages 8-10).
-    Returns {} if pypdf isn't available; callers must handle the empty case.
-    """
-    try:
-        from pypdf import PdfReader
-    except ImportError:
-        return {}
-    try:
-        reader = PdfReader(pdf_path)
-        return {i: (page.extract_text() or "") for i, page in enumerate(reader.pages, start=1)}
-    except Exception as exc:
-        print(f"⚠️  pypdf fallback unavailable for {pdf_path}: {exc}")
-        return {}
-
-
-def _normalize_for_match(text: str) -> str:
-    """Aggressively normalize text so a chunk (post-Docling-markdown
-    conversion) can be substring-matched against pypdf's raw extraction.
-
-    Differences we have to paper over:
-      - Unicode dashes (—, –, −) → ASCII hyphen (-)
-      - Various bullet characters (●, •, ▪, ■, ·, *) → hyphen
-      - Whitespace runs → single space
-      - Casefolded so heading-vs-body capitalization differences don't bite
-
-    All these come up in real PDFs (the IMM PDF uses ● bullets, the laser
-    PDF mixes hyphens and en-dashes for "10°C – 25°C" ranges, etc.).
-    """
-    # Dashes
-    for d in ("—", "–", "−"):
-        text = text.replace(d, "-")
-    # Bullet markers — common in PDFs that use list glyphs
-    for b in ("●", "•", "▪", "■", "·", "○", "◦", "▶", "*"):
-        text = text.replace(b, "-")
-    # Whitespace + case
-    text = re.sub(r"\s+", " ", text).strip().lower()
-    return text
-
-
-def _find_chunk_pages_via_pypdf(
-    chunk_sample: str,
-    pypdf_pages: dict[int, str],
-) -> list[int]:
-    """Find which pages contain `chunk_sample` by direct substring match.
-
-    Both sides are normalized (whitespace collapsed, Unicode dashes →
-    ASCII hyphen) so the chunk text — which has been preprocessed by
-    `_normalize_md_for_chunking` — matches pypdf's raw extraction even
-    on pages where the PDF originally used em-dashes.
-
-    Returns all pages with a match (a chunk can legitimately span two
-    pages, e.g. when the page break falls inside a section).
-    """
-    if not pypdf_pages or not chunk_sample:
-        return []
-    needle = _normalize_for_match(chunk_sample)
-    if len(needle) < 20:  # too short to be a reliable signal
-        return []
-    matches = []
-    for page_no, raw in pypdf_pages.items():
-        if needle in _normalize_for_match(raw):
-            matches.append(page_no)
-    return matches
-
-
-def _validate_error_code_coverage(
-    chunks: list[dict],
-    pypdf_pages: dict[int, str],
-    machine_id: str,
-) -> None:
-    """Warn if the PDF mentions error/alarm/fault codes that didn't make it
-    into any chunk. Soft warning only — doesn't fail ingestion, but surfaces
-    silent dropping (the bug that bit us with E-08).
-
-    Uses the SAME broad code pattern as the orphan-heading promoter, so it
-    catches E-, A-, ERR-, FLT-, ALM-, F-, etc. — any 1-4 letter prefix + digits.
-    """
-    if not pypdf_pages:
-        return
-    CODE_RE = re.compile(r"\b[A-Z]{1,4}-?\d{2,4}\b")
-    pdf_codes: set[str] = set()
-    for raw in pypdf_pages.values():
-        pdf_codes.update(c.upper() for c in CODE_RE.findall(raw))
-    chunk_codes: set[str] = set()
-    for c in chunks:
-        chunk_codes.update(c.upper() for c in CODE_RE.findall(c["text"]))
-    missing = pdf_codes - chunk_codes
-    if missing:
-        print(
-            f"⚠️  COVERAGE WARNING [{machine_id}]: PDF mentions "
-            f"{sorted(missing)} but no chunk contains them. Worker queries "
-            f"about these codes will return 'not in documentation'."
-        )
+# Numbered step lines: "1. …" / "2) …"
+_NUMBERED_STEP_RE = re.compile(r'^\d+[\.\)]\s+\S')
 
 
 # ---------------------------------------------------------------------------
-# Heading normalisation
+# Text cleaning
 # ---------------------------------------------------------------------------
 
-def apply_universal_heuristics(md_content: str) -> str:
+def _clean_line(raw: str) -> str:
+    """Collapse double-spaces, normalize Unicode dashes → ASCII hyphen."""
+    text = re.sub(r'  +', ' ', raw)
+    for dash in ('\u2014', '\u2013', '\u2212'):
+        text = text.replace(dash, '-')
+    return text.strip()
+
+
+def _is_standalone(line: str) -> bool:
     """
-    Identify sub-sections that should be merged with their parent and
-    downgrade their headers from `##` to `###` so the splitter keeps them
-    glued to the preceding ## section.
-
-    Heuristic
-    ---------
-    A `##` heading is downgraded when BOTH:
-      * its text contains a sub-keyword (cause/step/resolution/…), AND
-      * it doesn't start like a main section
-        (numbered "1.", "A.", or words like Section / Error / Alarm / …).
-
-    This replaces the old chunker's explicit "Common causes / Resolution
-    steps" merge pass and handles parenthetical variants
-    ("Common causes (low pressure):", "Common causes (high pressure):")
-    that broke the previous exact-string approach.
+    True = this line does NOT join to the next as a continuation word.
+    Priority order matters: fault/section headings checked before
+    sentence-ending so "1. Machine Overview." doesn't get swallowed.
     """
-    sub_keywords = (
-        "cause", "step", "resolution", "description",
-        "note", "remedy", "action", "instruction",
-    )
+    # Fault headings always standalone
+    if any(p.match(line) for p in _FAULT_HEADING_PATTERNS):
+        return True
+    # Section headings (short lines only — avoids misclassifying resolution steps)
+    for p in _SECTION_HEADING_PATTERNS:
+        if p.match(line) and len(line.split()) <= 8:
+            return True
+    # Maintenance sub-headings
+    if _MAINT_HEADING_RE.match(line):
+        return True
+    # Fault sub-headings ("Common causes:", "Resolution Steps:" etc.)
+    if _SUB_HEADING_RE.match(line):
+        return True
+    # Numbered steps ("1. Check …")
+    if _NUMBERED_STEP_RE.match(line):
+        return True
+    # Bullet lines
+    if line.startswith('●') or line.startswith('—') or line.startswith('-'):
+        return True
+    # ALL-CAPS headings (HP-500 style: "SECTION 5 — ALARM CODES")
+    if re.match(r'^[A-Z][A-Z\s\-\d&/]{5,}$', line) and len(line.split()) >= 2:
+        return True
+    # Sentence-ending lines with enough words to be a real sentence
+    if re.search(r'[.!?]$', line) and len(line.split()) > 3:
+        return True
+    # Short continuation fragments (single words, numbers, lone punctuation)
+    if len(line.split()) <= 2:
+        return False
+    return False
 
-    main_section_re = re.compile(
-        r"^([a-z0-9]{1,3}[\.\)\-]|section|chapter|part|error|alarm|fault|warning)"
-    )
 
-    out: list[str] = []
-    for line in md_content.split("\n"):
-        if line.startswith("## "):
-            text = line.replace("## ", "").strip().lower()
-            is_main = bool(main_section_re.match(text))
-            has_sub_key = any(k in text for k in sub_keywords)
-            if has_sub_key and not is_main:
-                out.append(line.replace("## ", "### ", 1))
-                continue
-        out.append(line)
-    return "\n".join(out)
+def _reconstruct_paragraphs(raw_text: str) -> list[str]:
+    """
+    pypdf emits body text one word per line but keeps logical lines
+    (headings, numbered steps, bullet lines) as single lines.
+
+    Accumulate continuation words into a buffer; flush whenever a
+    standalone line is encountered.
+    """
+    raw_lines = [_clean_line(l) for l in raw_text.split('\n') if _clean_line(l)]
+    result: list[str] = []
+    buffer = ''
+    for line in raw_lines:
+        if _is_standalone(line):
+            if buffer:
+                result.append(buffer)
+                buffer = ''
+            result.append(line)
+        else:
+            buffer = (buffer + ' ' + line).strip() if buffer else line
+    if buffer:
+        result.append(buffer)
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Page extraction
+# ---------------------------------------------------------------------------
+
+def _extract_pages(pdf_path: str) -> list[tuple[int, list[str]]]:
+    """Returns [(page_no, [logical_line, ...]), ...] for each non-empty page."""
+    reader = PdfReader(pdf_path)
+    pages = []
+    for i, page in enumerate(reader.pages, start=1):
+        raw = page.extract_text() or ''
+        if raw.strip():
+            lines = _reconstruct_paragraphs(raw)
+            if lines:
+                pages.append((i, lines))
+    return pages
+
+
+# ---------------------------------------------------------------------------
+# Heading classification
+# ---------------------------------------------------------------------------
+
+def _fault_code(line: str) -> Optional[str]:
+    """Return the fault/alarm code if this line is a fault heading, else None."""
+    for p in _FAULT_HEADING_PATTERNS:
+        m = p.match(line)
+        if m:
+            return m.group(1).upper()
+    return None
+
+
+def _heading_type(line: str) -> str:
+    """'fault' | 'section' | 'maintenance' | 'none'"""
+    if _fault_code(line):
+        return 'fault'
+    for p in _SECTION_HEADING_PATTERNS:
+        if p.match(line) and len(line.split()) <= 8:
+            return 'section'
+    if _MAINT_HEADING_RE.match(line):
+        return 'maintenance'
+    return 'none'
+
+
+# ---------------------------------------------------------------------------
+# Section splitting with step-merging
+# ---------------------------------------------------------------------------
+
+def _split_into_sections(pages: list[tuple[int, list[str]]]) -> list[dict[str, Any]]:
+    """
+    Walk logical lines across all pages.
+
+    KEY BEHAVIOUR:
+    - Fault headings open a new fault chunk.
+    - Numbered steps and sub-headings that follow a fault heading are
+      MERGED into that fault chunk (not split off).
+    - Section and maintenance headings always start a new chunk.
+    """
+    chunks: list[dict] = []
+    current: dict = {
+        'heading':      'Introduction',
+        'heading_type': 'intro',
+        'code':         None,
+        'lines':        [],
+        'pages':        [],
+    }
+
+    def flush():
+        text = '\n'.join(current['lines']).strip()
+        if len(text) >= MIN_CHUNK_CHARS:
+            chunks.append({
+                'heading':      current['heading'],
+                'heading_type': current['heading_type'],
+                'code':         current['code'],
+                'text':         text,
+                'pages':        sorted(set(current['pages'])),
+            })
+
+    for page_no, lines in pages:
+        for line in lines:
+            htype = _heading_type(line)
+            if htype in ('section', 'maintenance'):
+                flush()
+                current = {
+                    'heading':      line,
+                    'heading_type': htype,
+                    'code':         None,
+                    'lines':        [line],
+                    'pages':        [page_no],
+                }
+            elif htype == 'fault':
+                flush()
+                current = {
+                    'heading':      line,
+                    'heading_type': 'fault',
+                    'code':         _fault_code(line),
+                    'lines':        [line],
+                    'pages':        [page_no],
+                }
+            else:
+                # Body line — always merge into current chunk
+                current['lines'].append(line)
+                if page_no not in current['pages']:
+                    current['pages'].append(page_no)
+
+    flush()
+    return chunks
 
 
 # ---------------------------------------------------------------------------
@@ -323,56 +298,77 @@ def apply_universal_heuristics(md_content: str) -> str:
 # ---------------------------------------------------------------------------
 
 def _normalize_machine_id(name: str) -> str:
-    """Spaces → underscores so the id is safe for URLs / DB filters."""
-    return name.strip().replace(" ", "_")
+    return re.sub(r'[\s\-]+', '_', name.strip()).upper()
 
 
 def _is_safety_chunk(content: str, section_id: str) -> bool:
-    if any(kw in content.upper() for kw in SAFETY_KEYWORDS):
+    upper = content.upper()
+    if any(kw in upper for kw in SAFETY_KEYWORDS):
         return True
-    return "safety" in section_id.lower()
+    return 'safety' in section_id.lower() or 'precaution' in section_id.lower()
 
 
 def _derive_chunk_type(
     section_id: str,
+    heading_type: str,
     content: str,
     is_safety: bool,
-    is_troubleshooting: bool,
 ) -> str:
-    """
-    Classify a chunk into one of:
-      overview | error_code | maintenance | spare_parts | specification | safety
-
-    Priority is most-specific first; the overview catch-all returns last.
-    """
     sid = section_id.lower()
+    if heading_type == 'fault':
+        return 'error_code'
+    if heading_type == 'maintenance' or any(f in sid for f in _MAINTENANCE_FREQS):
+        return 'maintenance'
+    if 'maintenance schedule' in sid or 'preventive maintenance' in sid:
+        return 'maintenance'
+    if 'spare part' in sid:
+        return 'spare_parts'
+    if 'specification' in sid or 'parameter' in sid or 'technical spec' in sid:
+        return 'specification'
+    if 'safety' in sid or 'precaution' in sid or is_safety:
+        return 'safety'
     if any(name in sid for name in _OVERVIEW_SECTIONS):
-        return "overview"
-    if _ERROR_CODE_RE.search(section_id) or _ERROR_CODE_RE.search(content):
-        return "error_code"
-    if any(f in sid for f in _MAINTENANCE_FREQS) or "maintenance schedule" in sid:
-        return "maintenance"
-    if "spare parts" in sid or "spare part" in sid:
-        return "spare_parts"
-    if "specification" in sid or "parameter" in sid:
-        return "specification"
-    if "safety" in sid or is_safety:
-        return "safety"
-    if is_troubleshooting:
-        return "error_code"
-    return "overview"
-
-
-def _extract_error_code(section_id: str, content: str) -> Optional[str]:
-    m = _ERROR_CODE_RE.search(section_id) or _ERROR_CODE_RE.search(content)
-    return m.group(1).upper() if m else None
+        return 'overview'
+    if any(kw.lower() in content.lower() for kw in _TROUBLE_KEYWORDS):
+        return 'error_code'
+    return 'overview'
 
 
 def _extract_cross_references(content: str, own_code: Optional[str]) -> list[str]:
-    found = set(_BARE_ERR_RE.findall(content))
+    found = {m.upper() for m in _CODE_PATTERN.findall(content)}
     if own_code:
-        found.discard(own_code)
+        found.discard(own_code.upper())
     return sorted(found)
+
+
+# ---------------------------------------------------------------------------
+# Coverage validation
+# ---------------------------------------------------------------------------
+
+def _validate_coverage(
+    chunks: list[dict],
+    pages: list[tuple[int, list[str]]],
+    machine_id: str,
+) -> None:
+    all_text    = ' '.join(' '.join(lines) for _, lines in pages)
+    pdf_codes   = {m.upper() for m in _CODE_PATTERN.findall(all_text)}
+    chunk_text  = ' '.join(c['text'] for c in chunks)
+    chunk_codes = {m.upper() for m in _CODE_PATTERN.findall(chunk_text)}
+    missing = pdf_codes - chunk_codes
+    if missing:
+        print(
+            f"COVERAGE WARNING [{machine_id}]: PDF mentions {sorted(missing)} "
+            f"but no chunk contains them."
+        )
+
+
+# ---------------------------------------------------------------------------
+# API compat shim
+# ---------------------------------------------------------------------------
+
+def apply_universal_heuristics(md_content: str) -> str:
+    """No-op: retained for callers that previously passed Docling markdown."""
+    return md_content
 
 
 # ---------------------------------------------------------------------------
@@ -385,155 +381,84 @@ def process_and_chunk(
     machine_id: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Convert a PDF into a list of enriched chunks ready for embedding.
+    Convert a PDF into enriched chunks ready for embedding.
 
-    Args:
-        pdf_path:   Filesystem path to the source PDF.
-        filename:   Original filename — kept verbatim in `metadata.source`.
-        machine_id: Optional explicit id. Defaults to the filename stem with
-                    spaces replaced by underscores, matching the convention
-                    used by scripts/build_index.py.
-
-    Returns:
-        list of {"text": str, "metadata": {...}} dicts.
+    Returns list of {"text": str, "metadata": {...}} dicts.
     """
     if machine_id is None:
-        machine_id = _normalize_machine_id(os.path.splitext(filename)[0])
+        stem = os.path.splitext(filename)[0]
+        machine_id = _normalize_machine_id(stem)
 
-    # 1. Convert PDF → markdown
-    result = converter.convert(pdf_path)
-    doc = result.document
-    md_content = doc.export_to_markdown()
+    pages = _extract_pages(pdf_path)
+    if not pages:
+        print(f"WARNING: No text extracted from {filename}")
+        return []
 
-    # 2a. NEW — fix the IMM-style failures BEFORE the heading-downgrade pass:
-    # normalize Unicode dashes (em/en/minus → "-") and force-promote any
-    # orphan "Error Code E-NN ..." line to a ## heading so the splitter
-    # creates a boundary per error code regardless of Docling's quirks.
-    md_content = _normalize_md_for_chunking(md_content)
+    raw_chunks = _split_into_sections(pages)
 
-    # 2b. Existing heading-downgrade pass (now operates on cleaned markdown)
-    normalized_md = apply_universal_heuristics(md_content)
-
-    # Build a pypdf page index as a fallback for page-number recovery.
-    # Docling's layout-based `prov.page_no` lookup misses on pages where
-    # its layout analysis is degraded; pypdf's flat per-page extraction
-    # is less precise but reliably non-empty.
-    pypdf_pages = _build_pypdf_page_index(pdf_path)
-
-    # 3. Header split on ## only — child ### headings stay inside their parent
-    splitter = MarkdownHeaderTextSplitter(
-        headers_to_split_on=[("##", "Section")],
-        strip_headers=False,
-    )
-    sections = splitter.split_text(normalized_md)
-
-    # 4. Per-chunk enrichment
     final_chunks: List[Dict[str, Any]] = []
-    last_page = 1
+    for raw in raw_chunks:
+        section_text   = raw['text']
+        section_header = raw['heading']
+        heading_type   = raw['heading_type']
+        code           = raw['code']
+        page_list      = raw['pages']
+        page_start     = page_list[0] if page_list else 1
+        page_end       = page_list[-1] if page_list else 1
 
-    for section in sections:
-        section_text = section.page_content
-        section_header = section.metadata.get("Section", "Unknown")
-
-        # Page numbers — pypdf is the AUTHORITATIVE source. Docling's layout
-        # match would hit table-of-contents / overview mentions of the same
-        # heading text on page 1, falsely pinning every error code to p.1.
-        # pypdf substring-matches the chunk's distinctive prose body, which
-        # only appears on the page that actually contains that section.
-        sample_for_pypdf = _HEADER_LINE_RE.sub("", section_text).strip()[:200]
-        page_list = _find_chunk_pages_via_pypdf(sample_for_pypdf, pypdf_pages)
-
-        if not page_list:
-            # pypdf miss — try Docling's layout lookup as a secondary signal.
-            # Restricted to the chunk body (after the heading) to reduce
-            # false-positives from TOC entries.
-            matched_pages: set[int] = set()
-            body_sample = sample_for_pypdf[:100].strip()
-            if body_sample and len(body_sample) >= 20:
-                for item in doc.texts:
-                    if body_sample in item.text:
-                        if hasattr(item, "prov") and item.prov:
-                            for p in item.prov:
-                                matched_pages.add(p.page_no)
-            if matched_pages:
-                page_list = sorted(matched_pages)
-            else:
-                # Last resort: carry forward the previous chunk's last page
-                # so numbering stays monotonic rather than snapping to 1.
-                page_list = [last_page]
-
-        page_start = page_list[0]
-        page_end   = page_list[-1]
-        last_page  = page_end
-
-        # Filter pass — drop near-empty chunks (header-only / one bullet).
-        # Strip markdown header lines first so "## Weekly" + one bullet
-        # survives the threshold.
-        clean_preview = _HEADER_LINE_RE.sub("", section_text).strip()
-        if len(clean_preview) < MIN_CHUNK_CHARS:
-            continue
-
-        section_id = section_header  # flat — splitter only emits one level
-        is_safety = _is_safety_chunk(section_text, section_id)
-        is_trouble = any(kw in section_text for kw in _TROUBLE_KEYWORDS)
-        chunk_type = _derive_chunk_type(section_id, section_text, is_safety, is_trouble)
-        error_code = _extract_error_code(section_id, section_text)
-        xrefs = _extract_cross_references(section_text, error_code)
+        is_safety  = _is_safety_chunk(section_text, section_header)
+        chunk_type = _derive_chunk_type(section_header, heading_type, section_text, is_safety)
+        is_trouble = chunk_type == 'error_code' or any(
+            kw.lower() in section_text.lower() for kw in _TROUBLE_KEYWORDS
+        )
+        xrefs = _extract_cross_references(section_text, code)
 
         final_chunks.append({
-            "text": section_text.strip(),
-            "metadata": {
-                "machine_id":         machine_id,
-                "source_file":        f"{machine_id}.pdf",
-                "source":             filename,
-                "section":            section_header,
-                "section_id":         section_id,
-                "page_numbers":       page_list,
-                "page_start":         page_start,
-                "page_number":        page_end,
-                "is_table":           ("|" in section_text and "---" in section_text),
-                "is_safety":          is_safety,
-                "is_troubleshooting": is_trouble,
-                "chunk_type":         chunk_type,
-                "error_code":         error_code,
-                "cross_references":   xrefs,
+            'text': section_text,
+            'metadata': {
+                'machine_id':         machine_id,
+                'source_file':        f'{machine_id}.pdf',
+                'source':             filename,
+                'section':            section_header,
+                'section_id':         section_header,
+                'page_numbers':       page_list,
+                'page_start':         page_start,
+                'page_number':        page_end,
+                'is_table':           ('|' in section_text and '---' in section_text),
+                'is_safety':          is_safety,
+                'is_troubleshooting': is_trouble,
+                'chunk_type':         chunk_type,
+                'error_code':         code,
+                'cross_references':   xrefs,
             },
         })
 
-    # Sanity check: warn if the PDF mentions error codes that no chunk
-    # captured. Soft signal — doesn't fail ingestion, but it would have
-    # made the silent E-08 drop obvious at upload time.
-    _validate_error_code_coverage(final_chunks, pypdf_pages, machine_id)
-
+    _validate_coverage(final_chunks, pages, machine_id)
+    print(f"[{machine_id}] {filename}: {len(final_chunks)} chunks from {len(pages)} pages")
     return final_chunks
 
+
+# ---------------------------------------------------------------------------
+# JSON output  (compatible with scripts/build_index.py)
+# ---------------------------------------------------------------------------
 
 def save_chunks_to_json(
     chunks: List[Dict[str, Any]],
     output_path: str,
 ) -> None:
-    """
-    Serialise chunks to JSON for backend consumption by
-    `scripts/build_index.py`. Adds a sequential `chunk_id` and renames
-    `text` → `content` so the on-disk schema matches what the indexer
-    already expects.
-    """
     out: list[dict] = []
     for i, c in enumerate(chunks, start=1):
         out.append({
-            "chunk_id": i,
-            "content":  c["text"],
-            "metadata": c["metadata"],
+            'chunk_id': i,
+            'content':  c['text'],
+            'metadata': c['metadata'],
         })
-
     parent = os.path.dirname(output_path)
     if parent:
         os.makedirs(parent, exist_ok=True)
-
-    with open(output_path, "w", encoding="utf-8") as f:
+    with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(out, f, indent=4, ensure_ascii=False)
-
-    print(f"✅ Saved {len(out)} chunks → {output_path}")
+    print(f"Saved {len(out)} chunks → {output_path}")
 
 
 # ---------------------------------------------------------------------------
@@ -544,20 +469,14 @@ def save_chunks_to_json(
 async def parse_manual_endpoint(file: UploadFile = File(...)):
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
-
-    # Per-request unique temp filename — avoids collisions under concurrency.
     temp_path = f"temp_{uuid.uuid4()}_{file.filename}"
-
     try:
         with open(temp_path, "wb") as buffer:
             buffer.write(await file.read())
-
         chunks = process_and_chunk(temp_path, file.filename)
         return {"count": len(chunks), "chunks": chunks}
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
@@ -565,5 +484,4 @@ async def parse_manual_endpoint(file: UploadFile = File(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    # Bind 0.0.0.0 so other services in the flow can reach the endpoint.
     uvicorn.run(app, host="0.0.0.0", port=8000)
