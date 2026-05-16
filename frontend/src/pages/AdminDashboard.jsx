@@ -7,6 +7,7 @@ import {
   CheckCircle, X, LayoutDashboard, Package, Database, Shield, AlertCircle,
   Factory, Cog, Activity, Flame, Monitor, Layers, Radio, Thermometer,
   HardDrive, Truck, FlaskConical, Pipette, BellRing, BarChart3, TrendingUp,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useMachines } from '../context/MachineContext';
@@ -70,9 +71,9 @@ const EMPTY_FORM = {
 
 const Toast = ({ message, onClose }) => (
   <motion.div initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20 }}
-    className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-tecdia-surface border border-emerald-500/30 text-emerald-600 px-5 py-3.5 rounded-2xl shadow-xl text-sm font-medium">
-    <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-      <CheckCircle size={15} className="text-emerald-600" />
+    className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-white/80 backdrop-blur-md border border-tecdia-accent/30 text-tecdia-accent px-5 py-3.5 rounded-2xl shadow-xl text-sm font-medium">
+    <div className="w-7 h-7 rounded-full bg-tecdia-accent/10 flex items-center justify-center flex-shrink-0">
+      <CheckCircle size={15} className="text-tecdia-accent" />
     </div>
     {message}
     <button onClick={onClose} className="ml-2 text-tecdia-text/40 hover:text-tecdia-text transition-colors"><X size={13} /></button>
@@ -80,7 +81,7 @@ const Toast = ({ message, onClose }) => (
 );
 
 const SectionCard = ({ children, className = '' }) => (
-  <div className={`bg-tecdia-surface border border-tecdia-border rounded-2xl p-6 shadow-sm ${className}`}>
+  <div className={`bg-white/40 backdrop-blur-md border border-tecdia-border rounded-2xl p-6 shadow-sm ${className}`}>
     {children}
   </div>
 );
@@ -140,8 +141,8 @@ const IngestionProgress = ({ job, onDismiss }) => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
       className={`mb-6 rounded-2xl border p-5 shadow-sm transition-colors duration-300 ${
-        isFailed ? 'bg-red-50 border-red-200'
-        : isDone ? 'bg-emerald-50 border-emerald-200'
+        isFailed ? 'bg-[#E6F7FF]/60 border-[#0057D9]/40 shadow-inner'
+        : isDone ? 'bg-[#0057D9]/5 border-[#0057D9]/20'
         : 'bg-white border-tecdia-border'
       }`}
     >
@@ -150,15 +151,15 @@ const IngestionProgress = ({ job, onDismiss }) => {
         <div className="flex items-center gap-3">
           <span
             className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-wide ${
-              isFailed ? 'bg-red-100 text-red-700 border border-red-200'
-              : isDone ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-              : 'bg-tecdia-accent/10 text-tecdia-accent border border-tecdia-accent/20'
+              isFailed ? 'bg-[#0A2540]/10 text-[#0A2540] border border-[#0A2540]/20'
+              : isDone ? 'bg-[#0057D9] text-white border border-[#0057D9]'
+              : 'bg-[#42A5F5]/10 text-[#42A5F5] border border-[#42A5F5]/20'
             }`}
           >
             <span className={`w-1.5 h-1.5 rounded-full ${
-              isFailed ? 'bg-red-500'
-              : isDone ? 'bg-emerald-500'
-              : 'bg-tecdia-accent animate-pulse'
+              isFailed ? 'bg-[#0A2540] animate-pulse'
+              : isDone ? 'bg-white'
+              : 'bg-[#42A5F5] animate-pulse'
             }`} />
             {isFailed ? 'FAILED' : isDone ? 'COMPLETE' : 'IN PROGRESS'}
           </span>
@@ -183,17 +184,15 @@ const IngestionProgress = ({ job, onDismiss }) => {
 
       {/* ── Bar ─────────────────────────────────────────────────────────── */}
       <div
-        className={`relative w-full rounded-full h-3 mb-4 overflow-hidden ${
-          isFailed ? 'bg-red-100' : isDone ? 'bg-emerald-100' : 'bg-tecdia-background'
-        }`}
+        className={`relative w-full rounded-full h-2.5 mb-4 overflow-hidden bg-[#E6F7FF]`}
       >
         <motion.div
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className={`relative h-3 rounded-full overflow-hidden ${
-            isFailed ? 'bg-red-400'
-            : isDone ? 'bg-emerald-500'
-            : 'bg-tecdia-accent'
+          className={`relative h-full rounded-full overflow-hidden ${
+            isFailed ? 'bg-[#0A2540]/30'
+            : isDone ? 'bg-[#0057D9] shadow-[0_0_10px_rgba(0,87,217,0.2)]'
+            : 'bg-[#1E88E5]'
           }`}
         >
           {/* Diagonal stripes shimmer — only while in-progress */}
@@ -220,17 +219,17 @@ const IngestionProgress = ({ job, onDismiss }) => {
               key={stage.key}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase transition-all ${
                 isFailed && reached
-                  ? 'bg-red-100 text-red-600'
+                  ? 'bg-tecdia-accent/20 text-tecdia-textDeep'
                   : isCurrent
-                    ? 'bg-tecdia-accent text-white shadow-sm'
+                    ? 'bg-[#1E88E5] text-white shadow-sm'
                     : reached
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-tecdia-background text-tecdia-text/30'
+                      ? 'bg-[#42A5F5]/10 text-[#42A5F5]'
+                      : 'bg-[#E6F7FF] text-tecdia-text/30'
               }`}
             >
               <span className={`w-1 h-1 rounded-full ${
                 isCurrent ? 'bg-white animate-pulse'
-                : reached ? (isFailed ? 'bg-red-500' : 'bg-emerald-500')
+                : reached ? (isFailed ? 'bg-tecdia-accent' : 'bg-tecdia-accent/60')
                 : 'bg-tecdia-text/20'
               }`} />
               {stage.label}
@@ -241,8 +240,8 @@ const IngestionProgress = ({ job, onDismiss }) => {
 
       {/* ── Live step / error message ───────────────────────────────────── */}
       <p className={`mt-3 text-[11px] font-medium ${
-        isFailed ? 'text-red-600'
-        : isDone ? 'text-emerald-700'
+        isFailed ? 'text-tecdia-textDeep'
+        : isDone ? 'text-tecdia-accent'
         : 'text-tecdia-text/60'
       }`}>
         {isFailed
@@ -270,14 +269,14 @@ const IngestionProgress = ({ job, onDismiss }) => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const SEVERITY_PALETTE = {
-  '1': { color: '#16a34a', label: 'Informational' },
-  '2': { color: '#ca8a04', label: 'Minor' },
-  '3': { color: '#ea580c', label: 'Degraded' },
-  '4': { color: '#dc2626', label: 'Production Impact' },
-  '5': { color: '#991b1b', label: 'Safety Risk' },
+  '1': { color: '#B6E6FF', label: 'Informational' },
+  '2': { color: '#7CC7FF', label: 'Minor' },
+  '3': { color: '#42A5F5', label: 'Degraded' },
+  '4': { color: '#0057D9', label: 'Production Impact' },
+  '5': { color: '#0A2540', label: 'Safety Risk' },
 };
 
-const MACHINE_COLORS = ['#00A9FF', '#89CFF3', '#0066aa', '#A0E9FF', '#00d4ff', '#0a3a5e'];
+const MACHINE_COLORS = ['#0057D9', '#42A5F5', '#0A2540', '#7CC7FF', '#1E88E5', '#B6E6FF'];
 
 const AnalyticsPanel = () => {
   const [data, setData]       = useState(null);
@@ -322,16 +321,20 @@ const AnalyticsPanel = () => {
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
       {/* ── header + refresh ───────────────────────────────────────── */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-bold text-tecdia-textDeep flex items-center gap-2">
-          <TrendingUp size={20} className="text-tecdia-accent" />
-          Fleet Analytics
-        </h2>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h2 className="text-xl font-bold text-tecdia-textDeep flex items-center gap-2.5">
+            <BarChart3 size={22} className="text-tecdia-accent" />
+            Fleet Analytics
+          </h2>
+          <p className="text-[11px] font-medium text-tecdia-text/40 uppercase tracking-widest mt-1 ml-8">Real-time system diagnostics & query analytics</p>
+        </div>
         <button
           onClick={load}
-          className="text-xs font-bold text-tecdia-accent hover:text-tecdia-accent/80 transition-colors"
+          className="btn-secondary text-xs px-5 py-2 flex items-center gap-2 w-fit"
         >
-          Refresh
+          <Activity size={14} className={loading ? 'animate-spin' : ''} />
+          {loading ? 'Refreshing...' : 'Refresh Data'}
         </button>
       </div>
 
@@ -343,11 +346,11 @@ const AnalyticsPanel = () => {
       )}
 
       {/* ── 1. KPI cards ───────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <KpiCard label="Total Queries"  value={totals.queries.toLocaleString()} accent="bg-tecdia-accent/10 text-tecdia-accent border-tecdia-accent/20" />
-        <KpiCard label="Alerts Fired"   value={totals.alerts.toLocaleString()}   accent="bg-red-50 text-red-600 border-red-200" />
-        <KpiCard label="Alert Rate"     value={`${totals.alert_rate_pct}%`}      accent="bg-orange-50 text-orange-600 border-orange-200" />
-        <KpiCard label="Machines"       value={totals.machines}                  accent="bg-emerald-50 text-emerald-600 border-emerald-200" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <KpiCard label="Total Queries"  value={totals.queries.toLocaleString()} icon={FileText} />
+        <KpiCard label="Alerts Fired"   value={totals.alerts.toLocaleString()}   icon={AlertCircle} accent="border-[#0057D9]/20 shadow-[0_0_15px_rgba(0,87,217,0.05)]" />
+        <KpiCard label="Alert Rate"     value={`${totals.alert_rate_pct}%`}      icon={TrendingUp} accent="border-[#1E88E5]/20" />
+        <KpiCard label="Active Machines" value={totals.machines}                 icon={Package} />
       </div>
 
       {/* ── 2. Per-machine table ───────────────────────────────────── */}
@@ -359,41 +362,41 @@ const AnalyticsPanel = () => {
         {per_machine.length === 0 ? (
           <p className="text-sm text-tecdia-text/40 italic">No machines have been queried yet.</p>
         ) : (
-          <div className="overflow-x-auto -mx-2">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto -mx-6 px-6 custom-scrollbar">
+            <table className="w-full text-sm border-separate border-spacing-y-2">
               <thead>
-                <tr className="text-[10px] font-bold uppercase tracking-widest text-tecdia-text/40">
-                  <th className="text-left px-2 py-2">Machine</th>
-                  <th className="text-right px-2 py-2">Queries</th>
-                  <th className="text-right px-2 py-2">Alerts</th>
-                  <th className="text-right px-2 py-2">Alert rate</th>
-                  <th className="text-right px-2 py-2">Avg severity</th>
-                  <th className="text-left px-2 py-2">Top codes</th>
+                <tr className="text-[10px] font-bold uppercase tracking-widest text-tecdia-text/30">
+                  <th className="text-left px-4 py-3">Machine</th>
+                  <th className="text-right px-4 py-3">Queries</th>
+                  <th className="text-right px-4 py-3">Alerts</th>
+                  <th className="text-right px-4 py-3">Rate</th>
+                  <th className="text-right px-4 py-3">Avg Severity</th>
+                  <th className="text-left px-4 py-3">Top Alarm Codes</th>
                 </tr>
               </thead>
               <tbody>
                 {per_machine.map((m, i) => (
-                  <tr key={m.machine_id} className="border-t border-tecdia-border/40 hover:bg-tecdia-background/40 transition-colors">
-                    <td className="px-2 py-2.5">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full" style={{ background: MACHINE_COLORS[i % MACHINE_COLORS.length] }} />
+                  <tr key={m.machine_id} className="group transition-all duration-200">
+                    <td className="px-4 py-3.5 bg-white/30 group-hover:bg-white/60 border-l border-y border-tecdia-border/30 rounded-l-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ background: MACHINE_COLORS[i % MACHINE_COLORS.length] }} />
                         <span className="font-bold text-tecdia-textDeep">{m.display_name}</span>
                       </div>
                     </td>
-                    <td className="px-2 py-2.5 text-right font-mono tabular-nums text-tecdia-text">{m.query_count}</td>
-                    <td className="px-2 py-2.5 text-right font-mono tabular-nums text-red-600">{m.alert_count}</td>
-                    <td className="px-2 py-2.5 text-right font-mono tabular-nums text-tecdia-text/70">{m.alert_rate_pct}%</td>
-                    <td className="px-2 py-2.5 text-right">
+                    <td className="px-4 py-3.5 bg-white/30 group-hover:bg-white/60 border-y border-tecdia-border/30 text-right font-mono tabular-nums text-tecdia-text/80">{m.query_count}</td>
+                    <td className="px-4 py-3.5 bg-white/30 group-hover:bg-white/60 border-y border-tecdia-border/30 text-right font-mono tabular-nums text-tecdia-textDeep font-bold">{m.alert_count}</td>
+                    <td className="px-4 py-3.5 bg-white/30 group-hover:bg-white/60 border-y border-tecdia-border/30 text-right font-mono tabular-nums text-tecdia-text/50">{m.alert_rate_pct}%</td>
+                    <td className="px-4 py-3.5 bg-white/30 group-hover:bg-white/60 border-y border-tecdia-border/30 text-right">
                       <SeverityPill value={m.avg_severity} />
                     </td>
-                    <td className="px-2 py-2.5">
-                      <div className="flex flex-wrap gap-1">
+                    <td className="px-4 py-3.5 bg-white/30 group-hover:bg-white/60 border-r border-y border-tecdia-border/30 rounded-r-xl">
+                      <div className="flex flex-wrap gap-1.5">
                         {m.most_asked_codes.length === 0 ? (
-                          <span className="text-[10px] text-tecdia-text/30">—</span>
+                          <span className="text-[10px] text-tecdia-text/20 italic">No codes recorded</span>
                         ) : (
-                          m.most_asked_codes.map(([code, count]) => (
-                            <span key={code} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-tecdia-accent/10 text-tecdia-accent border border-tecdia-accent/20">
-                              {code} <span className="text-tecdia-text/40">×{count}</span>
+                          m.most_asked_codes.slice(0, 3).map(([code, count]) => (
+                            <span key={code} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white border border-tecdia-border/40 text-tecdia-accent shadow-sm">
+                              {code} <span className="text-tecdia-text/30 font-medium ml-1">×{count}</span>
                             </span>
                           ))
                         )}
@@ -411,7 +414,7 @@ const AnalyticsPanel = () => {
         {/* ── 3. Code frequency bars ────────────────────────────────── */}
         <SectionCard>
           <div className="flex items-center gap-2 mb-4">
-            <AlertCircle size={16} className="text-orange-600" />
+            <AlertCircle size={16} className="text-tecdia-accent" />
             <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Top error / alarm codes</h3>
           </div>
           {code_frequency.length === 0 ? (
@@ -426,13 +429,13 @@ const AnalyticsPanel = () => {
                 return (
                   <div key={`${c.code}_${c.machine}_${i}`} className="flex items-center gap-3 text-sm">
                     <span className="w-20 font-mono font-bold text-tecdia-textDeep flex-shrink-0">{c.code}</span>
-                    <div className="flex-1 h-5 bg-tecdia-background rounded-md overflow-hidden relative">
+                    <div className="flex-1 h-5 bg-[#E6F7FF] rounded-md overflow-hidden relative">
                       <div
-                        className="h-full rounded-md transition-all duration-500"
-                        style={{ width: `${pct}%`, background: colorObj.color, opacity: 0.85 }}
+                        className="h-full rounded-md transition-all duration-500 bg-[#0057D9]"
+                        style={{ width: `${pct}%`, background: colorObj.color, opacity: 0.9 }}
                       />
                     </div>
-                    <span className="w-10 text-right font-mono tabular-nums text-tecdia-text">{c.count}</span>
+                    <span className="w-10 text-right font-mono tabular-nums text-tecdia-textDeep/60 font-bold">×{c.count}</span>
                   </div>
                 );
               })}
@@ -466,13 +469,18 @@ const AnalyticsPanel = () => {
             <FileText size={16} className="text-tecdia-accent" />
             <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Most-asked questions</h3>
           </div>
-          <div className="space-y-1.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1 mt-2">
             {top_questions.map((q, i) => (
-              <div key={i} className="flex items-center gap-3 text-sm py-1.5 border-b border-tecdia-border/30 last:border-0">
-                <span className="font-mono tabular-nums w-6 text-tecdia-text/30">{i + 1}.</span>
-                <span className="flex-1 text-tecdia-text truncate">{q.question}</span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-tecdia-background border border-tecdia-border text-tecdia-text/60">{q.machine.replaceAll('_', ' ')}</span>
-                <span className="w-12 text-right font-mono tabular-nums font-bold text-tecdia-textDeep">×{q.count}</span>
+              <div key={i} className="group flex items-center gap-4 py-3 border-b border-tecdia-border/20 last:border-0 hover:bg-white/20 px-3 -mx-3 rounded-xl transition-colors">
+                <span className="font-mono tabular-nums text-xs font-bold text-tecdia-accent/40 w-5">{(i + 1).toString().padStart(2, '0')}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-tecdia-textDeep truncate group-hover:text-tecdia-accent transition-colors">{q.question}</p>
+                  <p className="text-[10px] font-bold text-tecdia-text/30 uppercase tracking-widest mt-0.5">{q.machine.replaceAll('_', ' ')}</p>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-sm font-black text-tecdia-textDeep font-mono">×{q.count}</span>
+                  <span className="text-[9px] font-bold text-tecdia-text/30 uppercase">Queries</span>
+                </div>
               </div>
             ))}
           </div>
@@ -482,10 +490,13 @@ const AnalyticsPanel = () => {
   );
 };
 
-const KpiCard = ({ label, value, accent }) => (
-  <div className={`rounded-2xl p-4 border ${accent}`}>
-    <div className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1">{label}</div>
-    <div className="text-2xl font-bold font-mono tabular-nums">{value}</div>
+const KpiCard = ({ label, value, accent, icon: Icon }) => (
+  <div className={`rounded-2xl p-5 border transition-all duration-300 hover:translate-y-[-2px] bg-white/50 backdrop-blur-md border-tecdia-border/30 hover:border-tecdia-accent/40 hover:shadow-lg ${accent}`}>
+    <div className="flex items-center justify-between mb-3">
+      <div className="text-[10px] font-bold uppercase tracking-widest text-tecdia-text/40">{label}</div>
+      {Icon && <Icon size={14} className="opacity-40" />}
+    </div>
+    <div className="text-2xl font-extrabold font-mono tabular-nums text-tecdia-textDeep">{value}</div>
   </div>
 );
 
@@ -494,60 +505,126 @@ const SeverityPill = ({ value }) => {
   const obj = SEVERITY_PALETTE[String(sev)] || SEVERITY_PALETTE['1'];
   return (
     <span
-      className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border tabular-nums"
-      style={{ borderColor: `${obj.color}40`, color: obj.color, background: `${obj.color}10` }}
+      className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-lg border tabular-nums"
+      style={{ borderColor: `${obj.color}30`, color: obj.color, background: `${obj.color}08` }}
     >
-      <span className="w-1 h-1 rounded-full" style={{ background: obj.color }} />
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: obj.color }} />
       {(value || 0).toFixed(2)}
     </span>
   );
 };
 
-// Pure CSS conic-gradient donut — no chart library needed.
+// Pure SVG donut with professional hover tooltips.
 const SeverityDonut = ({ distribution }) => {
+  const [hovered, setHovered] = useState(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const entries = Object.entries(distribution).sort((a, b) => Number(a[0]) - Number(b[0]));
   const total = entries.reduce((sum, [, c]) => sum + c, 0);
+  
   if (total === 0) {
     return <p className="text-sm text-tecdia-text/40 italic">No queries to distribute yet.</p>;
   }
-  // Build CSS conic-gradient stops cumulatively. Use reduce so the React
-  // Compiler's immutability checker is happy with the running accumulator.
-  const { stops } = entries.reduce(
-    (acc, [sev, count]) => {
-      const start = (acc.consumed / total) * 360;
-      const newConsumed = acc.consumed + count;
-      const end = (newConsumed / total) * 360;
-      const color = SEVERITY_PALETTE[sev].color;
-      acc.stops.push(`${color} ${start}deg ${end}deg`);
-      return { stops: acc.stops, consumed: newConsumed };
-    },
-    { stops: [], consumed: 0 },
-  );
-  const gradient = stops.join(', ');
+
+  const handleMouseMove = (e) => {
+    setMousePos({ x: e.clientX, y: e.clientY });
+  };
+
+  const r = 38;
+  const circ = 2 * Math.PI * r;
+  let accumulatedPercent = 0;
+
   return (
-    <div className="flex items-center gap-6">
-      <div
-        className="relative w-32 h-32 rounded-full flex-shrink-0"
-        style={{ background: `conic-gradient(${gradient})` }}
-      >
-        <div className="absolute inset-3 bg-white rounded-full flex items-center justify-center flex-col">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-tecdia-text/40">Total</div>
-          <div className="text-xl font-bold font-mono tabular-nums text-tecdia-textDeep">{total}</div>
+    <div className="flex flex-col sm:flex-row items-center gap-10">
+      <div className="relative w-44 h-44 flex-shrink-0 group" onMouseMove={handleMouseMove}>
+        <div className="absolute inset-0 rounded-full bg-tecdia-accent/5 blur-2xl group-hover:bg-tecdia-accent/10 transition-all duration-500" />
+        
+        <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90 drop-shadow-sm overflow-visible">
+          <circle cx="50" cy="50" r={r} fill="none" stroke="#E6F7FF" strokeWidth="10" />
+          
+          {entries.map(([sev, count]) => {
+            const percent = (count / total);
+            if (percent === 0) return null;
+            const dashLength = percent * circ;
+            const dashOffset = -accumulatedPercent * circ;
+            accumulatedPercent += percent;
+            const config = SEVERITY_PALETTE[sev];
+            const isHovered = hovered?.sev === sev;
+
+            return (
+              <motion.circle
+                key={sev} cx="50" cy="50" r={r} fill="none" stroke={config.color}
+                strokeWidth={isHovered ? 13 : 10}
+                strokeDasharray={`${dashLength} ${circ}`}
+                strokeDashoffset={dashOffset}
+                strokeLinecap="butt"
+                onMouseEnter={() => setHovered({ sev, count, pct: Math.round(percent * 100), color: config.color, label: config.label })}
+                onMouseLeave={() => setHovered(null)}
+                className="transition-all duration-300 ease-out cursor-pointer pointer-events-auto"
+                style={{ filter: isHovered ? `drop-shadow(0 0 4px ${config.color}40)` : 'none' }}
+              />
+            );
+          })}
+          <circle cx="50" cy="50" r="33" fill="white" />
+        </svg>
+
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="text-center">
+            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-tecdia-text/30 block mb-0.5">Total Queries</span>
+            <span className="text-3xl font-extrabold font-mono tabular-nums text-tecdia-accent">{total}</span>
+          </div>
         </div>
+
+        <AnimatePresence>
+          {hovered && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 4 }}
+              className="absolute z-50 pointer-events-none"
+              style={{ top: '15%', right: '-15%' }}
+            >
+              <div className="bg-white border border-tecdia-border shadow-lg rounded-md px-3 py-2 flex items-center gap-2.5 min-w-max">
+                <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ background: hovered.color }} />
+                <div className="flex flex-col leading-tight">
+                  <span className="text-[11px] font-bold text-tecdia-textDeep">Level {hovered.sev} — {hovered.label}</span>
+                  <span className="text-[10px] font-mono font-bold text-tecdia-accent">{hovered.pct}% • {hovered.count} Queries</span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-      <div className="flex-1 space-y-1.5">
+
+      <div className="flex-1 w-full space-y-3">
         {entries.map(([sev, count]) => {
           const obj = SEVERITY_PALETTE[sev];
           const pct = total ? Math.round((count / total) * 100) : 0;
+          const isHovered = hovered?.sev === sev;
           return (
-            <div key={sev} className="flex items-center gap-2 text-xs">
-              <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: obj.color }} />
-              <span className="flex-1 text-tecdia-text">
-                <span className="font-bold">Sev {sev}</span>
-                <span className="text-tecdia-text/50 ml-1">— {obj.label}</span>
-              </span>
-              <span className="font-mono tabular-nums text-tecdia-text/70">{count}</span>
-              <span className="font-mono tabular-nums text-tecdia-text/40 w-8 text-right">{pct}%</span>
+            <div 
+              key={sev} 
+              onMouseEnter={() => setHovered({ sev, count, pct, color: obj.color, label: obj.label })}
+              onMouseLeave={() => setHovered(null)}
+              className={`group flex items-center gap-3 text-sm p-2.5 rounded-2xl transition-all duration-300 border cursor-pointer ${
+                isHovered ? 'bg-white shadow-md border-tecdia-accent/20 translate-x-1' : 'hover:bg-white/60 border-transparent'
+              }`}
+            >
+              <span className="w-3.5 h-3.5 rounded-full flex-shrink-0 shadow-sm border-2 border-white" style={{ background: obj.color }} />
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="font-bold text-tecdia-textDeep text-xs">Level {sev} — {obj.label}</span>
+                  <span className="font-mono tabular-nums font-bold text-tecdia-textDeep">{count}</span>
+                </div>
+                <div className="w-full h-1.5 bg-[#E6F7FF] rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct}%` }}
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ background: obj.color }}
+                  />
+                </div>
+              </div>
+              <span className="font-mono tabular-nums font-black text-tecdia-accent/40 w-10 text-right text-xs">{pct}%</span>
             </div>
           );
         })}
@@ -559,21 +636,25 @@ const SeverityDonut = ({ distribution }) => {
 const ActivityBars = ({ buckets }) => {
   const max = Math.max(1, ...buckets.map(b => b.count));
   return (
-    <div className="flex items-end gap-0.5 h-32 overflow-x-auto">
+    <div className="flex items-end gap-1 h-32 overflow-x-auto pb-2 custom-scrollbar">
       {buckets.map(b => (
-        <div key={b.hour} className="flex-1 min-w-[14px] flex flex-col items-center group">
-          <div
-            className="w-full bg-tecdia-accent rounded-t-sm transition-all duration-300 hover:bg-tecdia-accent/80 relative"
-            style={{ height: `${(b.count / max) * 100}%`, minHeight: b.count > 0 ? 2 : 0 }}
-            title={`${b.hour} — ${b.count} queries`}
-          >
-            {b.count > 0 && (
-              <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-tecdia-textDeep opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                {b.count}
-              </span>
-            )}
+        <div key={b.hour} className="flex-1 min-w-[16px] flex flex-col items-center group">
+          <div className="relative w-full flex flex-col items-center justify-end h-full">
+            <motion.div
+              initial={{ height: 0 }}
+              animate={{ height: `${(b.count / max) * 100}%` }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="w-full bg-[#0057D9] rounded-t-md transition-all duration-300 group-hover:bg-[#0A2540] group-hover:shadow-[0_0_12px_rgba(10,37,64,0.2)] relative"
+              style={{ minHeight: b.count > 0 ? 2 : 0 }}
+            >
+              {b.count > 0 && (
+                <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-[#1E88E5] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-white px-1.5 py-0.5 rounded-md shadow-sm border border-tecdia-border/30">
+                  {b.count}
+                </span>
+              )}
+            </motion.div>
           </div>
-          <span className="text-[9px] text-tecdia-text/40 mt-1 tabular-nums">{b.hour.slice(0, 2)}</span>
+          <span className="text-[9px] font-bold text-tecdia-text/30 mt-2 tabular-nums">{b.hour.split(':')[0]}</span>
         </div>
       ))}
     </div>
@@ -599,7 +680,6 @@ const AdminDashboard = () => {
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
 
-  const handleLogout = () => { adminLogout(); navigate('/admin/login'); };
 
   const handleColorPick = (opt) => setForm(f => ({ ...f, color: opt.value, glow: opt.glow, border: opt.border }));
 
@@ -716,9 +796,12 @@ const AdminDashboard = () => {
               <Shield size={12} className="text-tecdia-text/60" />
               <span className="text-xs font-semibold text-tecdia-text/80">Admin Session</span>
             </div>
-            <button onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-tecdia-text/60 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-all duration-200">
-              <LogOut size={14} /> Logout
+            <button
+              onClick={() => navigate('/')}
+              className="p-2 rounded-xl bg-white border border-tecdia-border text-tecdia-text/40 hover:text-red-500 hover:border-red-200 transition-all shadow-sm"
+              title="Exit Admin"
+            >
+              <LogOut size={16} />
             </button>
           </div>
         </div>
@@ -818,8 +901,8 @@ const AdminDashboard = () => {
                           <button onClick={() => handleDelete(machine.id, machine.name)}
                             className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all ${
                               confirming
-                                ? 'bg-red-50 border-red-200 text-red-600'
-                                : 'text-transparent group-hover:text-tecdia-text/40 border-transparent hover:!text-red-600 hover:bg-red-50 hover:border-red-200'
+                                ? 'bg-tecdia-accent/20 border-tecdia-accent/40 text-tecdia-textDeep'
+                                : 'text-transparent group-hover:text-tecdia-text/40 border-transparent hover:!text-tecdia-accent hover:bg-tecdia-accent/10 hover:border-tecdia-accent/20'
                             }`}>
                             <Trash2 size={13} />
                           </button>
@@ -836,7 +919,7 @@ const AdminDashboard = () => {
                           <span className="text-[10px] font-bold text-tecdia-text/40">SIG:</span>
                           <div className="flex gap-0.5">
                             {[1, 2, 3, 4, 5].map(i => (
-                              <div key={i} className={`w-1.5 h-1.5 rounded-full ${i <= machine.significance ? 'bg-tecdia-accent' : 'bg-tecdia-border'}`} />
+                              <div key={i} className={`w-1.5 h-1.5 rounded-full ${i <= machine.significance ? 'bg-[#0057D9]' : 'bg-[#E6F7FF] border border-tecdia-border/20'}`} />
                             ))}
                           </div>
                         </div>
@@ -904,7 +987,7 @@ const AdminDashboard = () => {
                         type="range" min="1" max="5" step="1" 
                         value={form.significance} 
                         onChange={e => setForm(f => ({ ...f, significance: parseInt(e.target.value) }))}
-                        className="w-full h-1.5 bg-tecdia-background rounded-lg appearance-none cursor-pointer accent-tecdia-accent border border-tecdia-border" 
+                        className="w-full h-1.5 bg-[#E6F7FF] rounded-lg appearance-none cursor-pointer accent-[#0057D9] border border-tecdia-border/30" 
                       />
                       <div className="flex justify-between text-[9px] text-tecdia-text/40 font-bold uppercase tracking-tighter">
                         <span>Low Impact</span>
@@ -947,7 +1030,7 @@ const AdminDashboard = () => {
                         <div className="flex items-center gap-2">
                           <img src={form.customIconUrl} alt="custom icon" className="w-8 h-8 rounded-lg object-cover border border-tecdia-border" />
                           <button type="button" onClick={() => setForm(f => ({ ...f, customIconUrl: null }))}
-                            className="w-6 h-6 rounded-full bg-tecdia-background border border-tecdia-border flex items-center justify-center text-tecdia-text/40 hover:text-red-500 transition-colors">
+                            className="w-6 h-6 rounded-full bg-tecdia-background border border-tecdia-border flex items-center justify-center text-tecdia-text/40 hover:text-tecdia-accent transition-colors">
                             <X size={11} />
                           </button>
                         </div>
@@ -1037,7 +1120,7 @@ const AdminDashboard = () => {
                 <AnimatePresence>
                   {fileErrors.map((err, i) => (
                     <motion.div key={i} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                      className="flex items-start gap-2.5 mt-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-500 text-xs">
+                      className="flex items-start gap-2.5 mt-3 px-4 py-3 bg-tecdia-accent/5 border border-tecdia-accent/20 rounded-xl text-tecdia-accent text-xs">
                       <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
                       {err}
                     </motion.div>
@@ -1057,7 +1140,7 @@ const AdminDashboard = () => {
                             <img src={file.url} alt={file.name} className="w-full h-full object-cover rounded-xl border border-tecdia-border" />
                             <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/40 rounded-xl transition-all duration-200 flex items-center justify-center">
                               <button type="button" onClick={() => removeFile(idx)}
-                                className="w-6 h-6 bg-white/70 rounded-full items-center justify-center text-tecdia-textDeep hover:text-red-500 opacity-0 group-hover/img:opacity-100 transition-opacity flex">
+                                className="w-6 h-6 bg-white/70 rounded-full items-center justify-center text-tecdia-textDeep hover:text-tecdia-accent opacity-0 group-hover/img:opacity-100 transition-opacity flex">
                                 <X size={11} />
                               </button>
                             </div>
@@ -1071,16 +1154,16 @@ const AdminDashboard = () => {
 
                     {/* PDF rows */}
                     {form.files.map((file, idx) => file.type === 'pdf' && (
-                      <div key={idx} className="flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl group/pdf">
-                        <div className="w-8 h-8 rounded-lg bg-blue-100 border border-blue-200 flex items-center justify-center flex-shrink-0">
-                          <FileText size={14} className="text-blue-600" />
+                      <div key={idx} className="flex items-center gap-3 px-4 py-3 bg-tecdia-accent/5 border border-tecdia-accent/20 rounded-xl group/pdf">
+                        <div className="w-8 h-8 rounded-lg bg-tecdia-accent/10 border border-tecdia-accent/20 flex items-center justify-center flex-shrink-0">
+                          <FileText size={14} className="text-tecdia-accent" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-tecdia-textDeep truncate">{file.name}</p>
                           <p className="text-[10px] text-tecdia-text/60">{(file.size / 1024).toFixed(0)} KB · PDF</p>
                         </div>
                         <button type="button" onClick={() => removeFile(idx)}
-                          className="text-tecdia-text/40 hover:text-red-500 transition-colors opacity-0 group-hover/pdf:opacity-100 flex-shrink-0">
+                          className="text-tecdia-text/40 hover:text-tecdia-accent transition-colors opacity-0 group-hover/pdf:opacity-100 flex-shrink-0">
                           <X size={14} />
                         </button>
                       </div>
@@ -1110,7 +1193,7 @@ const AdminDashboard = () => {
             {alertThreshold && <p className="text-xs text-tecdia-text/40 mb-4">Alerts fire when score ≥ {alertThreshold} of 25</p>}
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold text-tecdia-textDeep flex items-center gap-2">
-                <BellRing size={20} className="text-red-500" />
+                <BellRing size={20} className="text-tecdia-accent" />
                 Critical Fault Alerts
               </h2>
               <div className="flex items-center gap-4">
@@ -1118,7 +1201,7 @@ const AdminDashboard = () => {
                   Inject Test Alert
                 </button>
                 {alerts.length > 0 && (
-                  <button onClick={handleClearAlerts} className="text-xs font-bold text-red-500 hover:text-red-600 transition-colors">
+                  <button onClick={handleClearAlerts} className="text-xs font-bold text-tecdia-text/40 hover:text-tecdia-accent transition-colors">
                     Clear All History
                   </button>
                 )}
@@ -1134,31 +1217,69 @@ const AdminDashboard = () => {
                 <p className="text-tecdia-text/60 text-sm max-w-xs mt-1">High-severity fault reports will appear here automatically.</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {alerts.map((alert) => (
-                  <motion.div key={alert.alert_id} layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                    className="bg-white border-l-4 border-l-red-500 border border-tecdia-border rounded-xl p-5 shadow-sm hover:shadow-md transition-all">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-1">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-red-500 bg-red-50 px-2 py-0.5 rounded-md border border-red-100">Score {alert.score}</span>
-                          <h3 className="font-bold text-tecdia-textDeep">{alert.machine_id}</h3>
-                          <span className="text-[10px] text-tecdia-text/40 font-medium">{new Date(alert.notified_at).toLocaleString()}</span>
+                  <motion.div 
+                    key={alert.alert_id} 
+                    layout 
+                    initial={{ opacity: 0, y: 12 }} 
+                    animate={{ opacity: 1, y: 0 }}
+                    className="group relative bg-white border border-tecdia-border rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:border-tecdia-accent/20 transition-all duration-300"
+                  >
+                    {/* High-Contrast Indicator Strip (Navy) */}
+                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#0A2540]" />
+                    
+                    <div className="p-6">
+                      <div className="flex flex-col lg:flex-row gap-6">
+                        {/* Main Info */}
+                        <div className="flex-1">
+                          <div className="flex flex-wrap items-center gap-3 mb-3">
+                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500 text-white text-[10px] font-black uppercase tracking-widest shadow-sm">
+                              <Shield size={12} /> Score {alert.score}
+                            </span>
+                            <h3 className="text-base font-bold text-tecdia-textDeep tracking-tight uppercase">
+                              {alert.machine_id.replaceAll('_', ' ')}
+                            </h3>
+                            <span className="text-[10px] font-bold text-tecdia-accent bg-tecdia-accent/5 px-2 py-1 rounded-md border border-tecdia-accent/10">
+                              {new Date(alert.notified_at).toLocaleString('en-US', { 
+                                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                              })}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-4 mb-4">
+                            <div className="flex flex-col">
+                              <span className="text-[9px] font-bold text-tecdia-text/30 uppercase tracking-tighter">Impact Level</span>
+                              <span className="text-xs font-black text-tecdia-textDeep uppercase">Severity {alert.severity_level}</span>
+                            </div>
+                            <div className="w-px h-6 bg-tecdia-border" />
+                            <div className="flex flex-col">
+                              <span className="text-[9px] font-bold text-tecdia-text/30 uppercase tracking-tighter">Significance</span>
+                              <span className="text-xs font-black text-tecdia-textDeep uppercase">Priority {alert.machine_significance}</span>
+                            </div>
+                          </div>
+
+                          <div className="relative">
+                            <div className="absolute -left-3 top-0 bottom-0 w-0.5 bg-tecdia-accent/10" />
+                            <p className="text-sm text-tecdia-textDeep/80 leading-relaxed pl-3">
+                              {alert.answer_excerpt || alert.question}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 mb-2 text-[10px] text-tecdia-text/50 font-bold uppercase tracking-tight">
-                          <span>Sev Level: {alert.severity_level}</span>
-                          <span className="text-tecdia-border">|</span>
-                          <span>Machine Sig: {alert.machine_significance}</span>
+
+                        {/* Status Side */}
+                        <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between lg:justify-center gap-4 pt-4 lg:pt-0 border-t lg:border-t-0 lg:border-l border-tecdia-border lg:pl-8">
+                          <div className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border transition-colors duration-300 ${
+                            alert.email_notified 
+                              ? 'bg-[#E6F7FF] border-[#B6E6FF] text-[#0057D9]' 
+                              : 'bg-tecdia-background border-tecdia-border text-tecdia-text/40'
+                          }`}>
+                            <div className={`w-2 h-2 rounded-full ${alert.email_notified ? 'bg-tecdia-accent animate-pulse' : 'bg-tecdia-text/20'}`} />
+                            <span className="text-[11px] font-black uppercase tracking-wider">
+                              {alert.email_notified ? 'System Notified' : 'Dispatch Pending'}
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-xs text-tecdia-text/70 line-clamp-2 italic">"{alert.answer_excerpt || alert.question}"</p>
-                      </div>
-                      <div className={`flex items-center gap-2.5 px-3.5 py-2 rounded-xl border flex-shrink-0 ${ alert.email_notified ? 'bg-emerald-50 border-emerald-100' : 'bg-yellow-50 border-yellow-100' }`}>
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${ alert.email_notified ? 'bg-emerald-100' : 'bg-yellow-100' }`}>
-                          <CheckCircle size={11} className={alert.email_notified ? 'text-emerald-600' : 'text-yellow-500'} />
-                        </div>
-                        <span className={`text-[11px] font-bold ${ alert.email_notified ? 'text-emerald-700' : 'text-yellow-700' }`}>
-                          {alert.email_notified ? 'Email Notified' : 'Pending'}
-                        </span>
                       </div>
                     </div>
                   </motion.div>
