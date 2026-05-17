@@ -264,12 +264,12 @@ const IngestionProgress = ({ job, onDismiss }) => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const AUDIT_ACTION_COLORS = {
-  'auth.admin_login':       { bg: '#0057D9', label: 'Login' },
-  'auth.admin_logout':      { bg: '#42A5F5', label: 'Logout' },
-  'machine.create':         { bg: '#0A2540', label: 'Machine Created' },
-  'machine.delete':         { bg: '#0A2540', label: 'Machine Deleted' },
-  'machine.ingest_complete':{ bg: '#1E88E5', label: 'Ingest Complete' },
-  'machine.ingest_failed':  { bg: '#0A2540', label: 'Ingest Failed' },
+  'auth.admin_login':       { className: 'bg-tecdia-accent text-white', label: 'Login' },
+  'auth.admin_logout':      { className: 'bg-white text-tecdia-textDeep border border-tecdia-border', label: 'Logout' },
+  'machine.create':         { className: 'bg-tecdia-textDeep text-white', label: 'Machine Created' },
+  'machine.delete':         { className: 'bg-tecdia-textDeep/80 text-white', label: 'Machine Deleted' },
+  'machine.ingest_complete':{ className: 'bg-tecdia-surface text-tecdia-textDeep border border-tecdia-accent/50', label: 'Ingest Complete' },
+  'machine.ingest_failed':  { className: 'bg-transparent text-tecdia-textDeep border border-tecdia-textDeep/30', label: 'Ingest Failed' },
 };
 
 const AuditPanel = () => {
@@ -306,116 +306,191 @@ const AuditPanel = () => {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="relative z-10">
+      {/* Background Glows for premium feel */}
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-tecdia-accent/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-blue-400/5 rounded-full blur-3xl pointer-events-none" />
+
       {/* header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 relative z-10">
         <div>
-          <h2 className="text-xl font-bold text-tecdia-textDeep flex items-center gap-2.5">
-            <Shield size={22} className="text-tecdia-accent" />
+          <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-tecdia-textDeep to-tecdia-accent flex items-center gap-3">
+            <Shield size={28} className="text-tecdia-accent" />
             Audit Log
           </h2>
-          <p className="text-[11px] font-medium text-tecdia-text/40 uppercase tracking-widest mt-1 ml-8">
-            Append-only record of admin actions · backed by data/audit.jsonl
+          <p className="text-[11px] font-semibold text-tecdia-text/50 uppercase tracking-[0.2em] mt-1.5 ml-10 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-tecdia-accent animate-pulse" />
+            Append-only security record
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {[
-            { id: 'all',       label: 'All' },
-            { id: 'auth.',     label: 'Auth' },
-            { id: 'machine.',  label: 'Machine' },
-          ].map(f => (
-            <button key={f.id} onClick={() => setFilter(f.id)}
-              className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-all ${
-                filter === f.id
-                  ? 'bg-tecdia-accent text-white border-tecdia-accent'
-                  : 'bg-white text-tecdia-text/60 border-tecdia-border hover:border-tecdia-accent/40'
-              }`}>{f.label}</button>
-          ))}
-          <button onClick={() => load(filter)} className="btn-secondary text-xs px-4 py-1.5 flex items-center gap-2">
-            <Activity size={12} className={loading ? 'animate-spin' : ''} />
-            Refresh
+        <div className="flex items-center gap-3">
+          <div className="flex p-1 bg-white/50 backdrop-blur-md rounded-xl border border-tecdia-border/50 shadow-sm relative">
+            {[
+              { id: 'all',       label: 'All Activity' },
+              { id: 'auth.',     label: 'Authentication' },
+              { id: 'machine.',  label: 'Machine Events' },
+            ].map(f => (
+              <button key={f.id} onClick={() => setFilter(f.id)}
+                className={`text-xs font-bold px-4 py-2 rounded-lg transition-all duration-300 relative z-10 ${
+                  filter === f.id
+                    ? 'text-white shadow-md'
+                    : 'text-tecdia-text/60 hover:text-tecdia-textDeep hover:bg-white/50'
+                }`}>
+                {filter === f.id && (
+                  <motion.div layoutId="auditTab" className="absolute inset-0 bg-gradient-to-r from-tecdia-accent to-blue-500 rounded-lg -z-10" transition={{ type: "spring", stiffness: 300, damping: 30 }} />
+                )}
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => load(filter)} className="group bg-white hover:bg-tecdia-accent hover:text-white text-tecdia-textDeep border border-tecdia-border shadow-sm text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 flex items-center gap-2">
+            <Activity size={14} className={loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} />
+            Sync
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm mb-4">{error}</div>
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-600 text-sm mb-6 flex items-center gap-3 font-medium backdrop-blur-md relative z-10">
+          <AlertCircle size={18} />
+          {error}
+        </motion.div>
       )}
 
       {loading && entries.length === 0 ? (
-        <div className="p-12 text-center text-tecdia-text/50 text-sm">Loading audit entries…</div>
-      ) : entries.length === 0 ? (
-        <div className="bg-tecdia-accent/5 border border-tecdia-accent/20 rounded-2xl p-8 text-sm text-tecdia-text/70 text-center">
-          <span className="font-bold text-tecdia-textDeep">No audit entries yet.</span>
-          {' '}Sign in, create or delete a machine to generate the first records.
+        <div className="p-20 flex flex-col items-center justify-center gap-4 text-tecdia-text/50 relative z-10">
+          <Activity size={32} className="animate-spin text-tecdia-accent opacity-50" />
+          <span className="text-sm font-semibold tracking-wider uppercase">Retrieving secure logs...</span>
         </div>
+      ) : entries.length === 0 ? (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-white/60 to-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-12 text-center relative overflow-hidden z-10">
+          <Shield size={48} className="mx-auto text-tecdia-accent/20 mb-4" />
+          <p className="text-lg font-bold text-tecdia-textDeep mb-2">No Security Events Found</p>
+          <p className="text-sm text-tecdia-text/60">The audit ledger is currently empty for this filter.</p>
+        </motion.div>
       ) : (
-        <SectionCard>
-          <div className="overflow-x-auto -mx-6 px-6 custom-scrollbar">
-            <table className="w-full text-sm border-separate border-spacing-y-1.5">
-              <thead>
-                <tr className="text-[10px] font-bold uppercase tracking-widest text-tecdia-text/30">
-                  <th className="text-left px-3 py-2">When (UTC)</th>
-                  <th className="text-left px-3 py-2">Action</th>
-                  <th className="text-left px-3 py-2">Actor</th>
-                  <th className="text-left px-3 py-2">Target</th>
-                  <th className="text-left px-3 py-2">IP</th>
-                  <th className="text-left px-3 py-2">Status</th>
-                  <th className="text-right px-3 py-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((e, i) => {
-                  const colorObj = AUDIT_ACTION_COLORS[e.action] || { bg: '#42A5F5', label: e.action };
-                  const isFailure = e.status === 'failure';
-                  const hasDetails = e.details && Object.keys(e.details).length > 0;
-                  const isExpanded = expanded.has(i);
-                  let ts = e.ts;
-                  try { ts = new Date(e.ts).toISOString().replace('T', ' ').slice(0, 19); } catch { /* keep raw */ }
-                  return (
-                    <React.Fragment key={`${e.ts}-${i}`}>
-                      <tr className="group">
-                        <td className="px-3 py-2.5 bg-white/30 group-hover:bg-white/60 border-l border-y border-tecdia-border/30 rounded-l-xl font-mono text-[11px] tabular-nums text-tecdia-text/70 whitespace-nowrap">{ts}</td>
-                        <td className="px-3 py-2.5 bg-white/30 group-hover:bg-white/60 border-y border-tecdia-border/30">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md text-white whitespace-nowrap" style={{ background: colorObj.bg }}>
-                            {colorObj.label}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2.5 bg-white/30 group-hover:bg-white/60 border-y border-tecdia-border/30 text-tecdia-textDeep text-xs font-medium truncate max-w-[200px]">{e.actor || '—'}</td>
-                        <td className="px-3 py-2.5 bg-white/30 group-hover:bg-white/60 border-y border-tecdia-border/30 font-mono text-[11px] text-tecdia-text/70 truncate max-w-[220px]">{e.target || '—'}</td>
-                        <td className="px-3 py-2.5 bg-white/30 group-hover:bg-white/60 border-y border-tecdia-border/30 font-mono text-[11px] text-tecdia-text/50">{e.ip || '—'}</td>
-                        <td className="px-3 py-2.5 bg-white/30 group-hover:bg-white/60 border-y border-tecdia-border/30">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
-                            isFailure ? 'bg-red-50 border-red-200 text-red-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                          }`}>{isFailure ? 'FAIL' : 'OK'}</span>
-                        </td>
-                        <td className="px-3 py-2.5 bg-white/30 group-hover:bg-white/60 border-r border-y border-tecdia-border/30 rounded-r-xl text-right">
-                          {hasDetails && (
-                            <button onClick={() => toggleExpanded(i)} className="text-[10px] font-bold text-tecdia-accent hover:underline">
-                              {isExpanded ? 'Hide' : 'Details'}
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                      {isExpanded && hasDetails && (
-                        <tr>
-                          <td colSpan={7} className="px-3 pt-1 pb-3">
-                            <pre className="text-[11px] font-mono bg-tecdia-background/60 border border-tecdia-border/40 rounded-lg p-3 overflow-x-auto text-tecdia-text/80">
-{JSON.stringify(e.details, null, 2)}
-                            </pre>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="relative z-10">
+          <div className="bg-gradient-to-br from-white/80 to-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.06)] rounded-3xl overflow-hidden relative">
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-white/50 border-b border-tecdia-border/40 text-[10px] font-black uppercase tracking-[0.15em] text-tecdia-text/40">
+                    <th className="text-left py-4 px-6 font-semibold">Timestamp <span className="font-mono lowercase text-[9px]">(utc)</span></th>
+                    <th className="text-left py-4 px-6 font-semibold">Event Vector</th>
+                    <th className="text-left py-4 px-6 font-semibold">Principal</th>
+                    <th className="text-left py-4 px-6 font-semibold">Resource</th>
+                    <th className="text-left py-4 px-6 font-semibold">Origin IP</th>
+                    <th className="text-left py-4 px-6 font-semibold">Resolution</th>
+                    <th className="text-right py-4 px-6 font-semibold">Payload</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-tecdia-border/30">
+                  <AnimatePresence>
+                    {entries.map((e, i) => {
+                      const colorObj = AUDIT_ACTION_COLORS[e.action] || { className: 'bg-tecdia-surface text-tecdia-textDeep border border-tecdia-border', label: e.action };
+                      const isFailure = e.status === 'failure';
+                      const hasDetails = e.details && Object.keys(e.details).length > 0;
+                      const isExpanded = expanded.has(i);
+                      let ts = e.ts;
+                      try { ts = new Date(e.ts).toISOString().replace('T', ' ').slice(0, 19); } catch { /* keep raw */ }
+                      
+                      return (
+                        <React.Fragment key={`${e.ts}-${i}`}>
+                          <motion.tr 
+                            onClick={() => toggleExpanded(i)}
+                            initial={{ opacity: 0, backgroundColor: 'rgba(255,255,255,0)' }} 
+                            animate={{ opacity: 1, backgroundColor: isExpanded ? 'rgba(0,169,255,0.08)' : 'rgba(255,255,255,0)' }}
+                            className={`transition-colors duration-200 cursor-pointer group ${isExpanded ? 'border-l-2 border-tecdia-accent' : 'border-l-2 border-transparent'}`}
+                          >
+                            <td className={`py-3.5 px-6 font-mono text-[11px] tabular-nums whitespace-nowrap transition-colors ${isExpanded ? 'text-tecdia-accent font-bold' : 'text-tecdia-textDeep/70'}`}>
+                              {ts}
+                            </td>
+                            <td className="py-3.5 px-6">
+                              <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-lg ${colorObj.className}`}>
+                                {colorObj.label}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-6">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-gray-100 to-gray-200 border border-white flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-gray-500">
+                                  {e.actor ? e.actor.charAt(0).toUpperCase() : '?'}
+                                </div>
+                                <span className={`text-xs font-semibold truncate max-w-[200px] transition-colors ${isExpanded ? 'text-tecdia-accent' : 'text-tecdia-textDeep'}`}>{e.actor || 'Anonymous'}</span>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-6">
+                              <span className="font-mono text-[11px] text-tecdia-text/60 truncate max-w-[200px] block bg-white/50 px-2 py-0.5 rounded-md border border-black/5">{e.target || '*'}</span>
+                            </td>
+                            <td className="py-3.5 px-6">
+                              <div className="flex items-center gap-1.5">
+                                <Monitor size={12} className="text-tecdia-text/30" />
+                                <span className="font-mono text-[11px] text-tecdia-text/60 tracking-tight">{e.ip || '—'}</span>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-6">
+                              <span className={`inline-flex items-center gap-1.5 text-[10px] font-black px-2.5 py-1 rounded-lg border ${
+                                isFailure 
+                                  ? 'bg-tecdia-textDeep/5 border-tecdia-textDeep/20 text-tecdia-textDeep' 
+                                  : 'bg-tecdia-accent/10 border-tecdia-accent/30 text-tecdia-accent'
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${isFailure ? 'bg-tecdia-textDeep animate-pulse' : 'bg-tecdia-accent'}`} />
+                                {isFailure ? 'REJECTED' : 'SUCCESS'}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-6 text-right">
+                              {hasDetails && (
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); toggleExpanded(i); }} 
+                                  className={`p-1.5 rounded-lg transition-all duration-300 ${isExpanded ? 'bg-tecdia-accent text-white shadow-md' : 'bg-white text-tecdia-text/40 hover:text-tecdia-accent hover:shadow-sm border border-transparent hover:border-tecdia-border/50'}`}
+                                >
+                                  <ChevronRight size={14} className={`transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`} />
+                                </button>
+                              )}
+                            </td>
+                          </motion.tr>
+                          
+                          {/* Expanded payload details */}
+                          <AnimatePresence>
+                            {isExpanded && hasDetails && (
+                              <motion.tr
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="bg-gradient-to-b from-white/60 to-transparent"
+                              >
+                                <td colSpan={7} className="px-6 py-4 border-b border-tecdia-border/20">
+                                  <div className="bg-[#0A2540] rounded-xl p-4 shadow-inner relative overflow-hidden group/code">
+                                    <div className="absolute top-0 left-0 w-1 h-full bg-tecdia-accent" />
+                                    <div className="flex items-center justify-between mb-2 opacity-60">
+                                      <span className="text-[10px] font-mono text-blue-300 uppercase tracking-widest flex items-center gap-1.5"><Database size={10} /> Event Payload</span>
+                                    </div>
+                                    <pre className="text-[11px] font-mono text-blue-100 overflow-x-auto custom-scrollbar pb-2">
+                                      {JSON.stringify(e.details, null, 2)}
+                                    </pre>
+                                  </div>
+                                </td>
+                              </motion.tr>
+                            )}
+                          </AnimatePresence>
+                        </React.Fragment>
+                      );
+                    })}
+                  </AnimatePresence>
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="bg-white/50 border-t border-tecdia-border/30 px-6 py-4 flex items-center justify-between">
+              <p className="text-[10px] font-bold text-tecdia-text/40 uppercase tracking-widest flex items-center gap-2">
+                <Layers size={12} />
+                Showing {entries.length} log {entries.length === 1 ? 'entry' : 'entries'}
+              </p>
+              <div className="flex items-center gap-1.5 text-[10px] font-semibold text-tecdia-text/40">
+                <Activity size={12} className="text-tecdia-accent" /> Real-time sync active
+              </div>
+            </div>
           </div>
-          <p className="text-[10px] font-medium text-tecdia-text/30 mt-3 px-2">
-            Showing {entries.length} entr{entries.length === 1 ? 'y' : 'ies'} · newest first
-          </p>
-        </SectionCard>
+        </motion.div>
       )}
     </motion.div>
   );
