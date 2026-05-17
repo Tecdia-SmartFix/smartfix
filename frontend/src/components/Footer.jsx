@@ -41,11 +41,12 @@ const Footer = () => (
           <li>
             <Link to="/cookie-policy" className="transition-colors duration-200 hover:text-tecdia-accent">Cookie Policy</Link>
           </li>
-          {['Privacy Policy', 'Terms of Service'].map(item => (
-            <li key={item}>
-              <a href="#" className="transition-colors duration-200 hover:text-tecdia-accent">{item}</a>
+          <li>
+              <Link to="/privacy-policy" className="transition-colors duration-200 hover:text-tecdia-accent">Privacy Policy</Link>
             </li>
-          ))}
+            <li>
+              <a href="#" className="transition-colors duration-200 hover:text-tecdia-accent">Terms of Service</a>
+            </li>
         </ul>
       </div>
     </div>
