@@ -45,7 +45,7 @@ const Footer = () => (
               <Link to="/privacy-policy" className="transition-colors duration-200 hover:text-tecdia-accent">Privacy Policy</Link>
             </li>
             <li>
-              <a href="#" className="transition-colors duration-200 hover:text-tecdia-accent">Terms of Service</a>
+              <Link to="/company-policy" className="transition-colors duration-200 hover:text-tecdia-accent">Company Policy</Link>
             </li>
         </ul>
       </div>

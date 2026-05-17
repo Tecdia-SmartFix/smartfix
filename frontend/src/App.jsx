@@ -20,6 +20,7 @@ import IntegrationsPage from './pages/IntegrationsPage';
 // fetch, which would crash the whole React tree on mount.
 import CookiePolicy from './pages/LegalNotice';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import CompanyPolicy from './pages/CompanyPolicy';
 
 /**
  * Wraps <ChatPage /> with a React `key` derived from the ?machine= URL param.
@@ -53,6 +54,7 @@ const AnimatedRoutes = () => {
           <Route path="/integrations" element={<IntegrationsPage />} />
           <Route path="/cookie-policy" element={<CookiePolicy />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/company-policy" element={<CompanyPolicy />} />
           <Route path="/integration"  element={<IntegrationsPage />} />
           <Route path="/machines"     element={<MachinesPage />} />
           <Route path="/chat"         element={<ChatRoute />} />
