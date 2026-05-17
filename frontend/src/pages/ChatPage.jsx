@@ -16,6 +16,7 @@ import { useMachines } from '../context/MachineContext';
 import { useAuth } from '../context/AuthContext';
 import { useAlerts } from '../context/AlertContext';
 import { fetchApi } from '../api/apiClient';
+import ChromaKeyVideo from '../components/ChromaKeyVideo';
 
 // Icon map for dynamic lookup
 const ICON_MAP = {
@@ -363,8 +364,13 @@ const ChatPage = () => {
               /* Empty state with suggestions */
               <div className="flex-1 flex flex-col items-center justify-center -mt-16 px-4 w-full">
                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                  className="w-16 h-16 rounded-2xl bg-white border border-tecdia-border flex items-center justify-center mb-5 overflow-hidden shadow-sm">
-                  <img src="/src/assets/logo.png" alt="AI" className="w-10 h-10 object-contain" />
+                  className="relative w-44 h-44 mb-5 pointer-events-none drop-shadow-xl">
+                  <ChromaKeyVideo
+                    src="/src/assets/robot.webm"
+                    width={176}
+                    height={176}
+                    className="relative"
+                  />
                 </motion.div>
 
                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
