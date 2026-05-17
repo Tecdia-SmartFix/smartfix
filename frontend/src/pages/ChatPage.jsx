@@ -10,7 +10,7 @@ import {
   Printer, Scissors, Wrench, Gauge, X, FileText, Cpu, Factory,
   Cog, Activity, Flame, Monitor, Layers, Radio, Thermometer,
   HardDrive, Truck, FlaskConical, ShieldAlert, ArrowLeft,
-  BellRing, RefreshCw, BookOpen, AlertTriangle,
+  BellRing, RefreshCw, BookOpen, AlertTriangle, Square,
 } from 'lucide-react';
 import { useMachines } from '../context/MachineContext';
 import { useAuth } from '../context/AuthContext';
@@ -38,7 +38,7 @@ const FALLBACK_SUGGESTIONS_BY_CATEGORY = {
 const DEFAULT_SUGGESTIONS = ['What does the latest error code mean?', 'Run a preventive maintenance check', 'Explain a critical safety procedure', 'Check operational status'];
 
 const SEVERITY_COLORS = {
-  1: { bg: 'bg-green-50',  border: 'border-green-200',  text: 'text-green-700',  label: 'Informational' },
+  1: { bg: 'bg-slate-50',  border: 'border-slate-200',  text: 'text-slate-600',  label: 'Informational' },
   2: { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-700', label: 'Minor' },
   3: { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', label: 'Degraded' },
   4: { bg: 'bg-red-50',    border: 'border-red-200',    text: 'text-red-600',    label: 'Production Impact' },
@@ -131,6 +131,7 @@ const ChatPage = () => {
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const recognitionRef = useRef(null);
+  const abortControllerRef = useRef(null);
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   useEffect(() => { scrollToBottom(); }, [currentChat?.messages, isLoading]);
@@ -152,6 +153,8 @@ const ChatPage = () => {
     addMessage(chatId, { text: questionText, sender: 'user' });
     setIsLoading(true);
 
+    abortControllerRef.current = new AbortController();
+
     try {
       // Per API contract: machine_filter is Optional[str]. Omit it entirely for
       // "All Machines" — sending a sentinel like 'ALL' would mismatch every chunk.
@@ -166,6 +169,7 @@ const ChatPage = () => {
       const data = await fetchApi('/query', {
         method: 'POST',
         body: JSON.stringify(body),
+        signal: abortControllerRef.current.signal,
       });
 
       // data: { status, answer, sources, severity_level, alert_score, machine_significance, alert_fired }
@@ -192,6 +196,16 @@ const ChatPage = () => {
       }
 
     } catch (err) {
+      if (err.name === 'AbortError') {
+        addMessage(chatId, {
+          text: '',
+          sender: 'ai',
+          queryStatus: 'stopped',
+          isErrorMessage: true,
+          errorText: 'Response generation stopped by user.',
+        });
+        return;
+      }
       setQueryError(err.detail || err.message || 'Failed to get a response. Please try again.');
       // Remove the user message's "pending" state by adding an error AI message
       addMessage(chatId, {
@@ -205,6 +219,12 @@ const ChatPage = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
   };
 
@@ -534,14 +554,22 @@ const ChatPage = () => {
                   >
                     {isListening ? <MicOff size={20} /> : <Mic size={20} />}
                   </button>
-                  <button type="submit" disabled={!input.trim() || isLoading}
-                    className={`p-2.5 rounded-xl transition-all ${
-                      input.trim() && !isLoading
-                        ? 'bg-tecdia-accent text-white hover:bg-tecdia-accent/90'
-                        : 'bg-tecdia-background text-tecdia-text/20 cursor-not-allowed border border-tecdia-border'
-                    }`}>
-                    <Send size={20} />
-                  </button>
+                  {isLoading ? (
+                    <button type="button" onClick={handleStop}
+                      className="p-2.5 rounded-xl transition-all bg-red-500 text-white hover:bg-red-600 shadow-[0_0_12px_rgba(239,68,68,0.3)] animate-pulse"
+                      title="Stop generation">
+                      <Square size={20} fill="currentColor" />
+                    </button>
+                  ) : (
+                    <button type="submit" disabled={!input.trim()}
+                      className={`p-2.5 rounded-xl transition-all ${
+                        input.trim()
+                          ? 'bg-tecdia-accent text-white hover:bg-tecdia-accent/90'
+                          : 'bg-tecdia-background text-tecdia-text/20 cursor-not-allowed border border-tecdia-border'
+                      }`}>
+                      <Send size={20} />
+                    </button>
+                  )}
                 </div>
               </form>
               <p className="text-[10px] text-center mt-1 text-tecdia-text/40 font-medium">
