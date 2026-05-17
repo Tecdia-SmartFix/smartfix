@@ -818,11 +818,14 @@ const AdminDashboard = () => {
 
           {/* Inline stat pills */}
           <div className="flex items-center gap-3">
-            {[
-              { icon: Database, label: 'Total', value: machines.length, color: 'text-white', bg: 'bg-[#00A9FF]', border: 'border-[#00A9FF]/20' },
-              { icon: Package, label: 'Default', value: 6, color: 'text-tecdia-textDeep', bg: 'bg-[#89CFF3]', border: 'border-[#89CFF3]/20' },
-              { icon: Plus, label: 'Custom', value: Math.max(0, machines.length - 6), color: 'text-tecdia-textDeep', bg: 'bg-[#A0E9FF]', border: 'border-[#A0E9FF]/20' },
-            ].map(s => {
+            {(() => {
+              const defaultCount = machines.filter(m => isDefault(m.id)).length;
+              return [
+                { icon: Database, label: 'Total', value: machines.length, color: 'text-white', bg: 'bg-[#00A9FF]', border: 'border-[#00A9FF]/20' },
+                { icon: Package, label: 'Default', value: defaultCount, color: 'text-tecdia-textDeep', bg: 'bg-[#89CFF3]', border: 'border-[#89CFF3]/20' },
+                { icon: Plus, label: 'Custom', value: Math.max(0, machines.length - defaultCount), color: 'text-tecdia-textDeep', bg: 'bg-[#A0E9FF]', border: 'border-[#A0E9FF]/20' },
+              ];
+            })().map(s => {
               const Icon = s.icon;
               return (
                 <div key={s.label} className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl ${s.bg} border ${s.border} shadow-sm`}>
