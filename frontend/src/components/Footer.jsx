@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const Footer = () => (
   <footer className="w-full py-14 px-6 bg-white border-t border-tecdia-border">
-    <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
+    <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-12">
 
       {/* Brand */}
       <div className="col-span-1 md:col-span-2">
@@ -30,6 +30,19 @@ const Footer = () => (
           </li>
           <li>
             <Link to="/integrations" className="transition-colors duration-200 hover:text-tecdia-accent">Integrations</Link>
+          </li>
+        </ul>
+      </div>
+
+      {/* Support */}
+      <div>
+        <h4 className="text-sm font-bold text-tecdia-textDeep mb-5 uppercase tracking-widest">Support</h4>
+        <ul className="space-y-3 text-sm text-tecdia-text/60">
+          <li>
+            <a href="mailto:smartfix@tecdia.co.jp" className="transition-colors duration-200 hover:text-tecdia-accent">smartfix@tecdia.co.jp</a>
+          </li>
+          <li>
+            <a href="tel:+813XXXXXXXX" className="transition-colors duration-200 hover:text-tecdia-accent">+81-3-XXXX-XXXX</a>
           </li>
         </ul>
       </div>

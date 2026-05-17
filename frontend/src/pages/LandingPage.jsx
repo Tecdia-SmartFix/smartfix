@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Zap, Wrench, ChevronRight, CheckCircle } from 'lucide-react';
+import { ArrowRight, Zap, Wrench, ChevronRight, CheckCircle, Mail, Phone } from 'lucide-react';
 import Footer from '../components/Footer';
 import { useAuth, EXPERTISE_DOMAINS } from '../context/AuthContext';
 import { useWorkstation } from '../hooks/useWorkstation';
@@ -218,19 +218,58 @@ const LandingPage = () => {
                 </motion.div>
               </div>
 
-              <motion.div {...fadeUp(0.2)} className="hidden lg:flex items-center justify-center">
-                <div className="relative w-[300px] h-[300px]">
-                  {/* Glow ring behind the robot */}
-                  <div className="absolute inset-6 rounded-full bg-tecdia-accent/10 blur-2xl animate-pulse pointer-events-none" />
+              <motion.div {...fadeUp(0.2)} className="hidden lg:flex items-center justify-end relative">
+                {/* Robot Floating on Left */}
+                <div className="relative w-[260px] h-[260px] -mr-12 z-20 pointer-events-none drop-shadow-2xl translate-y-4">
+                  <div className="absolute inset-4 rounded-full bg-tecdia-accent/20 blur-xl animate-pulse pointer-events-none" />
                   <ChromaKeyVideo
                     src="/src/assets/robot.webm"
-                    width={300}
-                    height={300}
-                    className="relative drop-shadow-2xl"
+                    width={260}
+                    height={260}
+                    className="relative"
                   />
+                </div>
+
+                {/* Chat Preview on Right */}
+                <div className="relative z-10 w-full max-w-[420px]">
+                  <ChatPreview />
                 </div>
               </motion.div>
             </div>
+          </div>
+        </section>
+
+        {/* Support Section */}
+        <section className="relative px-6 py-20 bg-[#C6EFFF]">
+          <div className="max-w-3xl mx-auto text-center">
+            <motion.h2 {...fadeUp(0)} className="text-3xl md:text-4xl font-bold text-tecdia-textDeep mb-4">
+              Expert <span className="text-tecdia-accent">Technician Support</span>
+            </motion.h2>
+            <motion.p {...fadeUp(0.1)} className="text-tecdia-text/60 leading-relaxed max-w-2xl mx-auto mb-12">
+              Facing a complex issue? Our expert engineers are here to help you get back to peak productivity. Reach out directly for specialized machine diagnostics and technical assistance.
+            </motion.p>
+            
+            <motion.div {...fadeUp(0.2)} className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-16">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-[#A5E3FE] text-tecdia-accent flex items-center justify-center">
+                  <Mail size={20} />
+                </div>
+                <div className="text-left">
+                  <p className="text-[10px] font-bold text-tecdia-text/40 uppercase tracking-widest mb-0.5">Email Support</p>
+                  <a href="mailto:smartfix@tecdia.co.jp" className="text-sm font-bold text-tecdia-textDeep hover:text-tecdia-accent transition-colors">smartfix@tecdia.co.jp</a>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-[#A5E3FE] text-tecdia-accent flex items-center justify-center">
+                  <Phone size={20} />
+                </div>
+                <div className="text-left">
+                  <p className="text-[10px] font-bold text-tecdia-text/40 uppercase tracking-widest mb-0.5">Technician Hotline</p>
+                  <a href="tel:+813XXXXXXXX" className="text-sm font-bold text-tecdia-textDeep hover:text-tecdia-accent transition-colors">+81-3-XXXX-XXXX</a>
+                </div>
+              </div>
+            </motion.div>
           </div>
         </section>
 
