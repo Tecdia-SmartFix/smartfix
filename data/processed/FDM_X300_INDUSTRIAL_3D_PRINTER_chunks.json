@@ -1,0 +1,360 @@
+[
+    {
+        "chunk_id": 1,
+        "content": "FDM-X300 Industrial 3D Printer User & Maintenance Manual Firmware Version: 3.4.1 Manual Version: 2.1 Last Updated: February 2024 Welcome to the FDM-X300 The FDM-X300 is a high-performance industrial fused deposition modeling (FDM) 3D printer built for continuous production environments. Designed for reliability and precision, the FDM-X300 supports a wide range of engineering-grade thermoplastic filaments and delivers consistent part quality across long unattended print runs. This manual covers technical specifications, normal operating parameters, error diagnosis and\nresolution,\nmaintenance procedures, and safety guidelines. Please read this manual fully before operating the machine. What's Inside This Manual\n● Section 1 - Technical Specifications ● Section 2 - Normal Operating Parameters ● Section 3 - Error Codes and Troubleshooting ● Section 4 - Maintenance Schedule ● Section 5 - Safety Guidelines ● Section 6 - Spare Parts",
+        "metadata": {
+            "machine_id": "FDM_X300_INDUSTRIAL_3D_PRINTER",
+            "source_file": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "source": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "section": "Introduction",
+            "section_id": "Introduction",
+            "page_numbers": [
+                1
+            ],
+            "page_start": 1,
+            "page_number": 1,
+            "is_table": false,
+            "is_safety": false,
+            "is_troubleshooting": true,
+            "chunk_type": "overview",
+            "error_code": null,
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 2,
+        "content": "Section 1 - Technical Specifications\nBuild Volume\n● X axis: 300 mm ● Y axis: 300 mm ● Z axis: 400 mm\nPrint System\n● Print technology: Fused Deposition Modeling (FDM) ● Number of extruders: 2 (primary + support)\n● Nozzle diameter (standard): 0.4 mm ● Available nozzle diameters: 0.25 mm, 0.4 mm, 0.6 mm, 0.8 mm ● Max nozzle temperature: 300°C ● Nozzle material: Hardened steel (standard), Brass (optional) ● Filament diameter: 1.75 mm ● Max volumetric flow rate: 24 mm³/s\nMotion System\n● XY motion: CoreXY belt drive ● Z motion: Dual lead screw ● Max print speed: 180 mm/s ● Positioning resolution: 0.01 mm\nBuild Platform\n● Heated bed: Yes ● Max bed temperature: 120°C ● Bed leveling: Automatic (9-point inductive probe) ● Bed surface: Removable PEI spring steel sheet\nEnclosure\n● Fully enclosed build chamber ● Active chamber heating: up to 70°C ● HEPA + activated carbon filtration: Yes ● Chamber temperature sensor: Yes\nConnectivity\n● USB, Ethernet, Wi-Fi ● Touchscreen display: 7 inch colour\nPower\n● Input voltage: 220V / 50Hz single phase ● Max power draw: 2,000W ● UPS recommended: Yes\nPhysical\n● Dimensions (W×D×H): 620 × 580 × 780 mm ● Weight: 48 kg\nSupported Materials PLA, PETG, ABS, ASA, TPU, Nylon (PA12), PC, PLA-CF, PETG-CF, ABS-CF",
+        "metadata": {
+            "machine_id": "FDM_X300_INDUSTRIAL_3D_PRINTER",
+            "source_file": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "source": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "section": "Section 1 - Technical Specifications",
+            "section_id": "Section 1 - Technical Specifications",
+            "page_numbers": [
+                1,
+                2
+            ],
+            "page_start": 1,
+            "page_number": 2,
+            "is_table": false,
+            "is_safety": false,
+            "is_troubleshooting": true,
+            "chunk_type": "specification",
+            "error_code": null,
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 3,
+        "content": "Section 2 - Normal Operating Parameters\nDuring a healthy print run, the following parameters should fall within the ranges below.\nValues outside these ranges during printing indicate a potential issue. Parameter Expected Range Nozzle temperature (during print) Set point ± 3°C Bed temperature (during print) Set point ± 5°C Chamber temperature (enclosed prints) Set point ± 8°C Filament feed rate deviation Within ± 5% of set value Print head position error Below 0.05 mm Cooling fan speed (part cooling) 30% - 100% depending on material HEPA filter pressure drop Below 120 Pa Z offset (first layer) -0.1 mm to -0.3 mm from probe trigger",
+        "metadata": {
+            "machine_id": "FDM_X300_INDUSTRIAL_3D_PRINTER",
+            "source_file": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "source": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "section": "Section 2 - Normal Operating Parameters",
+            "section_id": "Section 2 - Normal Operating Parameters",
+            "page_numbers": [
+                3
+            ],
+            "page_start": 3,
+            "page_number": 3,
+            "is_table": false,
+            "is_safety": false,
+            "is_troubleshooting": false,
+            "chunk_type": "specification",
+            "error_code": null,
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 4,
+        "content": "ERR-01 - Nozzle Temperature Runaway\nWhat this means: The nozzle temperature has either dropped more than 15°C below the\nset point during printing, or has risen more than 20°C above the set point unexpectedly. Both conditions trigger an immediate print pause and heater shutdown to prevent damage or fire risk.\nWhy it happens:\n● The heater cartridge inside the hotend has failed ● The thermistor (temperature sensor) inside the hotend has failed or has a loose\nconnection\n● A draft or airflow is cooling the nozzle during printing (enclosure door left open) ● Firmware PID tuning values are incorrect after a nozzle change\nHow to fix it:\nIf temperature dropped below set point:\n1. Go to Settings → Diagnostics → Heater Test. Run the heater test for the affected\nextruder. If the nozzle temperature does not rise within 30 seconds, the heater cartridge has failed and must be replaced.\n2. If the heater test shows temperature rising normally, check that the enclosure door is\nfully closed and latched\n-\ndrafts\ncause\nrapid temperature loss at the nozzle.\n3. If the door is closed and the heater is functioning, the thermistor connection may be\nintermittent. Power off the printer, open the printhead access panel (2 screws on the left side of the gantry), and reseat the thermistor connector. If temperature rose above set point:\n1. This indicates the thermistor is reading incorrectly low, causing the heater to keep\nrunning. Power off the printer immediately.\n2. The thermistor must be replaced before restarting. Contact your maintenance\ntechnician.",
+        "metadata": {
+            "machine_id": "FDM_X300_INDUSTRIAL_3D_PRINTER",
+            "source_file": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "source": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "section": "ERR-01 - Nozzle Temperature Runaway",
+            "section_id": "ERR-01 - Nozzle Temperature Runaway",
+            "page_numbers": [
+                3,
+                4
+            ],
+            "page_start": 3,
+            "page_number": 4,
+            "is_table": false,
+            "is_safety": false,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "ERR-01",
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 5,
+        "content": "ERR-02 - Bed Leveling Failed\nWhat this means: The automatic bed leveling routine (9-point probe sequence) has failed to\ncomplete successfully. One or more probe points returned a reading outside the acceptable flatness range, or the probe did not trigger during the sequence.\nWhy it happens:\n● The PEI sheet is not fully seated on the magnetic bed surface ● Print residue or debris on the bed surface is interfering with probe readings ● The inductive probe is too far from the bed surface - Z offset needs adjustment ● The bed surface has significant warp from thermal cycling\nHow to fix it:\n1. Remove the PEI spring steel sheet from the bed. Clean the magnetic surface\nbeneath it with a dry cloth. Reattach the PEI sheet\n-\nconfirm it lies flat with no lifted corners.\n2. Clean the top surface of the PEI sheet with isopropyl alcohol (IPA) - 90% or higher.\nRemove all grease, residue, and fingerprints.\n3. Go to Settings → Bed Leveling → Manual Z Offset. Lower the Z offset by 0.05 mm\nincrements until the probe triggers reliably during a test probe.\n4. Re-run the auto bed leveling routine. If it fails again and the bed surface has visible\nhigh and low spots, the PEI sheet may be warped and needs replacement.",
+        "metadata": {
+            "machine_id": "FDM_X300_INDUSTRIAL_3D_PRINTER",
+            "source_file": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "source": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "section": "ERR-02 - Bed Leveling Failed",
+            "section_id": "ERR-02 - Bed Leveling Failed",
+            "page_numbers": [
+                4
+            ],
+            "page_start": 4,
+            "page_number": 4,
+            "is_table": false,
+            "is_safety": false,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "ERR-02",
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 6,
+        "content": "ERR-03 - Filament Runout or Feed Failure\nWhat this means: The filament runout sensor has detected that filament is no longer\npresent in the feed path, or the extruder motor has stalled due to a blockage or excessive back pressure.\nWhy it happens:\n● Filament spool has run out ● Filament has snapped inside the bowden tube or at the extruder ● Partial nozzle clog causing back pressure that stalls the extruder motor ● Filament has tangled on the spool\nHow to fix it:\nIf spool is empty:\n1. The printer pauses automatically and prompts filament change on the touchscreen.\nFollow the on-screen filament change procedure. Load the new spool and confirm filament is extruding cleanly before resuming. If filament is present but feed has failed:\n1. Open the filament access panel on the side of the machine. Check whether the\nfilament is tangled on the spool\n-\nuntangle and ensure the spool rotates freely on its holder.\n2. Check the bowden tube connection at the extruder end - press the collet clip and\nreseat the tube if loose.\n3. If the filament is present and the path is clear but the extruder is still not feeding, a\npartial nozzle clog is likely. Perform a cold pull procedure: heat the nozzle to print temperature, then cool to 90°C, then manually pull the filament straight out. Repeat 2 to 3 times until the pulled filament tip comes out clean with no dark residue.\n4. If cold pull does not clear the clog, heat the nozzle to 260°C and perform a manual\npurge of 50 mm of filament. If flow is still restricted, the nozzle must be replaced.",
+        "metadata": {
+            "machine_id": "FDM_X300_INDUSTRIAL_3D_PRINTER",
+            "source_file": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "source": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "section": "ERR-03 - Filament Runout or Feed Failure",
+            "section_id": "ERR-03 - Filament Runout or Feed Failure",
+            "page_numbers": [
+                4,
+                5
+            ],
+            "page_start": 4,
+            "page_number": 5,
+            "is_table": false,
+            "is_safety": false,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "ERR-03",
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 7,
+        "content": "ERR-04 - Chamber Temperature Not Reached\nWhat this means: The build chamber has not reached the set chamber temperature within\n20 minutes of the heat-up command. Print has not started.\nWhy it happens:\n● Enclosure door or top panel is not fully closed ● Chamber heater element has failed ● Chamber temperature sensor fault\nHow to fix it:\n1. Check that all enclosure panels are fully closed and latched - even a small gap\nsignificantly slows chamber heat-up.\n2. Go to Settings → Diagnostics → Chamber Heater Test. If the temperature does not\nrise during the test, the chamber heater element has failed. Contact your maintenance technician.\n3. If the heater test shows temperature rising but the sensor reading is not changing,\nthe chamber sensor is faulty. Contact your maintenance technician.\n4. If the chamber is heating but slowly, check that the HEPA filter is not clogged - a\nblocked filter restricts airflow circulation inside the chamber. Check filter status in Settings → Maintenance → Filter Status.",
+        "metadata": {
+            "machine_id": "FDM_X300_INDUSTRIAL_3D_PRINTER",
+            "source_file": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "source": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "section": "ERR-04 - Chamber Temperature Not Reached",
+            "section_id": "ERR-04 - Chamber Temperature Not Reached",
+            "page_numbers": [
+                5,
+                6
+            ],
+            "page_start": 5,
+            "page_number": 6,
+            "is_table": false,
+            "is_safety": false,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "ERR-04",
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 8,
+        "content": "ERR-05 - Print Head Position Error (Axis Stall)\nWhat this means: The motion system has detected that the print head did not reach its\ncommanded position. This indicates the CoreXY belt system has stalled, skipped, or lost synchronisation.\nWhy it happens:\n● Belt tension too low - belt slipping on pulley ● Print head physically obstructed - foreign object or print failure causing a collision ● A layer of the print has warped and lifted off the bed, causing the print head to collide\nwith the part\nHow to fix it:\n1. Cancel the current print. Home the print head using the touchscreen home command\nand observe whether the motion is smooth and without unusual noise.\n2. If the head moves smoothly after homing, the stall was likely caused by a print\ncollision (warped part). Check bed adhesion settings and first layer parameters before reprinting.\n3. If motion is rough or noisy during homing, check belt tension: open the top panel of\nthe printer. The CoreXY belts should be taut with no visible sag. If a belt is loose, tension it using the belt tensioner screws located at the rear of the gantry\n-\nrefer to the tensioning guide in Appendix B.\n4. Check both belt paths for foreign objects, debris, or filament strands caught in the\npulley teeth.",
+        "metadata": {
+            "machine_id": "FDM_X300_INDUSTRIAL_3D_PRINTER",
+            "source_file": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "source": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "section": "ERR-05 - Print Head Position Error (Axis Stall)",
+            "section_id": "ERR-05 - Print Head Position Error (Axis Stall)",
+            "page_numbers": [
+                6
+            ],
+            "page_start": 6,
+            "page_number": 6,
+            "is_table": false,
+            "is_safety": false,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "ERR-05",
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 9,
+        "content": "ERR-06 - HEPA Filter Replacement Required\nWhat this means: The measured pressure drop across the HEPA filter has exceeded 120\nPa, indicating the filter is saturated and airflow through the enclosure is restricted. This is a maintenance notification, not a fault\n-\nthe printer continues operating but filter replacement is required soon.\nWhy it happens:\n● Normal filter saturation from accumulated particulates during printing ● Accelerated clogging when printing high-emission materials (ABS, CF-filled\nfilaments)\nHow to fix it:\n1. This alert can be acknowledged and printing continued for up to 10 additional print\nhours before the filter must be replaced.\n2. To replace the filter: power off the printer. Open the rear access panel (4 thumb\nscrews). Slide out the filter cartridge. Insert the new HEPA + activated carbon cartridge\n-\npart number FDM-X300-FL-001. Close the rear panel.\n3. After replacement, reset the filter counter in Settings → Maintenance → Reset Filter\nCounter.\n4. Do not operate the printer with a saturated filter when printing ABS, PC, or carbon\nfibre filled materials\n-\nthese materials produce fine particles and fumes that require effective filtration.",
+        "metadata": {
+            "machine_id": "FDM_X300_INDUSTRIAL_3D_PRINTER",
+            "source_file": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "source": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "section": "ERR-06 - HEPA Filter Replacement Required",
+            "section_id": "ERR-06 - HEPA Filter Replacement Required",
+            "page_numbers": [
+                6,
+                7
+            ],
+            "page_start": 6,
+            "page_number": 7,
+            "is_table": false,
+            "is_safety": true,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "ERR-06",
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 10,
+        "content": "ERR-07 - Extruder Motor Overcurrent\nWhat this means: The extruder motor current has exceeded the safe operating threshold.\nThe extruder has been stopped to prevent motor damage.\nWhy it happens:\n● Severe nozzle blockage creating excessive back pressure ● Filament has fused inside the hotend cold zone (heat creep) ● Extruder gear teeth worn - slipping and drawing high current intermittently\nHow to fix it:\n1. Power off the printer and allow the hotend to cool fully to room temperature before\nhandling.\n2. Once cooled, manually attempt to move the filament through the extruder by hand.\nResistance indicates a blockage in the cold zone (heat creep) or the nozzle.\n3. Heat the nozzle to 260°C and attempt a manual purge. If material does not flow, the\nhotend is severely blocked and must be disassembled. Contact your maintenance technician.\n4. If purging restores flow, check the part cooling fan - heat creep is caused by\ninsufficient cooling of the cold zone. The part cooling fan must run at minimum 30% during printing. Check fan operation in Settings → Diagnostics → Fan Test.\n5. Inspect the extruder gear teeth for wear - the teeth should be sharp and clearly\ndefined. If worn smooth, replace the extruder gear assembly (part number FDM-X300-EG-003).",
+        "metadata": {
+            "machine_id": "FDM_X300_INDUSTRIAL_3D_PRINTER",
+            "source_file": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "source": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "section": "ERR-07 - Extruder Motor Overcurrent",
+            "section_id": "ERR-07 - Extruder Motor Overcurrent",
+            "page_numbers": [
+                7
+            ],
+            "page_start": 7,
+            "page_number": 7,
+            "is_table": false,
+            "is_safety": false,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "ERR-07",
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 11,
+        "content": "After Every Print\n● Remove completed print and clean the PEI sheet with IPA ● Check nozzle tip for material residue - wipe with a heat-resistant cloth while hot\n● Inspect first layer adhesion quality - if poor, re-run bed leveling before next print",
+        "metadata": {
+            "machine_id": "FDM_X300_INDUSTRIAL_3D_PRINTER",
+            "source_file": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "source": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "section": "After Every Print",
+            "section_id": "After Every Print",
+            "page_numbers": [
+                7,
+                8
+            ],
+            "page_start": 7,
+            "page_number": 8,
+            "is_table": false,
+            "is_safety": false,
+            "is_troubleshooting": false,
+            "chunk_type": "maintenance",
+            "error_code": null,
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 12,
+        "content": "Weekly\n● Check HEPA filter status in Settings → Maintenance → Filter Status ● Inspect bowden tubes for cracks, discolouration, or kinks - replace if damaged ● Check belt tension - belts must be taut with no sag ● Clean the build chamber interior - wipe walls with a dry cloth to remove dust and\nfilament particles\n● Lubricate Z-axis lead screws with a small amount of PTFE-based lubricant",
+        "metadata": {
+            "machine_id": "FDM_X300_INDUSTRIAL_3D_PRINTER",
+            "source_file": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "source": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "section": "Weekly",
+            "section_id": "Weekly",
+            "page_numbers": [
+                8
+            ],
+            "page_start": 8,
+            "page_number": 8,
+            "is_table": false,
+            "is_safety": false,
+            "is_troubleshooting": false,
+            "chunk_type": "maintenance",
+            "error_code": null,
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 13,
+        "content": "Monthly\n● Inspect extruder gear teeth for wear ● Check all hotend connections - thermistor and heater cartridge connectors must be\nfirmly seated\n● Verify Z offset calibration with a test print first layer ● Clean the inductive probe tip with IPA - contamination can cause false readings ● Inspect all cable chains on the gantry for cracked or broken links",
+        "metadata": {
+            "machine_id": "FDM_X300_INDUSTRIAL_3D_PRINTER",
+            "source_file": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "source": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "section": "Monthly",
+            "section_id": "Monthly",
+            "page_numbers": [
+                8
+            ],
+            "page_start": 8,
+            "page_number": 8,
+            "is_table": false,
+            "is_safety": false,
+            "is_troubleshooting": false,
+            "chunk_type": "maintenance",
+            "error_code": null,
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 14,
+        "content": "Every 500 Print Hours\n● Replace HEPA filter cartridge regardless of pressure drop reading ● Replace nozzle (standard 0.4 mm) - earlier if print quality has degraded ● Full hotend disassembly and inspection - check for wear at the heat break ● Lubricate all linear guide rails with appropriate machine oil",
+        "metadata": {
+            "machine_id": "FDM_X300_INDUSTRIAL_3D_PRINTER",
+            "source_file": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "source": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "section": "Every 500 Print Hours",
+            "section_id": "Every 500 Print Hours",
+            "page_numbers": [
+                8
+            ],
+            "page_start": 8,
+            "page_number": 8,
+            "is_table": false,
+            "is_safety": false,
+            "is_troubleshooting": false,
+            "chunk_type": "maintenance",
+            "error_code": null,
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 15,
+        "content": "Section 5 - Safety Guidelines\n● Do not leave the printer unattended during the first layer of a print - most print\nfailures and potential hazards occur in the first 10 minutes\n● Do not open the enclosure during printing of high-temperature materials (ABS, PC,\nNylon)\n-\nchamber temperature and fume containment will be compromised\n● Always operate the HEPA filtration system when printing ABS, ASA, PC, or\ncarbon-fibre filled materials\n-\nthese emit ultrafine particles and volatile compounds\n● Do not touch the nozzle or bed surface during or immediately after printing - nozzle\ntemperature can exceed 280°C and bed temperature can exceed 110°C\n● In the event of a filament fire (rare but possible with severely clogged hotends) -\npress the emergency stop button on the rear of the machine and use a CO ₂ fire extinguisher. Do not use water.\n● Ensure the printer is placed on a stable, non-flammable surface with at least 200 mm\nclearance on all sides for ventilation\n● Do not modify firmware settings outside of the parameters documented in this\nmanual without consulting a qualified technician",
+        "metadata": {
+            "machine_id": "FDM_X300_INDUSTRIAL_3D_PRINTER",
+            "source_file": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "source": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "section": "Section 5 - Safety Guidelines",
+            "section_id": "Section 5 - Safety Guidelines",
+            "page_numbers": [
+                8
+            ],
+            "page_start": 8,
+            "page_number": 8,
+            "is_table": false,
+            "is_safety": true,
+            "is_troubleshooting": false,
+            "chunk_type": "safety",
+            "error_code": null,
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 16,
+        "content": "Section 6 - Spare Parts Reference\nPart Name Part Number Recommended Stock HEPA + carbon filter cartridge FDM-X300-FL-001 2 units Standard nozzle 0.4 mm (hardened steel) FDM-X300-NZ-002 4 units Extruder gear assembly FDM-X300-EG-003 1 unit Heater cartridge (hotend) FDM-X300-HC-004 2 units Thermistor (hotend) FDM-X300-TH-005 2 units PEI spring steel sheet FDM-X300-PS-006 1 unit Bowden tube (per metre) FDM-X300-BT-007 1 metre CoreXY belt set FDM-X300-BL-008 1 set Chamber temperature sensor FDM-X300-CS-009 1 unit FDM-X300 User & Maintenance Manual v2.1 For technical support please contact your equipment maintenance team. Keep this manual accessible at the machine workstation at all times.",
+        "metadata": {
+            "machine_id": "FDM_X300_INDUSTRIAL_3D_PRINTER",
+            "source_file": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "source": "FDM_X300_INDUSTRIAL_3D_PRINTER.pdf",
+            "section": "Section 6 - Spare Parts Reference",
+            "section_id": "Section 6 - Spare Parts Reference",
+            "page_numbers": [
+                9
+            ],
+            "page_start": 9,
+            "page_number": 9,
+            "is_table": false,
+            "is_safety": false,
+            "is_troubleshooting": false,
+            "chunk_type": "spare_parts",
+            "error_code": null,
+            "cross_references": []
+        }
+    }
+]

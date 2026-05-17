@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -256,6 +256,173 @@ const IngestionProgress = ({ job, onDismiss }) => {
 
 
 // ═══════════════════════════════════════════════════════════════════════════
+// AuditPanel
+// ───────────────────────────────────────────────────────────────────────────
+// Tails GET /admin/audit and renders an append-only table of admin actions.
+// Filterable by action prefix (auth / machine / all). Backend reads from the
+// JSONL file at data/audit.jsonl — entries persist across server restarts.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const AUDIT_ACTION_COLORS = {
+  'auth.admin_login':       { bg: '#0057D9', label: 'Login' },
+  'auth.admin_logout':      { bg: '#42A5F5', label: 'Logout' },
+  'machine.create':         { bg: '#0A2540', label: 'Machine Created' },
+  'machine.delete':         { bg: '#0A2540', label: 'Machine Deleted' },
+  'machine.ingest_complete':{ bg: '#1E88E5', label: 'Ingest Complete' },
+  'machine.ingest_failed':  { bg: '#0A2540', label: 'Ingest Failed' },
+};
+
+const AuditPanel = () => {
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
+  const [filter, setFilter]   = useState('all'); // 'all' | 'auth.' | 'machine.'
+  const [expanded, setExpanded] = useState(new Set());
+
+  const load = useCallback(async (prefix = filter) => {
+    setLoading(true);
+    try {
+      const qs = new URLSearchParams({ limit: '200' });
+      if (prefix !== 'all') qs.set('action_prefix', prefix);
+      const d = await fetchApi(`/admin/audit?${qs.toString()}`);
+      setEntries(d.entries || []);
+      setError(null);
+    } catch (e) {
+      setError(e.detail || e.message || 'Failed to load audit log');
+    } finally {
+      setLoading(false);
+    }
+  }, [filter]);
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { load(filter); }, [filter, load]);
+
+  const toggleExpanded = (idx) => {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx); else next.add(idx);
+      return next;
+    });
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+      {/* header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 className="text-xl font-bold text-tecdia-textDeep flex items-center gap-2.5">
+            <Shield size={22} className="text-tecdia-accent" />
+            Audit Log
+          </h2>
+          <p className="text-[11px] font-medium text-tecdia-text/40 uppercase tracking-widest mt-1 ml-8">
+            Append-only record of admin actions · backed by data/audit.jsonl
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {[
+            { id: 'all',       label: 'All' },
+            { id: 'auth.',     label: 'Auth' },
+            { id: 'machine.',  label: 'Machine' },
+          ].map(f => (
+            <button key={f.id} onClick={() => setFilter(f.id)}
+              className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-all ${
+                filter === f.id
+                  ? 'bg-tecdia-accent text-white border-tecdia-accent'
+                  : 'bg-white text-tecdia-text/60 border-tecdia-border hover:border-tecdia-accent/40'
+              }`}>{f.label}</button>
+          ))}
+          <button onClick={() => load(filter)} className="btn-secondary text-xs px-4 py-1.5 flex items-center gap-2">
+            <Activity size={12} className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm mb-4">{error}</div>
+      )}
+
+      {loading && entries.length === 0 ? (
+        <div className="p-12 text-center text-tecdia-text/50 text-sm">Loading audit entries…</div>
+      ) : entries.length === 0 ? (
+        <div className="bg-tecdia-accent/5 border border-tecdia-accent/20 rounded-2xl p-8 text-sm text-tecdia-text/70 text-center">
+          <span className="font-bold text-tecdia-textDeep">No audit entries yet.</span>
+          {' '}Sign in, create or delete a machine to generate the first records.
+        </div>
+      ) : (
+        <SectionCard>
+          <div className="overflow-x-auto -mx-6 px-6 custom-scrollbar">
+            <table className="w-full text-sm border-separate border-spacing-y-1.5">
+              <thead>
+                <tr className="text-[10px] font-bold uppercase tracking-widest text-tecdia-text/30">
+                  <th className="text-left px-3 py-2">When (UTC)</th>
+                  <th className="text-left px-3 py-2">Action</th>
+                  <th className="text-left px-3 py-2">Actor</th>
+                  <th className="text-left px-3 py-2">Target</th>
+                  <th className="text-left px-3 py-2">IP</th>
+                  <th className="text-left px-3 py-2">Status</th>
+                  <th className="text-right px-3 py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((e, i) => {
+                  const colorObj = AUDIT_ACTION_COLORS[e.action] || { bg: '#42A5F5', label: e.action };
+                  const isFailure = e.status === 'failure';
+                  const hasDetails = e.details && Object.keys(e.details).length > 0;
+                  const isExpanded = expanded.has(i);
+                  let ts = e.ts;
+                  try { ts = new Date(e.ts).toISOString().replace('T', ' ').slice(0, 19); } catch { /* keep raw */ }
+                  return (
+                    <React.Fragment key={`${e.ts}-${i}`}>
+                      <tr className="group">
+                        <td className="px-3 py-2.5 bg-white/30 group-hover:bg-white/60 border-l border-y border-tecdia-border/30 rounded-l-xl font-mono text-[11px] tabular-nums text-tecdia-text/70 whitespace-nowrap">{ts}</td>
+                        <td className="px-3 py-2.5 bg-white/30 group-hover:bg-white/60 border-y border-tecdia-border/30">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md text-white whitespace-nowrap" style={{ background: colorObj.bg }}>
+                            {colorObj.label}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5 bg-white/30 group-hover:bg-white/60 border-y border-tecdia-border/30 text-tecdia-textDeep text-xs font-medium truncate max-w-[200px]">{e.actor || '—'}</td>
+                        <td className="px-3 py-2.5 bg-white/30 group-hover:bg-white/60 border-y border-tecdia-border/30 font-mono text-[11px] text-tecdia-text/70 truncate max-w-[220px]">{e.target || '—'}</td>
+                        <td className="px-3 py-2.5 bg-white/30 group-hover:bg-white/60 border-y border-tecdia-border/30 font-mono text-[11px] text-tecdia-text/50">{e.ip || '—'}</td>
+                        <td className="px-3 py-2.5 bg-white/30 group-hover:bg-white/60 border-y border-tecdia-border/30">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                            isFailure ? 'bg-red-50 border-red-200 text-red-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                          }`}>{isFailure ? 'FAIL' : 'OK'}</span>
+                        </td>
+                        <td className="px-3 py-2.5 bg-white/30 group-hover:bg-white/60 border-r border-y border-tecdia-border/30 rounded-r-xl text-right">
+                          {hasDetails && (
+                            <button onClick={() => toggleExpanded(i)} className="text-[10px] font-bold text-tecdia-accent hover:underline">
+                              {isExpanded ? 'Hide' : 'Details'}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                      {isExpanded && hasDetails && (
+                        <tr>
+                          <td colSpan={7} className="px-3 pt-1 pb-3">
+                            <pre className="text-[11px] font-mono bg-tecdia-background/60 border border-tecdia-border/40 rounded-lg p-3 overflow-x-auto text-tecdia-text/80">
+{JSON.stringify(e.details, null, 2)}
+                            </pre>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-[10px] font-medium text-tecdia-text/30 mt-3 px-2">
+            Showing {entries.length} entr{entries.length === 1 ? 'y' : 'ies'} · newest first
+          </p>
+        </SectionCard>
+      )}
+    </motion.div>
+  );
+};
+
+
+// ═══════════════════════════════════════════════════════════════════════════
 // AnalyticsPanel
 // ───────────────────────────────────────────────────────────────────────────
 // Fetches GET /admin/analytics on mount and renders five widgets:
@@ -282,6 +449,7 @@ const AnalyticsPanel = () => {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
+  const [seeding, setSeeding] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -293,6 +461,18 @@ const AnalyticsPanel = () => {
       setError(e.detail || e.message || 'Failed to load analytics');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const seed = async ({ replace = false } = {}) => {
+    setSeeding(true);
+    try {
+      await fetchApi(`/admin/_seed-analytics?count=120&replace=${replace}`, { method: 'POST' });
+      await load();
+    } catch (e) {
+      setError(e.detail || e.message || 'Failed to seed analytics');
+    } finally {
+      setSeeding(false);
     }
   };
 
@@ -315,7 +495,10 @@ const AnalyticsPanel = () => {
   }
   if (!data) return null;
 
-  const { totals, per_machine, code_frequency, severity_distribution, queries_per_hour_24h, top_questions } = data;
+  const {
+    totals, per_machine, code_frequency, severity_distribution, queries_per_hour_24h,
+    top_questions, failure_likelihood = [], depreciation = [],
+  } = data;
   const isEmpty = totals.queries === 0;
 
   return (
@@ -329,19 +512,32 @@ const AnalyticsPanel = () => {
           </h2>
           <p className="text-[11px] font-medium text-tecdia-text/40 uppercase tracking-widest mt-1 ml-8">Real-time system diagnostics & query analytics</p>
         </div>
-        <button
-          onClick={load}
-          className="btn-secondary text-xs px-5 py-2 flex items-center gap-2 w-fit"
-        >
-          <Activity size={14} className={loading ? 'animate-spin' : ''} />
-          {loading ? 'Refreshing...' : 'Refresh Data'}
-        </button>
+        <div className="flex items-center gap-2 w-fit">
+          <button
+            onClick={() => seed({ replace: true })}
+            disabled={seeding || loading}
+            className="btn-secondary text-xs px-4 py-2 flex items-center gap-2 disabled:opacity-50"
+            title="Replace the in-memory query log with synthetic demo data"
+          >
+            <Database size={14} className={seeding ? 'animate-pulse' : ''} />
+            {seeding ? 'Seeding...' : isEmpty ? 'Populate Demo Data' : 'Re-seed Demo Data'}
+          </button>
+          <button
+            onClick={load}
+            className="btn-secondary text-xs px-5 py-2 flex items-center gap-2"
+          >
+            <Activity size={14} className={loading ? 'animate-spin' : ''} />
+            {loading ? 'Refreshing...' : 'Refresh Data'}
+          </button>
+        </div>
       </div>
 
       {isEmpty && (
-        <div className="bg-tecdia-accent/5 border border-tecdia-accent/20 rounded-2xl p-5 mb-6 text-sm text-tecdia-text/70">
-          <span className="font-bold text-tecdia-textDeep">No query data yet.</span>
-          {' '}Run <code className="bg-white/60 px-1.5 py-0.5 rounded font-mono text-xs border border-tecdia-border">python3 -m scripts.seed_analytics</code> to populate, or wait for workers to start asking questions.
+        <div className="bg-tecdia-accent/5 border border-tecdia-accent/20 rounded-2xl p-5 mb-6 text-sm text-tecdia-text/70 flex items-center justify-between gap-4">
+          <div>
+            <span className="font-bold text-tecdia-textDeep">No query data yet.</span>
+            {' '}Click <span className="font-semibold text-tecdia-accent">Populate Demo Data</span> to load synthetic activity for the demo, or wait for workers to start asking questions.
+          </div>
         </div>
       )}
 
@@ -462,6 +658,27 @@ const AnalyticsPanel = () => {
         <ActivityBars buckets={queries_per_hour_24h} />
       </SectionCard>
 
+      {/* ── 6 + 7. Failure likelihood + depreciation ─────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <SectionCard>
+          <div className="flex items-center gap-2 mb-1">
+            <AlertTriangle size={16} className="text-tecdia-accent" />
+            <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Failure likelihood</h3>
+          </div>
+          <p className="text-[10px] text-tecdia-text/40 mb-4 ml-6">Poisson estimate from last 7 days of alerts</p>
+          <FailureLikelihoodList rows={failure_likelihood} />
+        </SectionCard>
+
+        <SectionCard>
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp size={16} className="text-tecdia-accent rotate-180" />
+            <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Asset depreciation</h3>
+          </div>
+          <p className="text-[10px] text-tecdia-text/40 mb-4 ml-6">Straight-line, 12-month trailing</p>
+          <DepreciationList rows={depreciation} />
+        </SectionCard>
+      </div>
+
       {/* ── Top questions (bonus, sparse table) ────────────────────── */}
       {top_questions.length > 0 && (
         <SectionCard>
@@ -487,6 +704,100 @@ const AnalyticsPanel = () => {
         </SectionCard>
       )}
     </motion.div>
+  );
+};
+
+const FailureLikelihoodList = ({ rows }) => {
+  if (!rows || rows.length === 0) {
+    return <p className="text-sm text-tecdia-text/40 italic">No machines indexed.</p>;
+  }
+  const riskColor = (pct) => {
+    if (pct >= 75) return '#0A2540';
+    if (pct >= 40) return '#0057D9';
+    if (pct >= 15) return '#1E88E5';
+    if (pct >  0)  return '#42A5F5';
+    return '#B6E6FF';
+  };
+  return (
+    <div className="space-y-4">
+      {rows.map((r, i) => (
+        <div key={r.machine_id} className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full" style={{ background: MACHINE_COLORS[i % MACHINE_COLORS.length] }} />
+              <span className="text-sm font-bold text-tecdia-textDeep">{r.display_name}</span>
+            </div>
+            <span className="text-[10px] font-mono text-tecdia-text/40">
+              λ {r.lambda_per_day.toFixed(2)}/day · {r.alerts_7d} alerts/7d
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {[['24h', r.prob_24h_pct], ['7d', r.prob_7d_pct], ['30d', r.prob_30d_pct]].map(([label, pct]) => (
+              <div key={label} className="bg-[#E6F7FF]/60 rounded-lg px-2.5 py-1.5">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-tecdia-text/50">{label}</span>
+                  <span className="text-xs font-mono font-bold tabular-nums" style={{ color: riskColor(pct) }}>{pct}%</span>
+                </div>
+                <div className="h-1 bg-white/70 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, pct)}%`, background: riskColor(pct) }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const DepreciationList = ({ rows }) => {
+  if (!rows || rows.length === 0) {
+    return <p className="text-sm text-tecdia-text/40 italic">No depreciation data configured.</p>;
+  }
+  const fmt = (n) => `₹${(n / 100000).toFixed(1)}L`;
+  return (
+    <div className="space-y-4">
+      {rows.map((r, i) => {
+        const values = r.series.map((p) => p.value);
+        const min = Math.min(...values, 0);
+        const max = Math.max(...values, r.initial_value);
+        const range = max - min || 1;
+        const W = 100;
+        const H = 28;
+        const points = r.series.map((p, idx) => {
+          const x = (idx / (r.series.length - 1)) * W;
+          const y = H - ((p.value - min) / range) * H;
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(' ');
+        return (
+          <div key={r.machine_id} className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: MACHINE_COLORS[i % MACHINE_COLORS.length] }} />
+                <span className="text-sm font-bold text-tecdia-textDeep truncate">{r.display_name}</span>
+              </div>
+              <span className="text-xs font-mono font-bold tabular-nums text-tecdia-textDeep">{fmt(r.current_value)}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="flex-1 h-7">
+                <polyline
+                  points={points}
+                  fill="none"
+                  stroke={MACHINE_COLORS[i % MACHINE_COLORS.length]}
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="flex flex-col items-end text-[10px] font-mono tabular-nums">
+                <span className="font-bold text-tecdia-text/60">{r.pct_remaining}% left</span>
+                <span className="text-tecdia-text/30">−{fmt(r.monthly_loss)}/mo</span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 };
 
@@ -847,6 +1158,7 @@ const AdminDashboard = () => {
             { id: 'add',       label: 'Add Machine',   icon: Plus },
             { id: 'alerts',    label: 'Alert History', icon: BellRing, count: alerts.length },
             { id: 'analytics', label: 'Analytics',     icon: BarChart3 },
+            { id: 'audit',     label: 'Audit Log',     icon: Shield },
           ].map(tab => {
             const Icon = tab.icon;
             return (
@@ -1294,6 +1606,9 @@ const AdminDashboard = () => {
 
         {/* ══════════════ TAB: Analytics ══════════════ */}
         {activeTab === 'analytics' && <AnalyticsPanel />}
+
+        {/* ══════════════ TAB: Audit Log ══════════════ */}
+        {activeTab === 'audit' && <AuditPanel />}
       </div>
 
       {/* Toast */}

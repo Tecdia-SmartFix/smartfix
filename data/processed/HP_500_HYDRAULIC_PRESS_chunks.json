@@ -1,29 +1,29 @@
 [
     {
         "chunk_id": 1,
-        "content": "## OPERATION, MAINTENANCE &amp; SAFETY MANUAL  \nRATED CAPACITY: 500 TONNE SERIAL NO: HP5-XXXX MANUAL NO: HP500-OM-001 ISSUE DATE: JUNE 2023 ISSUE STATUS: ISSUE 3  \nTHIS MANUAL MUST BE READ IN FULL BEFORE OPERATING OR MAINTAINING THIS MACHINE. KEEP THIS MANUAL AT THE MACHINE AT ALL TIMES. IF THIS MANUAL IS LOST OR DAMAGED, CONTACT THE EQUIPMENT ENGINEERING DEPARTMENT IMMEDIATELY FOR A REPLACEMENT.",
+        "content": "HP-500 HYDRAULIC PRESS\nOPERATION, MAINTENANCE & SAFETY MANUAL RATED CAPACITY: 500 TONNE SERIAL NO: HP5-XXXX MANUAL NO: HP500-OM-001 ISSUE DATE: JUNE 2023 ISSUE STATUS: ISSUE 3\nTHIS MANUAL MUST BE READ IN FULL BEFORE OPERATING OR MAINTAINING THIS\nMACHINE. KEEP THIS MANUAL AT THE MACHINE AT ALL TIMES. IF THIS MANUAL IS LOST OR DAMAGED, CONTACT THE EQUIPMENT ENGINEERING DEPARTMENT IMMEDIATELY FOR A REPLACEMENT.",
         "metadata": {
             "machine_id": "HP_500_HYDRAULIC_PRESS",
             "source_file": "HP_500_HYDRAULIC_PRESS.pdf",
             "source": "HP_500_HYDRAULIC_PRESS.pdf",
-            "section": "OPERATION, MAINTENANCE &amp; SAFETY MANUAL",
-            "section_id": "OPERATION, MAINTENANCE &amp; SAFETY MANUAL",
+            "section": "Introduction",
+            "section_id": "Introduction",
             "page_numbers": [
                 1
             ],
             "page_start": 1,
             "page_number": 1,
             "is_table": false,
-            "is_safety": true,
+            "is_safety": false,
             "is_troubleshooting": false,
-            "chunk_type": "safety",
+            "chunk_type": "overview",
             "error_code": null,
             "cross_references": []
         }
     },
     {
         "chunk_id": 2,
-        "content": "## SECTION 1 - MACHINE DESCRIPTION  \nThe HP-500 is a 500-tonne four-column hydraulic press designed for heavy-duty pressing, forming, stamping, and straightening operations in industrial manufacturing environments. The machine uses a hydraulic cylinder driven by a high-pressure hydraulic power unit to apply controlled pressing force to workpieces placed on the lower bolster plate.  \nThe press is controlled by a PLC-based control system with an operator panel mounted on a pendant arm. The operator panel includes a two-hand control device, force display, position display, and mode selector. All pressing operations require both hands on the two-hand control simultaneously - single-hand operation is not possible in automatic or semi-automatic mode.  \nThe HP-500 is designed for ground-level installation on a reinforced concrete foundation meeting the specifications in Appendix A. Overhead crane access is required for tooling changes.",
+        "content": "SECTION 1 - MACHINE DESCRIPTION\nThe HP-500 is a 500-tonne four-column hydraulic press designed for heavy-duty pressing, forming, stamping, and straightening operations in industrial manufacturing environments. The machine uses a hydraulic cylinder driven by a high-pressure hydraulic power unit to apply controlled pressing force to workpieces placed on the lower bolster plate. The press is controlled by a PLC-based control system with an operator panel mounted on a pendant arm. The operator panel includes a two-hand control device, force display, position display, and mode selector. All pressing operations require both hands on the two-hand control simultaneously\n-\nsingle-hand operation is not possible in automatic or semi-automatic mode. The HP-500 is designed for ground-level installation on a reinforced concrete foundation meeting the specifications in Appendix A. Overhead crane access is required for tooling changes.",
         "metadata": {
             "machine_id": "HP_500_HYDRAULIC_PRESS",
             "source_file": "HP_500_HYDRAULIC_PRESS.pdf",
@@ -45,7 +45,7 @@
     },
     {
         "chunk_id": 3,
-        "content": "## SECTION 2 - TECHNICAL SPECIFICATIONS  \n| PARAMETER                      | SPECIFICATION        |\n|--------------------------------|----------------------|\n| Rated pressing force           | 500 tonne (4,905 kN) |\n| Maximum daylight (open height) | 1,200 mm             |\n| Stroke length                  | 800 mm               |  \n| Ram approach speed              | 150 mm/sec                         |\n|---------------------------------|------------------------------------|\n| Ram pressing speed              | 5 - 25 mm/sec (adjustable)         |\n| Ram return speed                | 180 mm/sec                         |\n| Bolster plate dimensions        | 1,500 mm × 1,200 mm                |\n| Column spacing (front to rear)  | 900 mm                             |\n| Column spacing (left to right)  | 1,200 mm                           |\n| Hydraulic system pressure (max) | 25 MPa                             |\n| Hydraulic oil tank capacity     | 600 litres                         |\n| Main motor power                | 37 kW                              |\n| Hydraulic oil grade             | ISO VG 46 (anti-wear)              |\n| Electrical supply               | 3-phase, 380V / 50Hz               |\n| Total electrical power          | 45 kW                              |\n| Machine weight (installed)      | 42,000 kg                          |\n| Overall dimensions (L×W×H)      | 3,200 × 2,400 × 5,800 mm           |\n| Foundation depth required       | Minimum 800 mm reinforced concrete |\n| Operating temperature range     | 5°C - 40°C                         |",
+        "content": "SECTION 2 - TECHNICAL SPECIFICATIONS\nPARAMETER SPECIFICATION\nRated pressing force 500 tonne (4,905 kN) Maximum daylight (open height) 1,200 mm Stroke length 800 mm\nRam approach speed 150 mm/sec Ram pressing speed 5 - 25 mm/sec (adjustable) Ram return speed 180 mm/sec Bolster plate dimensions 1,500 mm × 1,200 mm Column spacing (front to rear) 900 mm Column spacing (left to right) 1,200 mm Hydraulic system pressure (max) 25 MPa Hydraulic oil tank capacity 600 litres Main motor power 37 kW Hydraulic oil grade ISO VG 46 (anti-wear) Electrical supply 3-phase, 380V / 50Hz Total electrical power 45 kW Machine weight (installed) 42,000 kg Overall dimensions (L×W×H) 3,200 × 2,400 × 5,800 mm Foundation depth required Minimum 800 mm reinforced concrete Operating temperature range 5°C - 40°C",
         "metadata": {
             "machine_id": "HP_500_HYDRAULIC_PRESS",
             "source_file": "HP_500_HYDRAULIC_PRESS.pdf",
@@ -53,11 +53,12 @@
             "section": "SECTION 2 - TECHNICAL SPECIFICATIONS",
             "section_id": "SECTION 2 - TECHNICAL SPECIFICATIONS",
             "page_numbers": [
-                1
+                1,
+                2
             ],
             "page_start": 1,
-            "page_number": 1,
-            "is_table": true,
+            "page_number": 2,
+            "is_table": false,
             "is_safety": false,
             "is_troubleshooting": false,
             "chunk_type": "specification",
@@ -67,7 +68,7 @@
     },
     {
         "chunk_id": 4,
-        "content": "## SECTION 3 - HYDRAULIC SYSTEM SPECIFICATIONS  \n| PARAMETER                       | SPECIFICATION                      |\n|---------------------------------|------------------------------------|\n| Hydraulic pump type             | Variable displacement axial piston |\n| Pump rated flow                 | 180 litres/min                     |\n| System relief valve setting     | 26 MPa                             |\n| Pressing circuit pressure range | 5 - 25 MPa (adjustable)            |\n| Return circuit pressure         | 3 - 5 MPa                          |\n| Oil cooling method              | Air-blast oil cooler               |  \n| Oil temperature operating range   | 30°C - 55°C                                   |\n|-----------------------------------|-----------------------------------------------|\n| Oil filter rating                 | 10 micron absolute                            |\n| Filter bypass indicator           | Mechanical pop-up indicator on filter housing |",
+        "content": "SECTION 3 - HYDRAULIC SYSTEM SPECIFICATIONS\nPARAMETER SPECIFICATION\nHydraulic pump type Variable displacement axial piston Pump rated flow 180 litres/min System relief valve setting 26 MPa Pressing circuit pressure range 5 - 25 MPa (adjustable) Return circuit pressure 3 - 5 MPa Oil cooling method Air-blast oil cooler\nOil temperature operating range 30°C - 55°C Oil filter rating 10 micron absolute Filter bypass indicator Mechanical pop-up indicator on filter housing",
         "metadata": {
             "machine_id": "HP_500_HYDRAULIC_PRESS",
             "source_file": "HP_500_HYDRAULIC_PRESS.pdf",
@@ -75,11 +76,12 @@
             "section": "SECTION 3 - HYDRAULIC SYSTEM SPECIFICATIONS",
             "section_id": "SECTION 3 - HYDRAULIC SYSTEM SPECIFICATIONS",
             "page_numbers": [
-                1
+                2,
+                3
             ],
-            "page_start": 1,
-            "page_number": 1,
-            "is_table": true,
+            "page_start": 2,
+            "page_number": 3,
+            "is_table": false,
             "is_safety": false,
             "is_troubleshooting": false,
             "chunk_type": "specification",
@@ -89,7 +91,7 @@
     },
     {
         "chunk_id": 5,
-        "content": "## SECTION 4 - NORMAL OPERATING PARAMETERS  \nOperators must monitor the following parameters during production. Any reading outside the normal range must be reported to the supervisor immediately and investigated before continuing.  \n| PARAMETER                            | NORMAL RANGE                 |\n|--------------------------------------|------------------------------|\n| Hydraulic system pressure (idle)     | 2 - 4 MPa                    |\n| Hydraulic system pressure (pressing) | As set, up to 25 MPa         |\n| Hydraulic oil temperature            | 30°C - 55°C                  |\n| Ram position at bottom of stroke     | Within ±1 mm of set position |\n| Force at set position                | Within ±2% of set force      |\n| Pressing speed                       | As programmed, 5-25 mm/sec   |\n| Oil filter condition indicator       | GREEN (not bypassing)        |\n| Two-hand control response time       | Instantaneous on release     |",
+        "content": "SECTION 4 - NORMAL OPERATING PARAMETERS\nOperators must monitor the following parameters during production. Any reading outside the normal range must be reported to the supervisor immediately and investigated before continuing.\nPARAMETER NORMAL RANGE\nHydraulic system pressure (idle) 2 - 4 MPa Hydraulic system pressure (pressing) As set, up to 25 MPa Hydraulic oil temperature 30°C - 55°C Ram position at bottom of stroke Within ±1 mm of set position Force at set position Within ±2% of set force Pressing speed As programmed, 5-25 mm/sec Oil filter condition indicator GREEN (not bypassing) Two-hand control response time Instantaneous on release",
         "metadata": {
             "machine_id": "HP_500_HYDRAULIC_PRESS",
             "source_file": "HP_500_HYDRAULIC_PRESS.pdf",
@@ -101,7 +103,7 @@
             ],
             "page_start": 3,
             "page_number": 3,
-            "is_table": true,
+            "is_table": false,
             "is_safety": false,
             "is_troubleshooting": false,
             "chunk_type": "specification",
@@ -111,7 +113,7 @@
     },
     {
         "chunk_id": 6,
-        "content": "## ALARM A-01 - HYDRAULIC OIL TEMPERATURE HIGH  \nSYSTEM: Hydraulic SEVERITY: MAJOR - pressing halted, pump continues running at idle  \nDESCRIPTION: Hydraulic oil temperature has exceeded 58°C. Pressing operations are suspended. The hydraulic pump continues to run at idle to maintain system priming but no pressing force can be applied until temperature returns to below 55°C.  \nCAUSES: - Oil level in the tank is below the MIN mark - insufficient thermal mass Air-blast oil cooler fan has failed or is running below speed - Oil cooler fins are blocked with dust or debris - Ambient temperature in the press area is elevated - cooler cannot reject heat fast enough - Pressing duty cycle is too high - insufficient cooling time between strokes  \n### RESOLUTION:  \n1. Check the hydraulic oil level using the sight glass on the tank side. The oil must be between the MIN and MAX marks. If below MIN, top up with ISO VG 46 anti-wear hydraulic oil only. Do not mix oil grades.\n2. Check the air-blast cooler fan. The fan is located at the rear of the hydraulic power unit. With the machine running at idle, the fan must be spinning at full speed. If the fan is stationary or running slowly, it has failed and must be replaced before pressing resumes.\n3. Inspect the cooler fins for dust and debris. Use compressed air to blow the fins clean - blow from the clean side to push debris out from the dirty side. Do not bend the fins.\n4. Check the ambient temperature in the press area. If above 35°C, facility ventilation is insufficient. Contact facilities before resuming.\n5. If oil level, fan, and cooler are all normal, allow the system to idle for 20 minutes and monitor the temperature. If temperature drops below 50°C, review the pressing programme duty cycle - add a minimum 30-second dwell between strokes if the cycle allows it.\n6. If temperature does not drop below 55°C within 30 minutes of idle operation, shut down the machine and contact the equipment engineering team.",
+        "content": "ALARM A-01 - HYDRAULIC OIL TEMPERATURE HIGH\nSYSTEM: Hydraulic SEVERITY: MAJOR - pressing halted, pump continues running at idle\nDESCRIPTION: Hydraulic oil temperature has exceeded 58°C. Pressing operations are\nsuspended. The hydraulic pump continues to run at idle to maintain system priming but no pressing force can be applied until temperature returns to below 55°C.\nCAUSES: - Oil level in the tank is below the MIN mark - insufficient thermal mass -\nAir-blast oil cooler fan has failed or is running below speed\n-\nOil cooler fins are blocked with dust or debris\n-\nAmbient temperature in the press area is elevated\n-\ncooler cannot reject heat fast enough\n-\nPressing duty cycle is too high\n-\ninsufficient cooling time between strokes\nRESOLUTION:\n1. Check the hydraulic oil level using the sight glass on the tank side. The oil must be\nbetween the MIN and MAX marks. If below MIN, top up with ISO VG 46 anti-wear hydraulic oil only. Do not mix oil grades.\n2. Check the air-blast cooler fan. The fan is located at the rear of the hydraulic power\nunit. With the machine running at idle, the fan must be spinning at full speed. If the fan is stationary or running slowly, it has failed and must be replaced before pressing resumes.\n3. Inspect the cooler fins for dust and debris. Use compressed air to blow the fins clean\n-\nblow from the clean side to push debris out from the dirty side. Do not bend the fins.\n4. Check the ambient temperature in the press area. If above 35°C, facility ventilation is\ninsufficient. Contact facilities before resuming.\n5. If oil level, fan, and cooler are all normal, allow the system to idle for 20 minutes and\nmonitor the temperature. If temperature drops below 50°C, review the pressing programme duty cycle\n-\nadd a minimum 30-second dwell between strokes if the cycle allows it.\n6. If temperature does not drop below 55°C within 30 minutes of idle operation, shut\ndown the machine and contact the equipment engineering team.",
         "metadata": {
             "machine_id": "HP_500_HYDRAULIC_PRESS",
             "source_file": "HP_500_HYDRAULIC_PRESS.pdf",
@@ -119,21 +121,22 @@
             "section": "ALARM A-01 - HYDRAULIC OIL TEMPERATURE HIGH",
             "section_id": "ALARM A-01 - HYDRAULIC OIL TEMPERATURE HIGH",
             "page_numbers": [
-                3
+                3,
+                4
             ],
             "page_start": 3,
-            "page_number": 3,
+            "page_number": 4,
             "is_table": false,
             "is_safety": false,
-            "is_troubleshooting": false,
-            "chunk_type": "overview",
-            "error_code": null,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "A-01",
             "cross_references": []
         }
     },
     {
         "chunk_id": 7,
-        "content": "## ALARM A-02 - SYSTEM PRESSURE NOT REACHED  \nSYSTEM: Hydraulic SEVERITY: MAJOR - press stroke aborted, ram returned to home  \nDESCRIPTION: The hydraulic pressure during a pressing stroke did not reach the set pressing pressure within the programmed stroke time. The press controller aborts the stroke and returns the ram to home position. Parts produced during an aborted stroke must be quarantined and checked by QC.  \nCAUSES: - Set pressing pressure is higher than the capability of the current pump and relief valve setting - Internal hydraulic leak - pressure builds slowly due to leakage past seals - Main cylinder seal worn - oil bypassing the ram seal under load - Hydraulic pump output degraded - pump wear reducing delivery pressure  \n### RESOLUTION:  \n1. Check the set pressing pressure against the relief valve setting. The set pressure must be at least 2 MPa below the system relief valve setting of 26 MPa. If the set pressure is above 24 MPa, reduce it.\n2. Check the pressing speed setting. A very slow pressing speed (below 5 mm/sec) at high pressure increases the risk of internal leakage overcoming pump delivery. Increase pressing speed slightly and test.\n3. Monitor the hydraulic pressure gauge during a pressing stroke - watch whether pressure builds steadily toward the set value or climbs then drops back. Pressure building then dropping indicates an internal leak - likely the main cylinder seal.\n4. If pressure does not build at all, the hydraulic pump may have failed. Check the pump outlet pressure at the pressure test point on the manifold (use a calibrated test gauge). If pump outlet pressure is below 15 MPa at rated speed, the pump requires servicing. Contact the equipment engineering team.\n5. Quarantine all parts produced during the alarm condition. Do not release to production without QC inspection.",
+        "content": "ALARM A-02 - SYSTEM PRESSURE NOT REACHED\nSYSTEM: Hydraulic SEVERITY: MAJOR - press stroke aborted, ram returned to home\nDESCRIPTION: The hydraulic pressure during a pressing stroke did not reach the set\npressing pressure within the programmed stroke time. The press controller aborts the stroke and returns the ram to home position. Parts produced during an aborted stroke must be quarantined and checked by QC.\nCAUSES: - Set pressing pressure is higher than the capability of the current pump and\nrelief valve setting\n-\nInternal hydraulic leak\n-\npressure builds slowly due to leakage past seals\n-\nMain cylinder seal worn\n-\noil bypassing the ram seal under load\n-\nHydraulic pump output degraded\n-\npump wear reducing delivery pressure\nRESOLUTION:\n1. Check the set pressing pressure against the relief valve setting. The set pressure\nmust be at least 2 MPa below the system relief valve setting of 26 MPa. If the set pressure is above 24 MPa, reduce it.\n2. Check the pressing speed setting. A very slow pressing speed (below 5 mm/sec) at\nhigh pressure increases the risk of internal leakage overcoming pump delivery. Increase pressing speed slightly and test.\n3. Monitor the hydraulic pressure gauge during a pressing stroke - watch whether\npressure builds steadily toward the set value or climbs then drops back. Pressure building then dropping indicates an internal leak\n-\nlikely the main cylinder seal.\n4. If pressure does not build at all, the hydraulic pump may have failed. Check the pump\noutlet pressure at the pressure test point on the manifold (use a calibrated test gauge). If pump outlet pressure is below 15 MPa at rated speed, the pump requires servicing. Contact the equipment engineering team.\n5. Quarantine all parts produced during the alarm condition. Do not release to\nproduction without QC inspection.",
         "metadata": {
             "machine_id": "HP_500_HYDRAULIC_PRESS",
             "source_file": "HP_500_HYDRAULIC_PRESS.pdf",
@@ -141,21 +144,22 @@
             "section": "ALARM A-02 - SYSTEM PRESSURE NOT REACHED",
             "section_id": "ALARM A-02 - SYSTEM PRESSURE NOT REACHED",
             "page_numbers": [
-                4
+                4,
+                5
             ],
             "page_start": 4,
-            "page_number": 4,
+            "page_number": 5,
             "is_table": false,
             "is_safety": false,
-            "is_troubleshooting": false,
-            "chunk_type": "overview",
-            "error_code": null,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "A-02",
             "cross_references": []
         }
     },
     {
         "chunk_id": 8,
-        "content": "## ALARM A-03 - RAM POSITION DEVIATION  \nSYSTEM: Position Control SEVERITY: MAJOR - press stroke halted  \nDESCRIPTION: The ram has not reached the programmed bottom-of-stroke position within the set force and stroke parameters. The actual ram position at the end of the stroke differs from the programmed position by more than 1 mm.  \nCAUSES: - Workpiece is thicker than the programmed dimensions - incorrect setup Tooling height has changed - tool wear or incorrect tool installed - Position sensor fault incorrect reading - The pressing force was reached before the position was reached force limit controls the stroke  \n### RESOLUTION:  \n1. Measure the actual workpiece dimensions before the next stroke. Compare to the programmed workpiece thickness. If the workpiece is outside tolerance, it is a material or setup issue - do not adjust the press programme to compensate.\n2. Inspect the tooling. Confirm the correct upper and lower tools are installed for this job. Measure the tool heights and compare to the setup record.\n3. Check the press programme - confirm whether the machine is operating in position control mode or force control mode. In force control mode, the stroke stops when the\n4. set force is reached regardless of position. If the force limit is being reached before the target position, the force set point may need review by the process engineer.\n4. If tooling and workpiece are correct and the deviation recurs, the ram position sensor may have drifted. Contact the equipment engineering team for sensor calibration.",
+        "content": "ALARM A-03 - RAM POSITION DEVIATION\nSYSTEM: Position Control SEVERITY: MAJOR - press stroke halted\nDESCRIPTION: The ram has not reached the programmed bottom-of-stroke position within\nthe set force and stroke parameters. The actual ram position at the end of the stroke differs from the programmed position by more than 1 mm.\nCAUSES: - Workpiece is thicker than the programmed dimensions - incorrect setup -\nTooling height has changed\n-\ntool wear or incorrect tool installed\n-\nPosition sensor fault\n-\nincorrect reading\n-\nThe pressing force was reached before the position was reached\n-\nforce limit controls the stroke\nRESOLUTION:\n1. Measure the actual workpiece dimensions before the next stroke. Compare to the\nprogrammed workpiece thickness. If the workpiece is outside tolerance, it is a material or setup issue\n-\ndo not adjust the press programme to compensate.\n2. Inspect the tooling. Confirm the correct upper and lower tools are installed for this\njob. Measure the tool heights and compare to the setup record.\n3. Check the press programme - confirm whether the machine is operating in position\ncontrol mode or force control mode. In force control mode, the stroke stops when the\nset force is reached regardless of position. If the force limit is being reached before the target position, the force set point may need review by the process engineer.\n4. If tooling and workpiece are correct and the deviation recurs, the ram position sensor\nmay have drifted. Contact the equipment engineering team for sensor calibration.",
         "metadata": {
             "machine_id": "HP_500_HYDRAULIC_PRESS",
             "source_file": "HP_500_HYDRAULIC_PRESS.pdf",
@@ -163,21 +167,22 @@
             "section": "ALARM A-03 - RAM POSITION DEVIATION",
             "section_id": "ALARM A-03 - RAM POSITION DEVIATION",
             "page_numbers": [
-                5
+                5,
+                6
             ],
             "page_start": 5,
-            "page_number": 5,
+            "page_number": 6,
             "is_table": false,
             "is_safety": false,
-            "is_troubleshooting": false,
-            "chunk_type": "overview",
-            "error_code": null,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "A-03",
             "cross_references": []
         }
     },
     {
         "chunk_id": 9,
-        "content": "## ALARM A-04 - TWO-HAND CONTROL FAULT  \nSYSTEM: Safety SEVERITY: CRITICAL - all press motion halted immediately, requires reset  \nDESCRIPTION: The two-hand control system has detected a fault condition. This includes: one button released before the other during a stroke, a single button held while the other was released, simultaneous actuation time exceeded (buttons must be pressed within 0.5 seconds of each other), or a button contact fault detected during self-test.  \nThe two-hand control is a primary safety device. This fault must never be bypassed or ignored.  \nCAUSES: - Operator released one hand before stroke completion - Button contact wear - intermittent electrical contact - Water or contamination inside the button housing Control circuit wiring fault  \n### RESOLUTION:  \n1. Do not attempt to reset the fault without understanding the cause. Review the fault detail on the operator panel display.\n2. If the fault was caused by operator error (hand released early): clear the fault using the reset button on the operator panel. Brief the operator on the requirement to maintain both hands on the control throughout the entire pressing stroke.\n3. Inspect both button housings for damage, contamination, or moisture ingress. If the buttons are in a location where coolant or lubricant splash is possible, install the optional splash guard covers (part number HP500-SG-009).\n4. Press each button individually and verify the contact indicator on the control panel display shows the correct state (pressed / released) for each button. If either button shows an incorrect state, the button contact has failed and must be replaced.\n5. If the button contacts are confirmed working but the fault recurs, the control circuit wiring requires inspection. Contact the equipment engineering team. Do not continue production with a recurring two-hand control fault - this is a critical safety system.\n6. All instances of this fault must be recorded in the machine fault log regardless of cause. This is a mandatory safety record requirement.",
+        "content": "ALARM A-04 - TWO-HAND CONTROL FAULT\nSYSTEM: Safety SEVERITY: CRITICAL - all press motion halted immediately, requires reset\nDESCRIPTION: The two-hand control system has detected a fault condition. This includes:\none button released before the other during a stroke, a single button held while the other was released, simultaneous actuation time exceeded (buttons must be pressed within 0.5 seconds of each other), or a button contact fault detected during self-test. The two-hand control is a primary safety device. This fault must never be bypassed or ignored.\nCAUSES: - Operator released one hand before stroke completion - Button contact wear\n-\nintermittent electrical contact\n-\nWater or contamination inside the button housing\n-\nControl circuit wiring fault\nRESOLUTION:\n1. Do not attempt to reset the fault without understanding the cause. Review the fault\ndetail on the operator panel display.\n2. If the fault was caused by operator error (hand released early): clear the fault using\nthe reset button on the operator panel. Brief the operator on the requirement to maintain both hands on the control throughout the entire pressing stroke.\n3. Inspect both button housings for damage, contamination, or moisture ingress. If the\nbuttons are in a location where coolant or lubricant splash is possible, install the optional splash guard covers (part number HP500-SG-009).\n4. Press each button individually and verify the contact indicator on the control panel\ndisplay shows the correct state (pressed / released) for each button. If either button shows an incorrect state, the button contact has failed and must be replaced.\n5. If the button contacts are confirmed working but the fault recurs, the control circuit\nwiring requires inspection. Contact the equipment engineering team. Do not continue production with a recurring two-hand control fault\n-\nthis is a critical safety system.\n6. All instances of this fault must be recorded in the machine fault log regardless of\ncause.\nThis is a mandatory safety record requirement.",
         "metadata": {
             "machine_id": "HP_500_HYDRAULIC_PRESS",
             "source_file": "HP_500_HYDRAULIC_PRESS.pdf",
@@ -185,21 +190,22 @@
             "section": "ALARM A-04 - TWO-HAND CONTROL FAULT",
             "section_id": "ALARM A-04 - TWO-HAND CONTROL FAULT",
             "page_numbers": [
-                6
+                6,
+                7
             ],
             "page_start": 6,
-            "page_number": 6,
+            "page_number": 7,
             "is_table": false,
             "is_safety": false,
-            "is_troubleshooting": false,
-            "chunk_type": "overview",
-            "error_code": null,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "A-04",
             "cross_references": []
         }
     },
     {
         "chunk_id": 10,
-        "content": "## ALARM A-05 - OIL FILTER BYPASS INDICATOR ACTIVE  \nSYSTEM: Hydraulic SEVERITY: MINOR - operation continues, maintenance required  \nDESCRIPTION: The hydraulic oil filter bypass indicator has popped up (red indicator visible on the filter housing). This means the oil filter is sufficiently clogged that the system pressure drop across the filter has exceeded the bypass valve setting. Oil is now bypassing the filter and flowing unfiltered through the hydraulic circuit. This accelerates wear on all hydraulic components and must be addressed promptly.  \nCAUSES: - Filter has reached the end of its service life - normal saturation from operation - Cold oil startup - oil viscosity is temporarily high, causing elevated pressure drop. In cold environments (below 10°C) this is normal at startup and the indicator should clear within 5 minutes of running  \n### RESOLUTION:  \n1. If the indicator appeared at cold startup and clears within 5 minutes of normal operation, no action is required at this time. However, note the event and replace the filter at the next scheduled maintenance interval.\n2. If the indicator is active during normal operating temperature: the filter must be replaced before the next shift begins. Do not defer this beyond 8 hours of operation.\n3. Filter replacement procedure: shut down the press and allow the hydraulic system to depressurise fully - minimum 5 minutes after pump shutdown. Place an oil drip tray under the filter housing. Unscrew the filter housing, remove the used element, and discard it. Inspect the inside of the housing for metallic debris - if fine metal particles are present, this indicates component wear and the equipment engineering team must be informed before restarting. Install the new filter element (part number HP500-OF-002). Reinstall the housing, check for leaks, and reset the bypass indicator by pressing the red indicator cap down until it clicks.\n4. After replacement, run the pump for 2 minutes at idle and confirm the indicator remains in the green (down) position.",
+        "content": "ALARM A-05 - OIL FILTER BYPASS INDICATOR ACTIVE\nSYSTEM: Hydraulic SEVERITY: MINOR - operation continues, maintenance required\nDESCRIPTION: The hydraulic oil filter bypass indicator has popped up (red indicator visible\non the filter housing). This means the oil filter is sufficiently clogged that the system pressure drop across the filter has exceeded the bypass valve setting. Oil is now bypassing the filter and flowing unfiltered through the hydraulic circuit. This accelerates wear on all hydraulic components and must be addressed promptly.\nCAUSES: - Filter has reached the end of its service life - normal saturation from operation\n-\nCold oil startup\n-\noil viscosity is temporarily high, causing elevated pressure drop. In cold environments (below 10°C) this is normal at startup and the indicator should clear within 5 minutes of running\nRESOLUTION:\n1. If the indicator appeared at cold startup and clears within 5 minutes of normal\noperation, no action is required at this time. However, note the event and replace the filter at the next scheduled maintenance interval.\n2. If the indicator is active during normal operating temperature: the filter must be\nreplaced before the next shift begins. Do not defer this beyond 8 hours of operation.\n3. Filter replacement procedure: shut down the press and allow the hydraulic system to\ndepressurise fully\n-\nminimum 5 minutes after pump shutdown. Place an oil drip tray under the filter housing. Unscrew the filter housing, remove the used element, and discard it. Inspect the inside of the housing for metallic debris\n-\nif fine metal particles are present, this indicates component wear and the equipment engineering team must be informed before restarting. Install the new filter element (part number HP500-OF-002). Reinstall the housing, check for leaks, and reset the bypass indicator by pressing the red indicator cap down until it clicks.\n4. After replacement, run the pump for 2 minutes at idle and confirm the indicator\nremains in the green (down) position.",
         "metadata": {
             "machine_id": "HP_500_HYDRAULIC_PRESS",
             "source_file": "HP_500_HYDRAULIC_PRESS.pdf",
@@ -213,15 +219,15 @@
             "page_number": 7,
             "is_table": false,
             "is_safety": false,
-            "is_troubleshooting": false,
-            "chunk_type": "overview",
-            "error_code": null,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "A-05",
             "cross_references": []
         }
     },
     {
         "chunk_id": 11,
-        "content": "## ALARM A-06 - MAIN MOTOR OVERLOAD  \nSYSTEM: Electrical SEVERITY: MAJOR - hydraulic pump shut down, all press motion halted  \nDESCRIPTION: The main motor thermal overload relay has tripped. The 37 kW motor driving the hydraulic pump has drawn excessive current for a sustained period, causing the thermal overload protection to activate.  \nCAUSES: - Motor started too frequently in a short period - thermal accumulation Hydraulic system internal blockage - pump working against excessive back pressure Motor cooling fan failure - motor overheating without adequate cooling - Motor winding degradation - increased resistance drawing higher current  \n### RESOLUTION:  \n1. Allow the motor to cool for a minimum of 15 minutes before attempting to reset the overload. The thermal overload relay resets automatically after cooling - do not manually reset it by forcing the relay lever.\n2. After the relay resets, check the motor cooling fan at the rear of the motor. It must spin freely when the motor runs. If the fan is not spinning, it has failed and must be replaced before restarting.\n3. Check the hydraulic system for any blockage or excessive pressure - review the system pressure at idle after restart. If idle pressure is higher than 4 MPa, there is a restriction in the hydraulic circuit. Contact the equipment engineering team.\n4. If the overload trips again within 30 minutes of restart, do not reset it a second time. Tag the machine out of service and contact the equipment engineering team for motor inspection.\n5. Review the motor start frequency - the motor must not be started more than 6 times per hour. If operational demands require more frequent starts, a soft-starter or variable frequency drive should be considered - discuss with the equipment engineering team.",
+        "content": "ALARM A-06 - MAIN MOTOR OVERLOAD\nSYSTEM: Electrical SEVERITY: MAJOR - hydraulic pump shut down, all press motion halted\nDESCRIPTION: The main motor thermal overload relay has tripped. The 37 kW motor\ndriving the hydraulic pump has drawn excessive current for a sustained period, causing the thermal overload protection to activate.\nCAUSES: - Motor started too frequently in a short period - thermal accumulation -\nHydraulic system internal blockage\n-\npump working against excessive back pressure\n-\nMotor cooling fan failure\n-\nmotor overheating without adequate cooling\n-\nMotor winding degradation\n-\nincreased resistance drawing higher current\nRESOLUTION:\n1. Allow the motor to cool for a minimum of 15 minutes before attempting to reset the\noverload. The thermal overload relay resets automatically after cooling\n-\ndo not manually reset it by forcing the relay lever.\n2. After the relay resets, check the motor cooling fan at the rear of the motor. It must\nspin freely when the motor runs. If the fan is not spinning, it has failed and must be replaced before restarting.\n3. Check the hydraulic system for any blockage or excessive pressure - review the\nsystem pressure at idle after restart. If idle pressure is higher than 4 MPa, there is a restriction in the hydraulic circuit. Contact the equipment engineering team.\n4. If the overload trips again within 30 minutes of restart, do not reset it a second time.\nTag the machine out of service and contact the equipment engineering team for motor inspection.\n5. Review the motor start frequency - the motor must not be started more than 6 times\nper hour. If operational demands require more frequent starts, a soft-starter or variable frequency drive should be considered\n-\ndiscuss with the equipment engineering team.",
         "metadata": {
             "machine_id": "HP_500_HYDRAULIC_PRESS",
             "source_file": "HP_500_HYDRAULIC_PRESS.pdf",
@@ -229,21 +235,22 @@
             "section": "ALARM A-06 - MAIN MOTOR OVERLOAD",
             "section_id": "ALARM A-06 - MAIN MOTOR OVERLOAD",
             "page_numbers": [
-                7
+                7,
+                8
             ],
             "page_start": 7,
-            "page_number": 7,
+            "page_number": 8,
             "is_table": false,
             "is_safety": false,
-            "is_troubleshooting": false,
-            "chunk_type": "overview",
-            "error_code": null,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "A-06",
             "cross_references": []
         }
     },
     {
         "chunk_id": 12,
-        "content": "## ALARM A-07 - EMERGENCY STOP ACTIVATED  \nSYSTEM: Safety SEVERITY: CRITICAL - all machine motion halted immediately  \nDESCRIPTION: An emergency stop button has been activated. All servo power, hydraulic pump, and press motion are halted immediately. The machine cannot be restarted until the emergency stop circuit is reset.  \nCAUSES: - Operator or safety observer pressed an emergency stop button - E-stop button contact fault - button appears activated without being pressed - Safety relay circuit fault  \nRESOLUTION:  \n1. Before resetting any emergency stop, physically inspect the entire press work area and confirm no person is in a hazardous position and no hazardous condition exists.\n2. Identify which emergency stop button was activated - all E-stop buttons on the machine are numbered. The control panel display shows which E-stop triggered the shutdown.\n3. If activated by an operator: determine and record the reason before resetting. If activated due to a safety concern, that concern must be resolved before the machine is returned to service.\n4. To reset: twist and release the activated E-stop button (all buttons are twist-to-release type). Press the RESET button on the operator panel. Confirm the safety relay status indicator on the panel shows green before attempting to restart.\n5. If the E-stop was not pressed by anyone and no button is physically in the activated position, the E-stop contact or safety relay circuit has faulted. Do not reset and restart. Tag the machine out of service and contact the equipment engineering team immediately - a faulty E-stop circuit is a critical safety issue.\n6. All emergency stop activations must be recorded in the machine fault log with date, time, button number, and reason. This is a mandatory safety record requirement.",
+        "content": "ALARM A-07 - EMERGENCY STOP ACTIVATED\nSYSTEM: Safety SEVERITY: CRITICAL - all machine motion halted immediately\nDESCRIPTION: An emergency stop button has been activated. All servo power, hydraulic\npump, and press motion are halted immediately. The machine cannot be restarted until the emergency stop circuit is reset.\nCAUSES: - Operator or safety observer pressed an emergency stop button - E-stop\nbutton contact fault\n-\nbutton appears activated without being pressed\n-\nSafety relay circuit fault\nRESOLUTION:\n1. Before resetting any emergency stop, physically inspect the entire press work area\nand confirm no person is in a hazardous position and no hazardous condition exists.\n2. Identify which emergency stop button was activated - all E-stop buttons on the\nmachine are numbered. The control panel display shows which E-stop triggered the shutdown.\n3. If activated by an operator: determine and record the reason before resetting. If\nactivated due to a safety concern, that concern must be resolved before the machine is returned to service.\n4. To reset: twist and release the activated E-stop button (all buttons are twist-to-release\ntype). Press the RESET button on the operator panel. Confirm the safety relay status indicator on the panel shows green before attempting to restart.\n5. If the E-stop was not pressed by anyone and no button is physically in the activated\nposition, the E-stop contact or safety relay circuit has faulted. Do not reset and restart. Tag the machine out of service and contact the equipment engineering team immediately\n-\na faulty E-stop circuit is a critical safety issue.\n6. All emergency stop activations must be recorded in the machine fault log with date,\ntime, button number, and reason. This is a mandatory safety record requirement.",
         "metadata": {
             "machine_id": "HP_500_HYDRAULIC_PRESS",
             "source_file": "HP_500_HYDRAULIC_PRESS.pdf",
@@ -251,21 +258,22 @@
             "section": "ALARM A-07 - EMERGENCY STOP ACTIVATED",
             "section_id": "ALARM A-07 - EMERGENCY STOP ACTIVATED",
             "page_numbers": [
-                8
+                8,
+                9
             ],
             "page_start": 8,
-            "page_number": 8,
+            "page_number": 9,
             "is_table": false,
             "is_safety": true,
-            "is_troubleshooting": false,
-            "chunk_type": "safety",
-            "error_code": null,
+            "is_troubleshooting": true,
+            "chunk_type": "error_code",
+            "error_code": "A-07",
             "cross_references": []
         }
     },
     {
         "chunk_id": 13,
-        "content": "## DAILY - BEFORE FIRST SHIFT  \n- Check hydraulic oil level - must be between MIN and MAX marks on sight glass Check hydraulic oil temperature at startup - must reach 30°C before pressing begins Check oil filter bypass indicator - must be green - Inspect the press bed and bolster plate - remove all debris and foreign objects - Check that all emergency stop buttons are functional - press and release each one, confirm the machine halts and restarts correctly Inspect the two-hand control buttons - confirm both buttons actuate and release cleanly Check the ram guide columns for oil film - columns must be lightly coated with oil at all times",
+        "content": "DAILY - BEFORE FIRST SHIFT\n- Check hydraulic oil level - must be between MIN and MAX marks on sight glass -\nCheck hydraulic oil temperature at startup\n-\nmust reach 30°C before pressing begins\n-\nCheck oil filter bypass indicator\n-\nmust be green\n-\nInspect the press bed and bolster plate\n-\nremove all debris and foreign objects\n-\nCheck that all emergency stop buttons are functional\n-\npress and release each one, confirm the machine halts and restarts correctly\n-\nInspect the two-hand control buttons\n-\nconfirm both buttons actuate and release cleanly\n-\nCheck the ram guide columns for oil film\n-\ncolumns must be lightly coated with oil at all times",
         "metadata": {
             "machine_id": "HP_500_HYDRAULIC_PRESS",
             "source_file": "HP_500_HYDRAULIC_PRESS.pdf",
@@ -287,7 +295,7 @@
     },
     {
         "chunk_id": 14,
-        "content": "## WEEKLY  \n- Check all hydraulic hose connections for seepage or weeping - Inspect the ram seal area - a thin film of oil is normal, active dripping is not - Clean the air-blast oil cooler fins using compressed air - Check the pressing force calibration using the load cell calibration programme - Inspect the bolster plate surface for cracking, deformation, or tooling damage - Lubricate the ram guide columns with the specified column lubricant",
+        "content": "WEEKLY\n- Check all hydraulic hose connections for seepage or weeping - Inspect the ram seal\narea\n-\na thin film of oil is normal, active dripping is not\n-\nClean the air-blast oil cooler fins using compressed air\n-\nCheck the pressing force calibration using the load cell calibration programme\n-\nInspect the bolster plate surface for cracking, deformation, or tooling damage\n-\nLubricate the ram guide columns with the specified column lubricant",
         "metadata": {
             "machine_id": "HP_500_HYDRAULIC_PRESS",
             "source_file": "HP_500_HYDRAULIC_PRESS.pdf",
@@ -309,7 +317,7 @@
     },
     {
         "chunk_id": 15,
-        "content": "## MONTHLY  \n- Sample hydraulic oil for laboratory analysis - viscosity, acid number, particle count Replace hydraulic oil filter element regardless of bypass indicator status - Inspect main cylinder ram surface for scoring, pitting, or seal groove damage - Check all electrical cable entries into the operator pendant for damage - Verify ram position sensor calibration - run the position calibration programme - Inspect the foundation anchor bolts - all must be tight with no movement",
+        "content": "MONTHLY\n- Sample hydraulic oil for laboratory analysis - viscosity, acid number, particle count -\nReplace hydraulic oil filter element regardless of bypass indicator status\n-\nInspect main cylinder ram surface for scoring, pitting, or seal groove damage\n-\nCheck all electrical cable entries into the operator pendant for damage\n-\nVerify ram position sensor calibration\n-\nrun the position calibration programme\n-\nInspect the foundation anchor bolts\n-\nall must be tight with no movement",
         "metadata": {
             "machine_id": "HP_500_HYDRAULIC_PRESS",
             "source_file": "HP_500_HYDRAULIC_PRESS.pdf",
@@ -331,7 +339,7 @@
     },
     {
         "chunk_id": 16,
-        "content": "## EVERY 6 MONTHS  \n- Full hydraulic oil change - drain completely, flush with clean oil, refill with new ISO VG 46 - Main cylinder seal inspection - assess seal condition and replace if any extrusion or cracking is visible - Full electrical inspection including overload relay settings verification Two-hand control system full functional test by a qualified safety engineer - Emergency stop circuit full continuity and response time test - results must be formally recorded",
+        "content": "EVERY 6 MONTHS\n- Full hydraulic oil change - drain completely, flush with clean oil, refill with new ISO VG\n46\n-\nMain cylinder seal inspection\n-\nassess seal condition and replace if any extrusion or cracking is visible\n-\nFull electrical inspection including overload relay settings verification\n-\nTwo-hand control system full functional test by a qualified safety engineer\n-\nEmergency stop circuit full continuity and response time test\n-\nresults must be formally recorded",
         "metadata": {
             "machine_id": "HP_500_HYDRAULIC_PRESS",
             "source_file": "HP_500_HYDRAULIC_PRESS.pdf",
@@ -353,7 +361,7 @@
     },
     {
         "chunk_id": 17,
-        "content": "## SECTION 7 - SAFETY PRECAUTIONS  \nHYDRAULIC ENERGY: - Hydraulic oil in this machine is at pressures up to 25 MPa. At this pressure, a pinhole leak in a hose creates a high-pressure oil jet capable of penetrating skin. Never use your hand to locate a hydraulic leak - use a piece of cardboard. - Always depressurise the hydraulic system fully before loosening any hydraulic fitting. After pump shutdown, wait a minimum of 5 minutes for system pressure to decay. Verify pressure is zero on the system gauge before any work. - Hydraulic oil is flammable. Keep all ignition sources away from the hydraulic system. If a hose fails near a hot surface, fire risk is immediate.  \nMECHANICAL ENERGY: - The ram exerts up to 500 tonnes of pressing force. Never place any part of the body under the ram without physical mechanical props in place - hydraulic pressure alone is not a safe prop. - Always use the mechanical safety prop when working under the ram for tooling changes or maintenance. The prop must be visually confirmed in position before any person goes under the ram. - Tooling changes require overhead crane support - never support tooling by hand.  \nELECTRICAL: - The main isolator must be locked out in the OFF position before any electrical work or cabinet opening. - Stored energy in the motor start capacitors - wait 3 minutes after power-off before opening the motor terminal box.  \nGENERAL: - Personal protective equipment required at all times in the press area: safety shoes, safety glasses, and hearing protection. - No loose clothing, jewellery, or long hair when working near the press - entanglement risk. - The rated capacity of 500 tonnes must never be exceeded. Pressing oversized or overly hard workpieces can cause catastrophic structural failure.",
+        "content": "SECTION 7 - SAFETY PRECAUTIONS\nHYDRAULIC ENERGY: - Hydraulic oil in this machine is at pressures up to 25 MPa. At this pressure, a pinhole leak in a hose creates a high-pressure oil jet capable of penetrating skin. Never use your hand to locate a hydraulic leak\n-\nuse a piece of cardboard.\n-\nAlways depressurise the hydraulic system fully before loosening any hydraulic fitting. After pump shutdown, wait a minimum of 5 minutes for system pressure to decay. Verify pressure is zero on the system gauge before any work.\n-\nHydraulic oil is flammable. Keep all ignition sources away from the hydraulic system. If a hose fails near a hot surface, fire risk is immediate. MECHANICAL ENERGY: - The ram exerts up to 500 tonnes of pressing force. Never place any part of the body under the ram without physical mechanical props in place\n-\nhydraulic pressure alone is not a safe prop.\n-\nAlways use the mechanical safety prop when working under the ram for tooling changes or maintenance. The prop must be visually confirmed in position before any person goes under the ram.\n-\nTooling changes require overhead crane support\n-\nnever support tooling by hand. ELECTRICAL: - The main isolator must be locked out in the OFF position before any electrical work or cabinet opening.\n-\nStored energy in the motor start capacitors\n-\nwait 3 minutes after power-off before opening the motor terminal box. GENERAL: - Personal protective equipment required at all times in the press area: safety shoes, safety glasses, and hearing protection.\n-\nNo loose clothing, jewellery, or long hair when working near the press\n-\nentanglement risk.\n-\nThe rated capacity of 500 tonnes must never be exceeded. Pressing oversized or overly hard workpieces can\ncause\ncatastrophic structural failure.",
         "metadata": {
             "machine_id": "HP_500_HYDRAULIC_PRESS",
             "source_file": "HP_500_HYDRAULIC_PRESS.pdf",
@@ -375,7 +383,7 @@
     },
     {
         "chunk_id": 18,
-        "content": "## SECTION 8 - SPARE PARTS REFERENCE  \n| PART NAME                         | PART NUMBER   | RECOMMENDED STOCK   |\n|-----------------------------------|---------------|---------------------|\n| Hydraulic oil filter element      | HP500-OF-002  | 4 units             |\n| Main cylinder seal kit            | HP500-SK-001  | 1 kit               |\n| Air-blast cooler fan motor        | HP500-FM-003  | 1 unit              |\n| Two-hand control button assembly  | HP500-TC-004  | 2 units             |\n| Ram position sensor               | HP500-PS-005  | 1 unit              |\n| Hydraulic pump coupling           | HP500-PC-006  | 1 unit              |\n| Main motor thermal overload relay | HP500-OR-007  | 1 unit              |\n| Column lubricator wick assembly   | HP500-CL-008  | 2 units             |\n| Two-hand control splash guard     | HP500-SG-009  | 2 units             |  \nHP-500 HYDRAULIC PRESS - OPERATION, MAINTENANCE &amp; SAFETY MANUAL ISSUE 3 - JUNE 2023 THIS DOCUMENT IS THE PROPERTY OF THE EQUIPMENT ENGINEERING DEPARTMENT. UNAUTHORISED REPRODUCTION OR DISTRIBUTION IS PROHIBITED. FOR TECHNICAL SUPPORT CONTACT THE EQUIPMENT ENGINEERING DEPARTMENT.",
+        "content": "SECTION 8 - SPARE PARTS REFERENCE\nPART NAME PART NUMBER RECOMMENDED STOCK\nHydraulic oil filter element HP500-OF-002 4 units Main cylinder seal kit HP500-SK-001 1 kit Air-blast cooler fan motor HP500-FM-003 1 unit Two-hand control button assembly HP500-TC-004 2 units Ram position sensor HP500-PS-005 1 unit Hydraulic pump coupling HP500-PC-006 1 unit Main motor thermal overload relay HP500-OR-007 1 unit Column lubricator wick assembly HP500-CL-008 2 units Two-hand control splash guard HP500-SG-009 2 units HP-500 HYDRAULIC PRESS - OPERATION, MAINTENANCE & SAFETY MANUAL ISSUE 3\n-\nJUNE 2023 THIS DOCUMENT IS THE PROPERTY OF THE EQUIPMENT ENGINEERING DEPARTMENT. UNAUTHORISED REPRODUCTION OR DISTRIBUTION IS PROHIBITED. FOR TECHNICAL SUPPORT CONTACT THE EQUIPMENT ENGINEERING DEPARTMENT.",
         "metadata": {
             "machine_id": "HP_500_HYDRAULIC_PRESS",
             "source_file": "HP_500_HYDRAULIC_PRESS.pdf",
@@ -383,11 +391,11 @@
             "section": "SECTION 8 - SPARE PARTS REFERENCE",
             "section_id": "SECTION 8 - SPARE PARTS REFERENCE",
             "page_numbers": [
-                10
+                11
             ],
-            "page_start": 10,
-            "page_number": 10,
-            "is_table": true,
+            "page_start": 11,
+            "page_number": 11,
+            "is_table": false,
             "is_safety": true,
             "is_troubleshooting": false,
             "chunk_type": "spare_parts",

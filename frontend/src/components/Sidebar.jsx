@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Plus, Search, MessageSquare, X, Trash2 } from 'lucide-react';
 
 const Sidebar = ({
@@ -10,6 +10,11 @@ const Sidebar = ({
   isOpen,
   onClose
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const q = searchQuery.trim().toLowerCase();
+  const filteredChats = q
+    ? chats.filter(c => (c.title || '').toLowerCase().includes(q))
+    : chats;
 
   return (
     <>
@@ -58,9 +63,20 @@ const Sidebar = ({
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#1a1a2e]/30 group-focus-within/search:text-[#00A9FF] transition-colors" />
             <input
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search chats"
-              className="w-full bg-white/50 border border-[#89CFF3] rounded-xl py-2 pl-9 pr-4 text-sm text-[#1a1a2e] placeholder:text-[#1a1a2e]/30 focus:outline-none focus:border-[#00A9FF] focus:ring-1 focus:ring-[#00A9FF]/20 focus:bg-white/80 transition-all"
+              className="w-full bg-white/50 border border-[#89CFF3] rounded-xl py-2 pl-9 pr-9 text-sm text-[#1a1a2e] placeholder:text-[#1a1a2e]/30 focus:outline-none focus:border-[#00A9FF] focus:ring-1 focus:ring-[#00A9FF]/20 focus:bg-white/80 transition-all"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-[#1a1a2e]/30 hover:text-[#1a1a2e]/70 transition-colors"
+                title="Clear search"
+              >
+                <X size={12} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -69,8 +85,10 @@ const Sidebar = ({
           <div className="text-[10px] font-black text-[#1a1a2e]/40 uppercase tracking-[0.2em] mb-3 px-2 pt-2">Recents</div>
           {chats.length === 0 ? (
             <p className="text-xs text-[#1a1a2e]/30 px-2 py-6 text-center italic">No chats yet</p>
+          ) : filteredChats.length === 0 ? (
+            <p className="text-xs text-[#1a1a2e]/30 px-2 py-6 text-center italic">No chats match "{searchQuery}"</p>
           ) : (
-            chats.map((chat) => (
+            filteredChats.map((chat) => (
               <div
                 key={chat.id}
                 className={`group flex items-center gap-2 rounded-xl transition-all border-2 ${currentChatId === chat.id

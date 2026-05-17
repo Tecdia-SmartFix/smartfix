@@ -1,11 +1,33 @@
 [
     {
         "chunk_id": 1,
-        "content": "## 1. Machine Overview  \nThe LC-2040 is a CO ₂ laser cutting machine with a 150W laser source, designed for precision cutting and engraving of non-metallic materials including acrylic, wood, MDF, rubber, leather, and select plastics. The machine features a 2000mm × 4000mm work bed, an auto-focus laser head, and a closed-loop water cooling system for continuous operation.  \nThe LC-2040 is intended for use by trained operators under supervision of a qualified process engineer. All laser safety protocols must be strictly observed at all times. Maintenance and repair activities must be performed by certified equipment technicians only.",
+        "content": "PRECISION MACHINERY TECHNICAL\nMANUAL Laser Cutting Machine - Model LC-2040",
         "metadata": {
             "machine_id": "LASER_CUTTING_MACHINE",
             "source_file": "LASER_CUTTING_MACHINE.pdf",
-            "source": "LASER_CUTTING_MACHINE.pdf",
+            "source": "LASER CUTTING MACHINE.pdf",
+            "section": "Introduction",
+            "section_id": "Introduction",
+            "page_numbers": [
+                1
+            ],
+            "page_start": 1,
+            "page_number": 1,
+            "is_table": false,
+            "is_safety": false,
+            "is_troubleshooting": false,
+            "chunk_type": "overview",
+            "error_code": null,
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 2,
+        "content": "1. Machine Overview\nThe LC-2040 is a CO ₂ laser cutting machine with a 150W laser source, designed for precision cutting and engraving of non-metallic materials including acrylic, wood, MDF, rubber, leather, and select plastics. The machine features a 2000mm × 4000mm work bed, an auto-focus laser head, and a closed-loop water cooling system for continuous operation. The LC-2040 is intended for use by trained operators under supervision of a qualified process engineer. All laser safety protocols must be strictly observed at all times. Maintenance and repair activities must be performed by certified equipment technicians only.",
+        "metadata": {
+            "machine_id": "LASER_CUTTING_MACHINE",
+            "source_file": "LASER_CUTTING_MACHINE.pdf",
+            "source": "LASER CUTTING MACHINE.pdf",
             "section": "1. Machine Overview",
             "section_id": "1. Machine Overview",
             "page_numbers": [
@@ -16,48 +38,27 @@
             "is_table": false,
             "is_safety": true,
             "is_troubleshooting": false,
-            "chunk_type": "overview",
-            "error_code": null,
-            "cross_references": []
-        }
-    },
-    {
-        "chunk_id": 2,
-        "content": "## 2. Technical Specifications  \n| Parameter            | Specification                |\n|----------------------|------------------------------|\n| Laser Source Type    | CO ₂ glass tube laser        |\n| Laser Power          | 150W (rated)                 |\n| Working Area         | 2,000 mm × 4,000 mm          |\n| Laser Wavelength     | 10.6 µm                      |\n| Positioning Accuracy | ±0.05 mm                     |\n| Repeatability        | ±0.03 mm                     |\n| Max Cutting Speed    | 60,000 mm/min                |\n| Max Engraving Speed  | 80,000 mm/min                |\n| Min Line Width       | 0.08 mm                      |\n| Focus Lens Options   | 1.5 inch, 2.0 inch, 2.5 inch |\n| Cooling System       | Closed-loop water chiller    |  \n| Cooling Water Temperature Range   | 18°C - 25°C                                   |\n|-----------------------------------|-----------------------------------------------|\n| Air Assist Pressure               | 0.2 - 0.8 MPa (material dependent)            |\n| Exhaust System                    | Integrated centrifugal fan + external ducting |\n| Operating Voltage                 | Single phase, 220V / 50Hz                     |\n| Total Power Consumption           | 2,800W                                        |\n| Machine Weight                    | 1,650 kg                                      |\n| Overall Dimensions (L×W×H)        | 4,800 × 2,400 × 1,200 mm                      |\n| Operating Temperature Range       | 15°C - 35°C                                   |\n| Max Ambient Humidity              | 70% RH (non-condensing)                       |",
-        "metadata": {
-            "machine_id": "LASER_CUTTING_MACHINE",
-            "source_file": "LASER_CUTTING_MACHINE.pdf",
-            "source": "LASER_CUTTING_MACHINE.pdf",
-            "section": "2. Technical Specifications",
-            "section_id": "2. Technical Specifications",
-            "page_numbers": [
-                1
-            ],
-            "page_start": 1,
-            "page_number": 1,
-            "is_table": true,
-            "is_safety": false,
-            "is_troubleshooting": false,
-            "chunk_type": "specification",
+            "chunk_type": "safety",
             "error_code": null,
             "cross_references": []
         }
     },
     {
         "chunk_id": 3,
-        "content": "## 3. Normal Operating Parameters  \n| Parameter                               | Normal Range                             |\n|-----------------------------------------|------------------------------------------|\n| Laser power output (during cutting)     | 60% - 90% of rated power                 |\n| Cooling water temperature               | 18°C - 25°C                              |\n| Cooling water flow rate                 | 4 - 6 litres/min                         |\n| Air assist pressure (cutting)           | 0.3 - 0.6 MPa                            |\n| Air assist pressure (engraving)         | 0.1 - 0.2 MPa                            |\n| Exhaust fan speed                       | 80% - 100% during operation              |\n| Focus distance from material surface    | 6 mm - 8 mm (standard 2.0 inch lens)     |\n| Laser tube voltage (during firing)      | 18,000V - 22,000V                        |\n| Ambient light level at operator station | Below 500 lux (to aid visual monitoring) |",
+        "content": "2. Technical Specifications\nParameter Specification Laser Source Type CO ₂ glass tube laser Laser Power 150W (rated) Working Area 2,000 mm × 4,000 mm Laser Wavelength 10.6 µm Positioning Accuracy ±0.05 mm Repeatability ±0.03 mm Max Cutting Speed 60,000 mm/min Max Engraving Speed 80,000 mm/min Min Line Width 0.08 mm Focus Lens Options 1.5 inch, 2.0 inch, 2.5 inch Cooling System Closed-loop water chiller\nCooling Water Temperature Range 18°C - 25°C Air Assist Pressure 0.2 - 0.8 MPa (material dependent) Exhaust System Integrated centrifugal fan + external ducting Operating Voltage Single phase, 220V / 50Hz Total Power Consumption 2,800W Machine Weight 1,650 kg Overall Dimensions (L×W×H) 4,800 × 2,400 × 1,200 mm Operating Temperature Range 15°C - 35°C Max Ambient Humidity 70% RH (non-condensing)",
         "metadata": {
             "machine_id": "LASER_CUTTING_MACHINE",
             "source_file": "LASER_CUTTING_MACHINE.pdf",
-            "source": "LASER_CUTTING_MACHINE.pdf",
-            "section": "3. Normal Operating Parameters",
-            "section_id": "3. Normal Operating Parameters",
+            "source": "LASER CUTTING MACHINE.pdf",
+            "section": "2. Technical Specifications",
+            "section_id": "2. Technical Specifications",
             "page_numbers": [
-                1
+                1,
+                2
             ],
             "page_start": 1,
-            "page_number": 1,
-            "is_table": true,
+            "page_number": 2,
+            "is_table": false,
             "is_safety": false,
             "is_troubleshooting": false,
             "chunk_type": "specification",
@@ -67,17 +68,40 @@
     },
     {
         "chunk_id": 4,
-        "content": "## Error Code E-01 - Laser Output Power Low Description: The measured laser output power has dropped below 70% of the set power level. Cutting depth or speed performance is degraded. The machine continues operating but flags the condition.  \n### Common causes:  \n- Laser tube end-of-life - output naturally degrades over tube lifetime\n- Cooling water temperature above 25°C - thermal effects reduce laser efficiency\n- Laser power supply voltage drift\n- Contaminated or misaligned laser optics (mirrors or focus lens)  \n### Resolution Steps:  \n1. Check the cooling water temperature on the chiller display - must be between 18°C and 25°C. If above 25°C refer to E-03 for cooling fault procedures.\n2. Run the laser power test from the control panel: Diagnostics → Laser → Power Test. Record the output percentage at 80% power setting.\n3. If output is below 65% at 80% setting, clean the laser optics - mirrors and focus lens. Use lint-free optical cleaning wipes and isopropyl alcohol (99% pure). Clean in a single direction - never circular motion.\n4. After cleaning, re-run the power test. If output improves to above 70%, the issue was contaminated optics.\n5. If output remains below 65% after cleaning, the laser tube is approaching end-of-life. Record the tube operating hours from the maintenance log and contact the equipment engineering team. Do not replace the laser tube without authorisation.",
+        "content": "3. Normal Operating Parameters\nParameter Normal Range Laser power output (during cutting) 60% - 90% of rated power Cooling water temperature 18°C - 25°C Cooling water flow rate 4 - 6 litres/min Air assist pressure (cutting) 0.3 - 0.6 MPa Air assist pressure (engraving) 0.1 - 0.2 MPa Exhaust fan speed 80% - 100% during operation Focus distance from material surface 6 mm - 8 mm (standard 2.0 inch lens) Laser tube voltage (during firing) 18,000V - 22,000V Ambient light level at operator station Below 500 lux (to aid visual monitoring)",
         "metadata": {
             "machine_id": "LASER_CUTTING_MACHINE",
             "source_file": "LASER_CUTTING_MACHINE.pdf",
-            "source": "LASER_CUTTING_MACHINE.pdf",
-            "section": "Error Code E-01 - Laser Output Power Low Description: The measured laser output power has dropped below 70% of the set power level. Cutting depth or speed performance is degraded. The machine continues operating but flags the condition.",
-            "section_id": "Error Code E-01 - Laser Output Power Low Description: The measured laser output power has dropped below 70% of the set power level. Cutting depth or speed performance is degraded. The machine continues operating but flags the condition.",
+            "source": "LASER CUTTING MACHINE.pdf",
+            "section": "3. Normal Operating Parameters",
+            "section_id": "3. Normal Operating Parameters",
             "page_numbers": [
+                2
+            ],
+            "page_start": 2,
+            "page_number": 2,
+            "is_table": false,
+            "is_safety": false,
+            "is_troubleshooting": false,
+            "chunk_type": "specification",
+            "error_code": null,
+            "cross_references": []
+        }
+    },
+    {
+        "chunk_id": 5,
+        "content": "Error Code E-01 - Laser Output Power Low\nDescription: The measured laser output power has dropped below 70% of the set power\nlevel. Cutting depth or speed performance is degraded. The machine continues operating but flags the condition.\nCommon causes:\n● Laser tube end-of-life - output naturally degrades over tube lifetime ● Cooling water temperature above 25°C - thermal effects reduce laser efficiency ● Laser power supply voltage drift ● Contaminated or misaligned laser optics (mirrors or focus lens)\nResolution Steps:\n1. Check the cooling water temperature on the chiller display - must be between 18°C\nand 25°C. If above 25°C refer to E-03 for cooling fault procedures.\n2. Run the laser power test from the control panel: Diagnostics → Laser → Power Test.\nRecord the output percentage at 80% power setting.\n3. If output is below 65% at 80% setting, clean the laser optics - mirrors and focus\nlens. Use lint-free optical cleaning wipes and isopropyl alcohol (99% pure). Clean in a single direction\n-\nnever circular motion.\n4. After cleaning, re-run the power test. If output improves to above 70%, the issue was\ncontaminated optics.\n5. If output remains below 65% after cleaning, the laser tube is approaching end-of-life.\nRecord the tube operating hours from the maintenance log and contact the equipment engineering team. Do not replace the laser tube without authorisation.",
+        "metadata": {
+            "machine_id": "LASER_CUTTING_MACHINE",
+            "source_file": "LASER_CUTTING_MACHINE.pdf",
+            "source": "LASER CUTTING MACHINE.pdf",
+            "section": "Error Code E-01 - Laser Output Power Low",
+            "section_id": "Error Code E-01 - Laser Output Power Low",
+            "page_numbers": [
+                2,
                 3
             ],
-            "page_start": 3,
+            "page_start": 2,
             "page_number": 3,
             "is_table": false,
             "is_safety": false,
@@ -90,19 +114,20 @@
         }
     },
     {
-        "chunk_id": 5,
-        "content": "## Error Code E-02 - X/Y Axis Position Error  \nDescription: The cutting head has not reached the commanded position within the expected time. The job is paused and the head returns to the home position.  \n### Common causes:  \n- Drive belt loose or worn - belt slipping under high-speed motion\n- Linear guide way requires lubrication - increased friction\n- Foreign material (debris, cut material) obstructing the guide way\n- Step loss in the stepper motor drive - occurs when acceleration is set too high  \n### Resolution Steps:  \n1. Cancel the current job and home the machine using the control panel home command.\n2. Manually move the cutting head slowly across the full X and Y travel range by hand (with machine in manual mode) - feel for any rough spots, sticking, or obstruction.\n3. Inspect both X and Y axis guide rails visually - look for debris, cut material fragments, or dust accumulation. Clean with a dry cloth and compressed air.\n4. Check belt tension on both axes - the belts should be taut with no visible sag when pressed with a finger. If a belt is loose, tension it using the belt tensioner adjustment screws at the end of each axis.\n5. Apply a small amount of linear guide lubricant (white lithium grease) to the guide rails - wipe evenly along the full length.\n6. Run the machine home cycle again and attempt a slow test job at 50% speed. If position errors recur at full speed, reduce the acceleration parameter in the motion settings by 10% and retest.\n7. If position errors persist after all of the above, the stepper motor drive or motor itself may be failing. Contact the equipment engineering team.",
+        "chunk_id": 6,
+        "content": "Error Code E-02 - X/Y Axis Position Error\nDescription: The cutting head has not reached the commanded position within the expected\ntime. The job is paused and the head returns to the home position.\nCommon causes:\n● Drive belt loose or worn - belt slipping under high-speed motion ● Linear guide way requires lubrication - increased friction ● Foreign material (debris, cut material) obstructing the guide way ● Step loss in the stepper motor drive - occurs when acceleration is set too high\nResolution Steps:\n1. Cancel the current job and home the machine using the control panel home\ncommand.\n2. Manually move the cutting head slowly across the full X and Y travel range by hand\n(with machine in manual mode)\n-\nfeel for any rough spots, sticking, or obstruction.\n3. Inspect both X and Y axis guide rails visually - look for debris, cut material\nfragments, or dust accumulation. Clean with a dry cloth and compressed air.\n4. Check belt tension on both axes - the belts should be taut with no visible sag when\npressed with a finger. If a belt is loose, tension it using the belt tensioner adjustment screws at the end of each axis.\n5. Apply a small amount of linear guide lubricant (white lithium grease) to the guide rails\n-\nwipe evenly along the full length.\n6. Run the machine home cycle again and attempt a slow test job at 50% speed. If\nposition errors recur at full speed, reduce the acceleration parameter in the motion settings by 10% and retest.\n7. If position errors persist after all of the above, the stepper motor drive or motor itself\nmay be failing. Contact the equipment engineering team.",
         "metadata": {
             "machine_id": "LASER_CUTTING_MACHINE",
             "source_file": "LASER_CUTTING_MACHINE.pdf",
-            "source": "LASER_CUTTING_MACHINE.pdf",
+            "source": "LASER CUTTING MACHINE.pdf",
             "section": "Error Code E-02 - X/Y Axis Position Error",
             "section_id": "Error Code E-02 - X/Y Axis Position Error",
             "page_numbers": [
-                3
+                3,
+                4
             ],
             "page_start": 3,
-            "page_number": 3,
+            "page_number": 4,
             "is_table": false,
             "is_safety": false,
             "is_troubleshooting": true,
@@ -112,12 +137,12 @@
         }
     },
     {
-        "chunk_id": 6,
-        "content": "## Error Code E-03 - Cooling Water Temperature High  \nDescription: The chiller unit reports that cooling water temperature has exceeded 26°C. The laser tube must not operate above this threshold - continued firing risks permanent damage to the laser tube.  \n### Common causes:  \n- Ambient temperature in the facility is too high - affects chiller efficiency\n- Chiller coolant level low\n- Chiller heat exchanger fins blocked with dust\n- Chiller compressor fault  \n### Resolution Steps:  \n1. Stop all laser firing immediately. The machine will pause the job automatically but confirm the laser is not firing.\n2. Check the chiller coolant level sight glass - top up with distilled water if below the MIN mark. Do not use tap water - mineral deposits damage the chiller.\n3. Check the chiller air inlet and outlet - the fins must be unobstructed. Use compressed air to blow dust from the fins.\n4. Allow the chiller 10 minutes to recover with laser firing stopped. Monitor the temperature display - it should drop toward 22°C.\n5. If temperature does not drop below 25°C within 15 minutes, the chiller compressor may have faulted. Do not restart laser operation. Contact the equipment engineering team.",
+        "chunk_id": 7,
+        "content": "Error Code E-03 - Cooling Water Temperature High\nDescription: The chiller unit reports that cooling water temperature has exceeded 26°C.\nThe laser tube must not operate above this threshold\n-\ncontinued firing risks permanent damage to the laser tube.\nCommon causes:\n● Ambient temperature in the facility is too high - affects chiller efficiency ● Chiller coolant level low ● Chiller heat exchanger fins blocked with dust ● Chiller compressor fault\nResolution Steps:\n1. Stop all laser firing immediately. The machine will pause the job automatically but\nconfirm the laser is not firing.\n2. Check the chiller coolant level sight glass - top up with distilled water if below the\nMIN mark. Do not use tap water\n-\nmineral deposits damage the chiller.\n3. Check the chiller air inlet and outlet - the fins must be unobstructed. Use\ncompressed air to blow dust from the fins.\n4. Allow the chiller 10 minutes to recover with laser firing stopped. Monitor the\ntemperature display\n-\nit should drop toward 22°C.\n5. If temperature does not drop below 25°C within 15 minutes, the chiller compressor\nmay have faulted. Do not restart laser operation. Contact the equipment engineering team.",
         "metadata": {
             "machine_id": "LASER_CUTTING_MACHINE",
             "source_file": "LASER_CUTTING_MACHINE.pdf",
-            "source": "LASER_CUTTING_MACHINE.pdf",
+            "source": "LASER CUTTING MACHINE.pdf",
             "section": "Error Code E-03 - Cooling Water Temperature High",
             "section_id": "Error Code E-03 - Cooling Water Temperature High",
             "page_numbers": [
@@ -134,19 +159,20 @@
         }
     },
     {
-        "chunk_id": 7,
-        "content": "## Error Code E-04 - Exhaust Fan Fault  \nDescription: The exhaust fan speed has dropped below the minimum threshold or the exhaust system has been detected as inactive. Operating the laser without adequate exhaust ventilation is prohibited - fumes and particles from cutting are a health and fire hazard.  \n### Common causes:  \n- Exhaust fan motor failure\n- External duct blocked or disconnected\n- Exhaust filter saturated - excessive back pressure stalling the fan  \n### Resolution Steps:  \n1. Do not operate the laser with this error active. Press RESET and check the exhaust fan status indicator.\n2. Check the external duct connection at the machine exhaust outlet - confirm the duct is fully connected and not kinked or blocked.\n3. Check the exhaust filter condition - if the filter is visibly grey or black with accumulated material, it must be replaced before operation resumes. Replace with the correct filter grade (part number LC2040-EF-003).\n4. With the duct clear and filter replaced, restart the exhaust fan from the control panel and confirm the fan speed indicator reaches above 80%.\n5. If the fan does not reach speed after filter replacement and duct inspection, the fan motor has likely failed. Tag the machine and contact the equipment engineering team. Do not operate the laser without a functioning exhaust system under any circumstances.",
+        "chunk_id": 8,
+        "content": "Error Code E-04 - Exhaust Fan Fault\nDescription: The exhaust fan speed has dropped below the minimum threshold or the\nexhaust system has been detected as inactive. Operating the laser without adequate exhaust ventilation is prohibited\n-\nfumes and particles from cutting are a health and fire hazard.\nCommon causes:\n● Exhaust fan motor failure ● External duct blocked or disconnected ● Exhaust filter saturated - excessive back pressure stalling the fan\nResolution Steps:\n1. Do not operate the laser with this error active. Press RESET and check the exhaust\nfan status indicator.\n2. Check the external duct connection at the machine exhaust outlet - confirm the duct\nis fully connected and not kinked or blocked.\n3. Check the exhaust filter condition - if the filter is visibly grey or black with\naccumulated material, it must be replaced before operation resumes. Replace with the correct filter grade (part number LC2040-EF-003).\n4. With the duct clear and filter replaced, restart the exhaust fan from the control panel\nand confirm the fan speed indicator reaches above 80%.\n5. If the fan does not reach speed after filter replacement and duct inspection, the fan\nmotor has likely failed. Tag the machine and contact the equipment engineering team. Do not operate the laser without a functioning exhaust system under any circumstances.",
         "metadata": {
             "machine_id": "LASER_CUTTING_MACHINE",
             "source_file": "LASER_CUTTING_MACHINE.pdf",
-            "source": "LASER_CUTTING_MACHINE.pdf",
+            "source": "LASER CUTTING MACHINE.pdf",
             "section": "Error Code E-04 - Exhaust Fan Fault",
             "section_id": "Error Code E-04 - Exhaust Fan Fault",
             "page_numbers": [
-                4
+                4,
+                5
             ],
             "page_start": 4,
-            "page_number": 4,
+            "page_number": 5,
             "is_table": false,
             "is_safety": true,
             "is_troubleshooting": true,
@@ -156,12 +182,12 @@
         }
     },
     {
-        "chunk_id": 8,
-        "content": "## Error Code E-05 - Material Not Detected at Focus Height  \nDescription: The auto-focus sensor has not detected the material surface within the expected range. The focus distance cannot be set automatically and the job cannot start.  \n### Common causes:  \n- Material is not flat against the honeycomb bed - warped or raised material\n- Auto-focus sensor lens is dirty\n- Material is transparent or highly reflective - auto-focus sensor does not work reliably on glass or polished metal\n- Focus sensor height out of calibration  \n### Resolution Steps:  \n1. Check that the material is flat on the honeycomb bed. Press down any raised edges and use hold-down pins if available.\n2. Clean the auto-focus sensor lens with a dry cotton swab - do not use solvents.\n3. If the material is transparent (acrylic with protective film removed) or highly reflective, switch to manual focus mode. Place the manual focus gauge tool on the material surface and lower the laser head until the gauge just touches. Remove the gauge before starting the job.\n4. If auto-focus works on test material but not on the specific material in question, record the material type and contact the equipment engineering team for sensor calibration guidance.",
+        "chunk_id": 9,
+        "content": "Error Code E-05 - Material Not Detected at Focus Height\nDescription: The auto-focus sensor has not detected the material surface within the\nexpected range. The focus distance cannot be set automatically and the job cannot start.\nCommon causes:\n● Material is not flat against the honeycomb bed - warped or raised material ● Auto-focus sensor lens is dirty ● Material is transparent or highly reflective - auto-focus sensor does not work reliably\non glass or polished metal\n● Focus sensor height out of calibration\nResolution Steps:\n1. Check that the material is flat on the honeycomb bed. Press down any raised edges\nand use hold-down pins if available.\n2. Clean the auto-focus sensor lens with a dry cotton swab - do not use solvents. 3. If the material is transparent (acrylic with protective film removed) or highly reflective,\nswitch to manual focus mode. Place the manual focus gauge tool on the material surface and lower the laser head until the gauge just touches. Remove the gauge before starting the job.\n4. If auto-focus works on test material but not on the specific material in question,\nrecord the material type and contact the equipment engineering team for sensor calibration guidance.",
         "metadata": {
             "machine_id": "LASER_CUTTING_MACHINE",
             "source_file": "LASER_CUTTING_MACHINE.pdf",
-            "source": "LASER_CUTTING_MACHINE.pdf",
+            "source": "LASER CUTTING MACHINE.pdf",
             "section": "Error Code E-05 - Material Not Detected at Focus Height",
             "section_id": "Error Code E-05 - Material Not Detected at Focus Height",
             "page_numbers": [
@@ -178,12 +204,12 @@
         }
     },
     {
-        "chunk_id": 9,
-        "content": "## Error Code E-06 - Air Assist Pressure Fault  \nDescription: The air assist pressure has dropped below the minimum set value. Air assist is required during cutting to prevent material flare-up and to clear debris from the cut path. Cutting without adequate air assist risks material ignition.  \n### Common causes:  \n- Facility air supply pressure drop\n- Air assist solenoid valve stuck closed\n- Air line from compressor to machine kinked or disconnected  \n### Resolution Steps:  \n1. Check the facility air supply pressure at the nearest gauge - must be above 0.5 MPa at the supply point.\n2. Check the air line connection at the machine inlet - confirm it is fully connected and the shutoff valve is open.\n3. Manually command the air assist on from the control panel (Maintenance → Air Assist → Manual On) - listen for air flow at the laser head nozzle.\n4. If no air flow is heard with the solenoid commanded on and the supply pressure is normal, the solenoid valve has failed. Contact the equipment engineering team - do not operate the laser without functional air assist.",
+        "chunk_id": 10,
+        "content": "Error Code E-06 - Air Assist Pressure Fault\nDescription: The air assist pressure has dropped below the minimum set value. Air assist is\nrequired during cutting to prevent material flare-up and to clear debris from the cut path. Cutting without adequate air assist risks material ignition.\nCommon causes:\n● Facility air supply pressure drop ● Air assist solenoid valve stuck closed ● Air line from compressor to machine kinked or disconnected\nResolution Steps:\n1. Check the facility air supply pressure at the nearest gauge - must be above 0.5\nMPa at the supply point.\n2. Check the air line connection at the machine inlet - confirm it is fully connected and\nthe shutoff valve is open.\n3. Manually command the air assist on from the control panel (Maintenance → Air\nAssist → Manual On)\n-\nlisten for air flow at the laser head nozzle.\n4. If no air flow is heard with the solenoid commanded on and the supply pressure is\nnormal, the solenoid valve has failed. Contact the equipment engineering team\n-\ndo not operate the laser without functional air assist.",
         "metadata": {
             "machine_id": "LASER_CUTTING_MACHINE",
             "source_file": "LASER_CUTTING_MACHINE.pdf",
-            "source": "LASER_CUTTING_MACHINE.pdf",
+            "source": "LASER CUTTING MACHINE.pdf",
             "section": "Error Code E-06 - Air Assist Pressure Fault",
             "section_id": "Error Code E-06 - Air Assist Pressure Fault",
             "page_numbers": [
@@ -200,19 +226,20 @@
         }
     },
     {
-        "chunk_id": 10,
-        "content": "## Error Code E-07 - Laser Tube Overheat  \nDescription: The laser tube body temperature has exceeded the safe operating limit. This is a critical fault - the machine halts all laser firing immediately. Continued operation above this temperature causes permanent and irreversible laser tube damage.  \n### Common causes:  \n- Cooling water flow rate has dropped - partially blocked water line or pump degradation\n- Cooling water temperature already elevated (see E-03)\n- Extended high-power operation without adequate cool-down time between jobs  \n### Resolution Steps:  \n1. Do not attempt to restart laser firing. Allow the machine to remain idle with the chiller running for a minimum of 20 minutes before any further assessment.\n2. Check the cooling water flow rate indicator on the chiller - must be between 4 and 6 litres per minute. If below 4 litres per minute, the water line or chiller pump is restricted.\n3. Inspect the water inlet and outlet hoses at the laser tube for kinks or pinching.\n4. After 20 minutes, check the tube temperature on the diagnostic screen. If it has returned to below 30°C, attempt a low-power test fire (20% power, 1 second pulse) and monitor temperature response.\n5. If temperature rises rapidly again after a single test pulse, the tube has sustained damage. Do not operate the machine. Contact the equipment engineering team immediately and record the incident with the date, job running at the time, and power settings used.\n6. If temperature remains stable during the test pulse, resume operation at reduced power (maximum 70%) for the remainder of the shift and schedule a full cooling system inspection.",
+        "chunk_id": 11,
+        "content": "Error Code E-07 - Laser Tube Overheat\nDescription: The laser tube body temperature has exceeded the safe operating limit. This is\na critical fault\n-\nthe machine halts all laser firing immediately. Continued operation above this temperature\ncauses\npermanent and irreversible laser tube damage.\nCommon causes:\n● Cooling water flow rate has dropped - partially blocked water line or pump\ndegradation\n● Cooling water temperature already elevated (see E-03) ● Extended high-power operation without adequate cool-down time between jobs\nResolution Steps:\n1. Do not attempt to restart laser firing. Allow the machine to remain idle with the chiller\nrunning for a minimum of 20 minutes before any further assessment.\n2. Check the cooling water flow rate indicator on the chiller - must be between 4 and 6\nlitres per minute. If below 4 litres per minute, the water line or chiller pump is restricted.\n3. Inspect the water inlet and outlet hoses at the laser tube for kinks or pinching.\n4. After 20 minutes, check the tube temperature on the diagnostic screen. If it has\nreturned to below 30°C, attempt a low-power test fire (20% power, 1 second pulse) and monitor temperature response.\n5. If temperature rises rapidly again after a single test pulse, the tube has sustained\ndamage. Do not operate the machine. Contact the equipment engineering team immediately and record the incident with the date, job running at the time, and power settings used.\n6. If temperature remains stable during the test pulse, resume operation at reduced\npower (maximum 70%) for the remainder of the shift and schedule a full cooling system inspection.",
         "metadata": {
             "machine_id": "LASER_CUTTING_MACHINE",
             "source_file": "LASER_CUTTING_MACHINE.pdf",
-            "source": "LASER_CUTTING_MACHINE.pdf",
+            "source": "LASER CUTTING MACHINE.pdf",
             "section": "Error Code E-07 - Laser Tube Overheat",
             "section_id": "Error Code E-07 - Laser Tube Overheat",
             "page_numbers": [
-                6
+                6,
+                7
             ],
             "page_start": 6,
-            "page_number": 6,
+            "page_number": 7,
             "is_table": false,
             "is_safety": true,
             "is_troubleshooting": true,
@@ -224,12 +251,12 @@
         }
     },
     {
-        "chunk_id": 11,
-        "content": "## Error Code E-08 - Job File Format Error  \nDescription: The job file loaded from USB or network cannot be parsed by the control system. The job cannot start.  \n### Common causes:  \n- File saved in an unsupported format - only .lc2040, .svg, and .dxf formats are accepted\n- File was created with incompatible software version\n- File contains unsupported elements - embedded images, gradient fills, or 3D objects  \n### Resolution Steps:  \n1. Check the file format - confirm it is .lc2040, .svg, or .dxf. Files in .ai, .pdf, or raster formats (.png, .jpg) are not supported directly.\n2. If using .svg or .dxf - open the file in the design software and check for unsupported elements. Remove all gradient fills, embedded bitmaps, and any 3D geometry. Re-export as a clean vector file.\n3. Re-load the corrected file and attempt to open it again on the control panel.\n4. If the file was previously working and has stopped loading, the file may have been corrupted during transfer. Re-export from the source and transfer again using a formatted USB drive.",
+        "chunk_id": 12,
+        "content": "Error Code E-08 - Job File Format Error\nDescription: The job file loaded from USB or network cannot be parsed by the control\nsystem. The job cannot start.\nCommon causes:\n● File saved in an unsupported format - only .lc2040, .svg, and .dxf formats are\naccepted\n● File was created with incompatible software version ● File contains unsupported elements - embedded images, gradient fills, or 3D\nobjects\nResolution Steps:\n1. Check the file format - confirm it is .lc2040, .svg, or .dxf. Files in .ai, .pdf, or raster\nformats (.png, .jpg) are not supported directly.\n2. If using .svg or .dxf - open the file in the design software and check for unsupported\nelements. Remove all gradient fills, embedded bitmaps, and any 3D geometry. Re-export as a clean vector file.\n3. Re-load the corrected file and attempt to open it again on the control panel. 4. If the file was previously working and has stopped loading, the file may have been\ncorrupted during transfer. Re-export from the source and transfer again using a formatted USB drive.",
         "metadata": {
             "machine_id": "LASER_CUTTING_MACHINE",
             "source_file": "LASER_CUTTING_MACHINE.pdf",
-            "source": "LASER_CUTTING_MACHINE.pdf",
+            "source": "LASER CUTTING MACHINE.pdf",
             "section": "Error Code E-08 - Job File Format Error",
             "section_id": "Error Code E-08 - Job File Format Error",
             "page_numbers": [
@@ -246,19 +273,20 @@
         }
     },
     {
-        "chunk_id": 12,
-        "content": "## Daily (Before First Shift)  \n- Check cooling water temperature - must reach 18°C-22°C before starting laser operation\n- Check cooling water level in chiller sight glass\n- Check air assist pressure at machine inlet - must be above 0.5 MPa\n- Inspect laser head nozzle - clean any residue with a dry cloth\n- Check exhaust fan is running before starting any job\n- Run a test cut on scrap material to verify cut quality before production",
+        "chunk_id": 13,
+        "content": "Daily (Before First Shift)\n● Check cooling water temperature - must reach 18°C-22°C before starting laser\noperation\n● Check cooling water level in chiller sight glass ● Check air assist pressure at machine inlet - must be above 0.5 MPa\n● Inspect laser head nozzle - clean any residue with a dry cloth ● Check exhaust fan is running before starting any job ● Run a test cut on scrap material to verify cut quality before production",
         "metadata": {
             "machine_id": "LASER_CUTTING_MACHINE",
             "source_file": "LASER_CUTTING_MACHINE.pdf",
-            "source": "LASER_CUTTING_MACHINE.pdf",
+            "source": "LASER CUTTING MACHINE.pdf",
             "section": "Daily (Before First Shift)",
             "section_id": "Daily (Before First Shift)",
             "page_numbers": [
-                7
+                7,
+                8
             ],
             "page_start": 7,
-            "page_number": 7,
+            "page_number": 8,
             "is_table": false,
             "is_safety": false,
             "is_troubleshooting": false,
@@ -268,12 +296,12 @@
         }
     },
     {
-        "chunk_id": 13,
-        "content": "## Weekly  \n- Clean all laser mirrors using optical cleaning wipes and 99% IPA\n- Clean focus lens - inspect for scratches or coating damage. Replace if scratched.\n- Lubricate X and Y axis linear guide rails\n- Check and tension both drive belts\n- Clean honeycomb bed - remove cut debris and charring with a stiff brush and vacuum",
+        "chunk_id": 14,
+        "content": "Weekly\n● Clean all laser mirrors using optical cleaning wipes and 99% IPA ● Clean focus lens - inspect for scratches or coating damage. Replace if scratched. ● Lubricate X and Y axis linear guide rails ● Check and tension both drive belts ● Clean honeycomb bed - remove cut debris and charring with a stiff brush and\nvacuum",
         "metadata": {
             "machine_id": "LASER_CUTTING_MACHINE",
             "source_file": "LASER_CUTTING_MACHINE.pdf",
-            "source": "LASER_CUTTING_MACHINE.pdf",
+            "source": "LASER CUTTING MACHINE.pdf",
             "section": "Weekly",
             "section_id": "Weekly",
             "page_numbers": [
@@ -290,12 +318,12 @@
         }
     },
     {
-        "chunk_id": 14,
-        "content": "## Monthly  \n- Drain and replace cooling water - use distilled water only\n- Clean chiller heat exchanger fins with compressed air\n- Inspect all water hose connections for degradation or leaking\n- Check laser tube output power using the built-in power test - record result in the maintenance log\n- Inspect exhaust filter - replace if pressure drop across filter exceeds 150 Pa\n- Verify X and Y axis positioning accuracy using the calibration grid test pattern",
+        "chunk_id": 15,
+        "content": "Monthly\n● Drain and replace cooling water - use distilled water only ● Clean chiller heat exchanger fins with compressed air ● Inspect all water hose connections for degradation or leaking ● Check laser tube output power using the built-in power test - record result in the\nmaintenance log\n● Inspect exhaust filter - replace if pressure drop across filter exceeds 150 Pa ● Verify X and Y axis positioning accuracy using the calibration grid test pattern",
         "metadata": {
             "machine_id": "LASER_CUTTING_MACHINE",
             "source_file": "LASER_CUTTING_MACHINE.pdf",
-            "source": "LASER_CUTTING_MACHINE.pdf",
+            "source": "LASER CUTTING MACHINE.pdf",
             "section": "Monthly",
             "section_id": "Monthly",
             "page_numbers": [
@@ -312,12 +340,12 @@
         }
     },
     {
-        "chunk_id": 15,
-        "content": "## Every 6 Months  \n- Full laser optics alignment check by equipment engineering\n- Laser tube operating hours review - plan tube replacement if above 80% of rated life\n- Full electrical inspection including high-voltage laser power supply connections\n- Calibration verification by qualified technician",
+        "chunk_id": 16,
+        "content": "Every 6 Months\n● Full laser optics alignment check by equipment engineering ● Laser tube operating hours review - plan tube replacement if above 80% of rated\nlife\n● Full electrical inspection including high-voltage laser power supply connections ● Calibration verification by qualified technician",
         "metadata": {
             "machine_id": "LASER_CUTTING_MACHINE",
             "source_file": "LASER_CUTTING_MACHINE.pdf",
-            "source": "LASER_CUTTING_MACHINE.pdf",
+            "source": "LASER CUTTING MACHINE.pdf",
             "section": "Every 6 Months",
             "section_id": "Every 6 Months",
             "page_numbers": [
@@ -334,42 +362,43 @@
         }
     },
     {
-        "chunk_id": 16,
-        "content": "## 6. Safety Precautions  \n- The LC-2040 is a Class 4 laser product. Direct or reflected laser beam exposure causes immediate and permanent eye and skin injury. Laser safety goggles rated for 10.6 µm CO ₂ wavelength must be worn whenever the laser enclosure is open.\n- Never bypass or defeat the laser safety interlock system - interlocks are present on all access panels and the lid. Bypassing them is a serious safety violation.\n- Never operate the laser without the exhaust system running - cutting fumes are toxic and some materials produce carcinogenic particles.\n- Never cut PVC, vinyl chloride, or any chlorine-containing material in this machine chlorine gas released during cutting is toxic and destroys the laser optics.\n- Always have a CO ₂ fire extinguisher within reach of the machine during operation. Small flare-ups on the material surface are possible - the air assist is the primary prevention but a fire extinguisher must be immediately accessible.\n- Always remain present during cutting operations - do not leave the machine unattended while the laser is firing.\n- If a material fire occurs inside the machine - press the emergency stop immediately, do not open the lid (this feeds oxygen), and use the CO ₂ extinguisher through the exhaust port if the fire does not self-extinguish within 10 seconds.\n- Cooling water is circulated at high voltage proximity - never open the chiller or water connections while the machine is powered on.",
+        "chunk_id": 17,
+        "content": "6. Safety Precautions\n● The LC-2040 is a Class 4 laser product. Direct or reflected laser beam exposure\ncauses\nimmediate and permanent eye and skin injury. Laser safety goggles rated for 10.6 µm CO ₂ wavelength must be worn whenever the laser enclosure is open.\n● Never bypass or defeat the laser safety interlock system - interlocks are present on\nall access panels and the lid. Bypassing them is a serious safety violation.\n● Never operate the laser without the exhaust system running - cutting fumes are\ntoxic and some materials produce carcinogenic particles.\n● Never cut PVC, vinyl chloride, or any chlorine-containing material in this machine -\nchlorine gas released during cutting is toxic and destroys the laser optics.\n● Always have a CO ₂ fire extinguisher within reach of the machine during operation.\nSmall flare-ups on the material surface are possible\n-\nthe air assist is the primary prevention but a fire extinguisher must be immediately accessible.\n● Always remain present during cutting operations - do not leave the machine\nunattended while the laser is firing.\n● If a material fire occurs inside the machine - press the emergency stop immediately,\ndo not open the lid (this feeds oxygen), and use the CO ₂ extinguisher through the exhaust port if the fire does not self-extinguish within 10 seconds.\n● Cooling water is circulated at high voltage proximity - never open the chiller or water\nconnections while the machine is powered on.",
         "metadata": {
             "machine_id": "LASER_CUTTING_MACHINE",
             "source_file": "LASER_CUTTING_MACHINE.pdf",
-            "source": "LASER_CUTTING_MACHINE.pdf",
+            "source": "LASER CUTTING MACHINE.pdf",
             "section": "6. Safety Precautions",
             "section_id": "6. Safety Precautions",
             "page_numbers": [
-                8
+                8,
+                9
             ],
             "page_start": 8,
-            "page_number": 8,
+            "page_number": 9,
             "is_table": false,
             "is_safety": true,
-            "is_troubleshooting": false,
+            "is_troubleshooting": true,
             "chunk_type": "safety",
             "error_code": null,
             "cross_references": []
         }
     },
     {
-        "chunk_id": 17,
-        "content": "## 7. Spare Parts Reference  \n| Part Name                    | Part Number   | Recommended Stock   |\n|------------------------------|---------------|---------------------|\n| CO ₂ laser tube (150W)       | LC2040-LT-001 | 1 unit              |\n| Focus lens 2.0 inch          | LC2040-FL-002 | 2 units             |\n| Exhaust filter cartridge     | LC2040-EF-003 | 2 units             |\n| Laser mirror set (3 mirrors) | LC2040-MR-004 | 1 set               |\n| Air assist solenoid valve    | LC2040-AV-005 | 1 unit              |\n| X-axis drive belt            | LC2040-XB-006 | 1 unit              |\n| Y-axis drive belt            | LC2040-YB-007 | 1 unit              |\n| Chiller coolant pump         | LC2040-CP-008 | 1 unit              |\n| Auto-focus sensor            | LC2040-AF-009 | 1 unit              |  \nThis document is for internal use only. Do not distribute outside authorised personnel.",
+        "chunk_id": 18,
+        "content": "7. Spare Parts Reference\nPart Name Part Number Recommended Stock CO ₂ laser tube (150W) LC2040-LT-001 1 unit Focus lens 2.0 inch LC2040-FL-002 2 units Exhaust filter cartridge LC2040-EF-003 2 units Laser mirror set (3 mirrors) LC2040-MR-004 1 set Air assist solenoid valve LC2040-AV-005 1 unit X-axis drive belt LC2040-XB-006 1 unit Y-axis drive belt LC2040-YB-007 1 unit Chiller coolant pump LC2040-CP-008 1 unit Auto-focus sensor LC2040-AF-009 1 unit\nThis document is for internal use only. Do not distribute outside authorised personnel.",
         "metadata": {
             "machine_id": "LASER_CUTTING_MACHINE",
             "source_file": "LASER_CUTTING_MACHINE.pdf",
-            "source": "LASER_CUTTING_MACHINE.pdf",
+            "source": "LASER CUTTING MACHINE.pdf",
             "section": "7. Spare Parts Reference",
             "section_id": "7. Spare Parts Reference",
             "page_numbers": [
-                8
+                9
             ],
-            "page_start": 8,
-            "page_number": 8,
-            "is_table": true,
+            "page_start": 9,
+            "page_number": 9,
+            "is_table": false,
             "is_safety": false,
             "is_troubleshooting": false,
             "chunk_type": "spare_parts",

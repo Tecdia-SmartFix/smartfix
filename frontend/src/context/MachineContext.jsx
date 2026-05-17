@@ -36,6 +36,38 @@ export const MachineProvider = ({ children }) => {
     fetchMachines();
   }, [fetchMachines]);
 
+  // ── Silent cross-user sync ──
+  // When an admin uploads a new machine (or deletes one), other authenticated
+  // users won't see it until they refresh. Polling /machines every 30s closes
+  // that gap with negligible cost (tiny JSON, no LLM call). Polling pauses
+  // when the tab is hidden so background tabs don't keep hammering the API.
+  // Real-time push (SSE / WebSocket) is the v2 upgrade once state moves off
+  // a single Python process.
+  useEffect(() => {
+    if (!user.authenticated) return;
+    let intervalId = null;
+    const start = () => {
+      if (intervalId == null) intervalId = setInterval(fetchMachines, 30_000);
+    };
+    const stop = () => {
+      if (intervalId != null) { clearInterval(intervalId); intervalId = null; }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchMachines(); // catch up immediately on focus
+        start();
+      } else {
+        stop();
+      }
+    };
+    if (document.visibilityState === 'visible') start();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [user.authenticated, fetchMachines]);
+
   /**
    * Start polling a job every 2 seconds until it's done or failed.
    * Per contract §4.3: poll while status is not "done" or "failed".

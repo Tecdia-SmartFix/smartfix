@@ -1,4 +1,6 @@
+import math
 import os
+import random
 import re
 import secrets
 import threading
@@ -17,7 +19,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, EmailStr, Field
 from sentence_transformers import SentenceTransformer
 
-from . import mailer, workstations
+from . import audit, mailer, workstations
 from .db import get_chroma_collection
 from .rag_pipeline import run_query
 
@@ -43,13 +45,59 @@ _machine_metadata: dict[str, dict] = {
         "significance": 5,
         # Lucide icon name; frontend resolves via ICON_MAP. Filename strings would also work for future image-based icons.
         "icon": "Factory",
+        "suggested_questions": [
+            "What does error code E-04 mean?",
+            "The ejector is stuck and the mold won't open",
+            "Hydraulic oil temperature is too high — what to check?",
+            "Clamping force is not reaching the setpoint",
+        ],
     },
     "LASER_CUTTING_MACHINE": {
         "description": "Tecdia precision laser cutter — LC-2040 series.",
         "category": "Fabrication",
         "significance": 4,
         "icon": "Scissors",
+        "suggested_questions": [
+            "What does error code E-07 mean?",
+            "The laser tube is overheating — what should I do?",
+            "Air assist pressure dropped — what to check?",
+            "How do I align the laser optics safely?",
+        ],
     },
+    "HP_500_HYDRAULIC_PRESS": {
+        "description": "Heavy-duty hydraulic press — HP-500 series.",
+        "category": "Heavy Machinery",
+        "significance": 5,
+        "icon": "Gauge",
+        "suggested_questions": [
+            "What does ALARM A-06 mean?",
+            "Press won't reach the set pressure",
+            "Two-hand control fault — how to reset?",
+            "Hydraulic oil temperature warning is on",
+        ],
+    },
+    "FDM_X300_INDUSTRIAL_3D_PRINTER": {
+        "description": "Industrial-grade FDM 3D printer — X300 series.",
+        "category": "Additive Manufacturing",
+        "significance": 3,
+        "icon": "Printer",
+        "suggested_questions": [
+            "What does ERR-04 mean?",
+            "Chamber is not reaching the set temperature",
+            "Nozzle is clogged — how do I clear it?",
+            "Filament detect sensor is disconnected",
+        ],
+    },
+}
+
+# Per-machine depreciation parameters. Demo-only synthetic numbers — replace
+# with real asset records once a maintenance system is integrated. Straight-line
+# depreciation: current_value = initial_value * (1 - elapsed_years / useful_life).
+_DEPRECIATION_DEFAULTS: dict[str, dict] = {
+    "INJECTION_MOLDING_MACHINE":      {"purchase_date": "2021-03-15", "initial_value": 4_200_000.0, "useful_life_years": 10},
+    "LASER_CUTTING_MACHINE":          {"purchase_date": "2022-07-01", "initial_value": 3_100_000.0, "useful_life_years": 10},
+    "HP_500_HYDRAULIC_PRESS":         {"purchase_date": "2019-11-20", "initial_value": 2_800_000.0, "useful_life_years": 12},
+    "FDM_X300_INDUSTRIAL_3D_PRINTER": {"purchase_date": "2023-05-10", "initial_value":   950_000.0, "useful_life_years":  8},
 }
 
 # Alert log (in-memory). Each entry matches the shape rendered in the admin UI.
@@ -225,6 +273,14 @@ def _caller_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def _resolve_admin_email(stub_session: Optional[str]) -> Optional[str]:
+    """Return the admin email behind a `stub_session` cookie, or None."""
+    if not stub_session:
+        return None
+    s = _admin_sessions.get(stub_session)
+    return s.get("email") if s else None
+
+
 @app.post("/query", response_model=QueryResponse)
 async def query(
     req: QueryRequest,
@@ -369,6 +425,7 @@ def _list_machines_basic() -> list[dict]:
                 "category": meta.get("category", "General"),
                 "significance": meta.get("significance", DEFAULT_SIGNIFICANCE),
                 "icon": meta.get("icon"),
+                "suggested_questions": meta.get("suggested_questions", []),
             }
         )
     return machines
@@ -531,20 +588,23 @@ async def auth_verify_landing(token: str):
 
 
 @app.post("/auth/verify")
-async def auth_verify_confirm(token: str = Form(...)):
+async def auth_verify_confirm(request: Request, token: str = Form(...)):
     """Consume the magic-link token, create an admin session, redirect to /admin.
 
     Token is single-use (popped here) and must be within
     MAGIC_TOKEN_TTL_MINUTES of issue. On failure we redirect to AdminLogin
     with a `?login_error=...` query param so the page can show the reason.
     """
+    ip = _caller_ip(request)
     entry = _magic_tokens.pop(token, None)
     if not entry:
+        audit.append("auth.admin_login", status="failure", ip=ip, details={"reason": "invalid_token"})
         return RedirectResponse(
             url=f"{APP_BASE_URL}/admin/login?login_error=invalid",
             status_code=302,
         )
     if entry["expires_at"] < datetime.now(timezone.utc):
+        audit.append("auth.admin_login", status="failure", actor=entry["email"], ip=ip, details={"reason": "expired_token"})
         return RedirectResponse(
             url=f"{APP_BASE_URL}/admin/login?login_error=expired",
             status_code=302,
@@ -565,6 +625,7 @@ async def auth_verify_confirm(token: str = Form(...)):
         path="/",
     )
     print(f"[auth] admin session created for {entry['email']}", flush=True)
+    audit.append("auth.admin_login", actor=entry["email"], ip=ip)
     return response
 
 
@@ -647,13 +708,17 @@ async def auth_me(
 
 @app.post("/auth/logout")
 async def auth_logout(
+    request: Request,
     worker_session: Optional[str] = Cookie(default=None),
     stub_session: Optional[str] = Cookie(default=None),
 ):
     if worker_session:
         _worker_sessions.pop(worker_session, None)
     if stub_session:
+        admin_email = _admin_sessions.get(stub_session, {}).get("email")
         _admin_sessions.pop(stub_session, None)
+        if admin_email:
+            audit.append("auth.admin_logout", actor=admin_email, ip=_caller_ip(request))
     response = JSONResponse({"ok": True})
     response.delete_cookie("stub_session")
     response.delete_cookie("worker_session")
@@ -732,16 +797,30 @@ def _run_ingestion(job_id: str, machine_id: str, pdf_path: str, filename: str):
 
         collection.add(ids=ids, embeddings=vecs, documents=docs, metadatas=metas)
         _update("done", f"Complete — {len(chunks)} chunks indexed", 1.0)
+        audit.append(
+            "machine.ingest_complete",
+            actor=_jobs.get(job_id, {}).get("uploaded_by"),
+            target=machine_id,
+            details={"job_id": job_id, "chunks_indexed": len(chunks)},
+        )
 
     except Exception as exc:
         import traceback
         traceback.print_exc()
         _update("failed", "Ingestion error", 0.0, str(exc))
+        audit.append(
+            "machine.ingest_failed",
+            status="failure",
+            actor=_jobs.get(job_id, {}).get("uploaded_by"),
+            target=machine_id,
+            details={"job_id": job_id, "error": str(exc)},
+        )
     # PDF is intentionally NOT deleted — it stays in data/uploads/ for re-ingest/audit.
 
 
 @app.post("/admin/machines", status_code=202)
 async def admin_create_machine(
+    request: Request,
     file: UploadFile = File(...),
     machine_id: str = Form(...),
     display_name: str = Form(...),
@@ -749,15 +828,22 @@ async def admin_create_machine(
     category: str = Form("General"),
     significance: int = Form(DEFAULT_SIGNIFICANCE),
     icon: Optional[str] = Form(None),
+    stub_session: Optional[str] = Cookie(default=None),
 ):
+    actor = _resolve_admin_email(stub_session) or "admin@tecdia.local"
+    ip = _caller_ip(request)
+
     if file.size and file.size > 50 * 1024 * 1024:
+        audit.append("machine.create", status="failure", actor=actor, target=machine_id, ip=ip, details={"reason": "file_too_large", "size": file.size})
         raise APIError(413, "File exceeds 50 MB", "file_too_large")
 
     if not 1 <= significance <= 5:
+        audit.append("machine.create", status="failure", actor=actor, target=machine_id, ip=ip, details={"reason": "invalid_significance", "significance": significance})
         raise APIError(422, "significance must be 1–5", "validation_error")
 
     existing = {m["id"] for m in _list_machines_basic()}
     if machine_id in existing:
+        audit.append("machine.create", status="failure", actor=actor, target=machine_id, ip=ip, details={"reason": "machine_exists"})
         raise APIError(409, "Machine already exists", "machine_exists")
 
     # Archive uploaded PDF under data/uploads/{machine_id}.pdf so it can be
@@ -787,7 +873,7 @@ async def admin_create_machine(
         "started_at": datetime.now(timezone.utc),
         "finished_at": None,
         "error": None,
-        "uploaded_by": next(iter(ADMIN_EMAILS), "admin@tecdia.local"),
+        "uploaded_by": actor,
         "pdf_size_bytes": len(contents),
     }
 
@@ -798,6 +884,21 @@ async def admin_create_machine(
         daemon=True,
     )
     thread.start()
+
+    audit.append(
+        "machine.create",
+        actor=actor,
+        target=machine_id,
+        ip=ip,
+        details={
+            "display_name":   display_name,
+            "category":       category,
+            "significance":   significance,
+            "pdf_size_bytes": len(contents),
+            "filename":       file.filename,
+            "job_id":         job_id,
+        },
+    )
 
     return {"job_id": job_id, "status": "queued"}
 
@@ -832,11 +933,19 @@ async def admin_list_machines():
 
 
 @app.delete("/admin/machines/{machine_id}")
-async def admin_delete_machine(machine_id: str):
+async def admin_delete_machine(
+    machine_id: str,
+    request: Request,
+    stub_session: Optional[str] = Cookie(default=None),
+):
+    actor = _resolve_admin_email(stub_session) or "admin@tecdia.local"
+    ip = _caller_ip(request)
+
     collection = ml_models["collection"]
     existing = collection.get(where={"machine": machine_id}, include=[])
     ids = existing.get("ids", []) if existing else []
     if not ids:
+        audit.append("machine.delete", status="failure", actor=actor, target=machine_id, ip=ip, details={"reason": "not_found"})
         raise APIError(404, "Machine not found", "not_found")
     collection.delete(ids=ids)
     _machine_metadata.pop(machine_id, None)
@@ -846,6 +955,14 @@ async def admin_delete_machine(machine_id: str):
     # `{machine_id}.pdf` on disk — that's fine, missing_ok handles it.
     archived_pdf = UPLOADS_DIR / f"{machine_id}.pdf"
     archived_pdf.unlink(missing_ok=True)
+
+    audit.append(
+        "machine.delete",
+        actor=actor,
+        target=machine_id,
+        ip=ip,
+        details={"deleted_chunks": len(ids)},
+    )
 
     return {"ok": True, "deleted_chunks": len(ids)}
 
@@ -864,6 +981,66 @@ async def admin_clear_alerts():
     cleared = len(_alerts)
     _alerts.clear()
     return {"ok": True, "cleared": cleared}
+
+
+# ── analytics helpers ──────────────────────────────────────────────────────
+
+
+def _compute_depreciation(machine_id: str, now: datetime) -> Optional[dict]:
+    """Straight-line depreciation snapshot + 12-month trailing series for a machine."""
+    params = _DEPRECIATION_DEFAULTS.get(machine_id)
+    if not params:
+        return None
+    purchased = datetime.fromisoformat(params["purchase_date"]).replace(tzinfo=timezone.utc)
+    life_days = params["useful_life_years"] * 365.25
+    elapsed = max(0, (now - purchased).days)
+    pct_elapsed = min(1.0, elapsed / life_days)
+    series = []
+    for m in range(11, -1, -1):
+        anchor = now - timedelta(days=30 * m)
+        e = max(0, (anchor - purchased).days)
+        pct = min(1.0, e / life_days)
+        series.append({
+            "month": anchor.strftime("%Y-%m"),
+            "value": round(params["initial_value"] * (1 - pct), 2),
+        })
+    return {
+        "purchase_date":     params["purchase_date"],
+        "initial_value":     params["initial_value"],
+        "useful_life_years": params["useful_life_years"],
+        "current_value":     round(params["initial_value"] * (1 - pct_elapsed), 2),
+        "pct_remaining":     round(100 * (1 - pct_elapsed), 1),
+        "monthly_loss":      round(params["initial_value"] / (params["useful_life_years"] * 12), 2),
+        "series":            series,
+    }
+
+
+def _compute_failure_likelihood(machine_id: str, now: datetime) -> dict:
+    """Poisson estimate from the last 7d of alert_fired events.
+
+    P(at least one failure in next N days) = 1 - exp(-lambda * N), where
+    lambda is the observed alert rate per day. Conflates "user asked about
+    an error" with "machine actually failed" — fine for demo, not prod.
+    """
+    window_start = now - timedelta(days=7)
+    count = 0
+    for q in _query_log:
+        if q.get("machine_id") != machine_id or not q.get("alert_fired"):
+            continue
+        try:
+            asked = datetime.fromisoformat(q["asked_at"].replace("Z", "+00:00"))
+        except (KeyError, ValueError):
+            continue
+        if asked >= window_start:
+            count += 1
+    lam = count / 7.0
+    return {
+        "alerts_7d":      count,
+        "lambda_per_day": round(lam, 3),
+        "prob_24h_pct":   round(100 * (1 - math.exp(-lam * 1)), 1),
+        "prob_7d_pct":    round(100 * (1 - math.exp(-lam * 7)), 1),
+        "prob_30d_pct":   round(100 * (1 - math.exp(-lam * 30)), 1),
+    }
 
 
 # ── /admin/analytics ───────────────────────────────────────────────────────
@@ -968,6 +1145,22 @@ async def admin_analytics():
         for t, c in qtext.most_common(10)
     ]
 
+    # ── failure likelihood + depreciation (one entry per indexed machine) ─
+    known = _list_machines_basic()
+    failure_likelihood = []
+    depreciation = []
+    for m in known:
+        mid = m["id"]
+        dn  = m["display_name"]
+        failure_likelihood.append({
+            "machine_id":   mid,
+            "display_name": dn,
+            **_compute_failure_likelihood(mid, now),
+        })
+        dep = _compute_depreciation(mid, now)
+        if dep:
+            depreciation.append({"machine_id": mid, "display_name": dn, **dep})
+
     return {
         "totals": {
             "queries":         total,
@@ -980,6 +1173,117 @@ async def admin_analytics():
         "severity_distribution": sev_dist,
         "queries_per_hour_24h": queries_per_hour_24h,
         "top_questions":        top_questions,
+        "failure_likelihood":   failure_likelihood,
+        "depreciation":         depreciation,
+    }
+
+
+# ── /admin/audit ───────────────────────────────────────────────────────────
+
+
+@app.get("/admin/audit")
+async def admin_audit(limit: int = 200, action_prefix: Optional[str] = None):
+    """Return the most recent audit entries (newest first).
+
+    Filterable by action prefix (e.g. `machine.` or `auth.`) for the UI.
+    Backed by data/audit.jsonl — see src/audit.py.
+    """
+    if not 1 <= limit <= 1000:
+        raise APIError(422, "limit must be 1–1000", "validation_error")
+    return {"entries": audit.read(limit=limit, action_prefix=action_prefix)}
+
+
+# ── /admin/_seed-analytics ─────────────────────────────────────────────────
+# DEMO ONLY — injects synthetic _query_log entries directly (no LLM calls)
+# so the analytics dashboard renders something meaningful out of the box.
+# Spreads asked_at across the last 7 days so the Poisson failure-likelihood
+# math has a non-zero lambda per machine.
+
+_SEED_QUESTIONS: dict[str, list[tuple[str, int]]] = {
+    "INJECTION_MOLDING_MACHINE": [
+        ("what is error E-01", 2), ("what does E-02 mean", 3), ("explain E-04 to me", 4),
+        ("how do I fix E-06", 4), ("the ejector is stuck", 4), ("hydraulic oil too hot", 5),
+        ("clamping force not reaching setpoint", 3), ("barrel zone temperature fluctuating", 3),
+        ("production halted, motor overheating", 5), ("how often should I service", 1),
+    ],
+    "LASER_CUTTING_MACHINE": [
+        ("what is E-01", 2), ("explain E-04", 3), ("what does E-07 mean", 4),
+        ("the laser tube is overheating", 5), ("air assist pressure dropped", 3),
+        ("X-Y axis position error", 4), ("how do I align the optics", 1),
+        ("safety procedure for tube replacement", 4), ("cooling water temp high", 4),
+    ],
+    "HP_500_HYDRAULIC_PRESS": [
+        ("what is A-01", 2), ("what is A-04", 3), ("explain A-06", 4),
+        ("ALARM A-08 hydraulic leak", 5), ("press won't reach pressure", 4),
+        ("two-hand control fault", 3), ("oil temperature warning", 3),
+        ("what is the daily maintenance schedule", 1),
+    ],
+    "FDM_X300_INDUSTRIAL_3D_PRINTER": [
+        ("what is ERR-01", 2), ("how do I fix ERR-04", 3), ("explain ERR-06", 4),
+        ("chamber not reaching temperature", 3), ("nozzle is clogged", 3),
+        ("filament detect sensor disconnected", 4), ("bed adhesion failing", 2),
+        ("recommended chamber temperature for PA12", 1),
+    ],
+}
+
+
+@app.post("/admin/_seed-analytics")
+async def admin_seed_analytics(count: int = 80, replace: bool = False):
+    """Inject synthetic query-log entries so the analytics page renders.
+
+    - count:   total entries to inject (default 80)
+    - replace: if true, wipe _query_log first; otherwise append
+    """
+    if replace:
+        _query_log.clear()
+
+    machines = [m["id"] for m in _list_machines_basic()]
+    if not machines:
+        return {"injected": 0, "reason": "no machines indexed"}
+
+    rng = random.Random(42)
+    now = datetime.now(timezone.utc)
+    injected = 0
+    fired = 0
+
+    for _ in range(count):
+        mid = rng.choice(machines)
+        pool = _SEED_QUESTIONS.get(mid) or [("general status check", 1)]
+        question, severity = rng.choice(pool)
+
+        # Spread asked_at uniformly across the last 7 days (in seconds).
+        offset_sec = rng.uniform(0, 7 * 24 * 3600)
+        asked_at = now - timedelta(seconds=offset_sec)
+
+        machine_sig = _machine_metadata.get(mid, {}).get("significance", DEFAULT_SIGNIFICANCE)
+        alert_score = severity * machine_sig
+        alert_fired = alert_score >= ALERT_THRESHOLD
+
+        codes = sorted({m.upper() for m in _QUERY_CODE_RE.findall(question)})
+        _query_log.append({
+            "query_id":       f"q_seed_{uuid.uuid4().hex[:8]}",
+            "machine_id":     mid,
+            "question":       question,
+            "severity":       severity,
+            "alert_score":    alert_score,
+            "alert_fired":    alert_fired,
+            "codes":          codes,
+            "answer_chars":   rng.randint(180, 420),
+            "status":         "success",
+            "asked_at":       asked_at.isoformat(),
+            "workstation_ip": None,
+        })
+        injected += 1
+        if alert_fired:
+            fired += 1
+
+    if len(_query_log) > QUERY_LOG_MAX:
+        del _query_log[: len(_query_log) - QUERY_LOG_MAX]
+
+    return {
+        "injected":     injected,
+        "alerts_fired": fired,
+        "total_in_log": len(_query_log),
     }
 
 

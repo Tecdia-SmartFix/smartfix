@@ -24,15 +24,17 @@ const ICON_MAP = {
   HardDrive, Truck, FlaskConical,
 };
 
-// Static suggestion map for known machines (keyed by display_name)
-const MACHINE_SUGGESTIONS = {
-  'Injection Molding Machine':  ['Barrel pressure is fluctuating abnormally', 'Cycle time increased by 15% — why?', 'Short shots on every 3rd cycle', 'Material burn marks in the mold cavity'],
-  'Industrial 3D Printer':      ['Layer delamination on large prints', 'Filament keeps snapping mid-print', 'Bed adhesion failing after 3 hours', 'Extruder temperature inconsistency'],
-  'Laser Cutting Machine':      ['Cut edges are burning and discolored', 'Beam focus is off — how to recalibrate?', 'Lens showing signs of wear', 'Power output dropping over time'],
-  '6-Axis Industrial Robot Arm':['Joint 3 showing torque drift', 'Collision detection triggered unexpectedly', 'End-effector position is off by 2mm', 'Robot arm vibrating at high speed'],
-  'Hydraulic Press':            ['Hydraulic pressure drops during press cycle', 'Seal leak detected on cylinder 2', 'Press force inconsistent between strokes', 'Oil temperature running too high'],
+// Generic fallback suggestions, lightly tailored by machine category.
+// Used only when the backend hasn't supplied suggested_questions for a machine
+// (e.g. a freshly uploaded one without curated defaults yet).
+const FALLBACK_SUGGESTIONS_BY_CATEGORY = {
+  'Manufacturing':           ['What does the latest error code mean?', 'Production has stopped — where do I start?', 'Run a preventive maintenance check', 'What is the recommended service interval?'],
+  'Fabrication':             ['What does the latest error code mean?', 'Output quality has dropped — what to check?', 'Run a preventive maintenance check', 'What is the recommended service interval?'],
+  'Heavy Machinery':         ['What does the latest alarm code mean?', 'Pressure is not reaching the setpoint', 'Run a preventive maintenance check', 'What is the safety lockout procedure?'],
+  'Additive Manufacturing':  ['What does the latest error code mean?', 'A print just failed — what to look at first?', 'Run a preventive maintenance check', 'What materials does this printer support?'],
+  'Automation':              ['What does the latest error code mean?', 'A safety stop was triggered — what now?', 'Run a preventive maintenance check', 'How do I re-home the axes?'],
 };
-const DEFAULT_SUGGESTIONS = ['Diagnose a critical system fault', 'Run a preventive maintenance check', 'Explain the latest error code', 'Check operational status'];
+const DEFAULT_SUGGESTIONS = ['What does the latest error code mean?', 'Run a preventive maintenance check', 'Explain a critical safety procedure', 'Check operational status'];
 
 const SEVERITY_COLORS = {
   1: { bg: 'bg-green-50',  border: 'border-green-200',  text: 'text-green-700',  label: 'Informational' },
@@ -88,6 +90,9 @@ const ChatPage = () => {
   const dynamicMachine = machines.find(
     m => m.name === machineName || m.display_name === machineName || m.id === machineParam
   );
+  // Pretty label for UI chips + the textarea placeholder. Falls back to the
+  // raw machineName (URL param) until /machines has loaded.
+  const machineLabel = dynamicMachine?.display_name || machineName;
 
   // ── Workstation binding guard ──
   // If this client's IP is bound to a machine, force the URL to point at that
@@ -107,10 +112,12 @@ const ChatPage = () => {
     (dynamicMachine && (dynamicMachine.category === 'General' || dynamicMachine.category === user.domain));
 
   // ── Suggestion resolution ────────────────────────────────────────────────
-  const suggestions = MACHINE_SUGGESTIONS[machineName] ||
-    (dynamicMachine?.description
-      ? [`Analyze fault: ${dynamicMachine.description}`, `Check status of ${machineName}`, 'Run full diagnostic scan', 'What does the latest error code mean?']
-      : DEFAULT_SUGGESTIONS);
+  // Priority: backend-curated per machine → category fallback → generic default.
+  // Newly uploaded machines without curated suggestions land in the category bucket.
+  const suggestions =
+    (dynamicMachine?.suggested_questions?.length ? dynamicMachine.suggested_questions : null) ||
+    FALLBACK_SUGGESTIONS_BY_CATEGORY[dynamicMachine?.category] ||
+    DEFAULT_SUGGESTIONS;
 
   const MachineIcon = ICON_MAP[dynamicMachine?.icon] || Settings2;
 
@@ -126,10 +133,6 @@ const ChatPage = () => {
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   useEffect(() => { scrollToBottom(); }, [currentChat?.messages, isLoading]);
-
-  useEffect(() => {
-    if (!currentChatId && chats.length > 0) setCurrentChatId(chats[0].id);
-  }, [chats, currentChatId, setCurrentChatId]);
 
   // ── Send handler — calls real POST /query ─────────────────────────────────
   const handleSend = async (e) => {
@@ -327,7 +330,7 @@ const ChatPage = () => {
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-tecdia-accent border border-tecdia-accent/20 text-xs font-bold text-white">
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                <span className="leading-none">{machineName}</span>
+                <span className="leading-none">{machineLabel}</span>
               </div>
             </div>
 
@@ -367,7 +370,7 @@ const ChatPage = () => {
                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
                   className="flex items-center gap-2 mb-4 px-4 py-2 rounded-lg bg-tecdia-accent/10 border border-tecdia-accent/20 text-sm font-bold text-tecdia-accent overflow-hidden">
                   <MachineIcon size={16} />
-                  {machineName}
+                  {machineLabel}
                 </motion.div>
 
                 <h2 className="text-xl md:text-2xl font-bold mb-8 text-center text-tecdia-textDeep">What fault are you diagnosing?</h2>
@@ -505,7 +508,7 @@ const ChatPage = () => {
                   value={input}
                   onChange={handleInput}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(e); } }}
-                  placeholder={`Ask about your ${machineName}…`}
+                  placeholder={`Ask about your ${machineLabel}…`}
                   rows={1}
                   disabled={isLoading}
                   className="flex-1 bg-transparent border-none py-3 px-2 text-tecdia-text placeholder:text-tecdia-text/40 focus:outline-none focus:ring-0 resize-none max-h-[200px] text-[15px] disabled:opacity-50"
