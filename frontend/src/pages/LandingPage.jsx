@@ -105,7 +105,7 @@ const LandingPage = () => {
 
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-              <div>
+              <div className="relative z-20">
                 <motion.h1 {...fadeUp(0.05)} className="text-5xl sm:text-6xl md:text-7xl font-bold leading-[1.06] mb-6">
                   <span className="text-tecdia-textDeep">Tecdia </span>
                   <span className="text-tecdia-accent">SmartFix</span>
@@ -126,7 +126,7 @@ const LandingPage = () => {
                 </motion.div>
 
                 {/* Domain selector — calls POST /auth/worker-session */}
-                <motion.div {...fadeUp(0.3)} className="bg-white/50 backdrop-blur-sm border border-tecdia-border rounded-2xl p-6 max-w-xl">
+                <motion.div {...fadeUp(0.3)} className="relative z-30 bg-white/50 backdrop-blur-sm border border-tecdia-border rounded-2xl p-6 max-w-xl">
                   <div className="flex items-center gap-2 mb-4 text-tecdia-textDeep font-bold text-sm">
                     <Shield size={16} className="text-tecdia-accent" />
                     Select Your Expertise Domain
@@ -135,14 +135,15 @@ const LandingPage = () => {
                     {EXPERTISE_DOMAINS.map(domain => (
                       <button
                         key={domain}
+                        type="button"
                         onClick={async () => {
                           const result = await login(domain);
                           if (!result.success) alert(result.error);
                         }}
-                        className={`text-xs py-2 px-3 rounded-lg border transition-all ${
+                        className={`text-xs py-2 px-3 rounded-lg border transition-all cursor-pointer ${
                           user.domain === domain
                             ? 'bg-tecdia-accent text-white border-tecdia-accent shadow-sm'
-                            : 'bg-white/60 text-tecdia-text/60 border-tecdia-border hover:border-tecdia-accent/40'
+                            : 'bg-white/60 text-tecdia-text/60 border-tecdia-border hover:border-tecdia-accent/60 hover:bg-white hover:shadow-sm'
                         }`}
                       >
                         {domain}
