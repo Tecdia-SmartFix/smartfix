@@ -53,7 +53,7 @@ smartfix/
 │
 ├── frontend/                  # React + Vite app (see frontend/README if present)
 │   ├── src/
-│   │   ├── pages/             # LandingPage, MachinesPage, ChatPage, AdminLogin, AdminDashboard
+│   │   ├── pages/             # AdminDashBoard,AdminLogin,ChatPage,CompanyPolicy,FeaturesPage, IntegrationsPage,LandingPage, LegalNotice, MachinesPage, PrivacyPolicy
 │   │   ├── context/           # AuthContext, AdminAuthContext, MachineContext, AlertContext
 │   │   ├── api/apiClient.js   # Centralized fetch + credentials: 'include'
 │   │   ├── hooks/             # useChatHistory, useChatSession
