@@ -51,14 +51,55 @@ smartfix/
 │
 ├── chroma_db/                 # Vector store (persistent, gitignored)
 │
-├── frontend/                  # React + Vite app (see frontend/README if present)
-│   ├── src/
-│   │   ├── pages/             # AdminDashBoard,AdminLogin,ChatPage,CompanyPolicy,FeaturesPage, IntegrationsPage,LandingPage, LegalNotice, MachinesPage, PrivacyPolicy
-│   │   ├── context/           # AuthContext, AdminAuthContext, MachineContext, AlertContext
-│   │   ├── api/apiClient.js   # Centralized fetch + credentials: 'include'
-│   │   ├── hooks/             # useChatHistory, useChatSession
-│   │   └── components/        # ProtectedAdminRoute, Sidebar, MessageContent
-│   └── vite.config.js         # Dev proxy → :8000 for backend paths
+frontend/
+├── node_modules/           # Installed npm dependencies (not checked into git)
+├── public/                 # Public static assets
+├── src/                    # Main source code directory
+│   ├── api/                # API communication logic
+│   │   └── apiClient.js
+│   ├── assets/             # Images, fonts, and other static files
+│   │   ├── logo.png
+│   │   └── robot.webm
+│   ├── components/         # Reusable UI components
+│   │   ├── BackgroundAnimation.jsx
+│   │   ├── ChromaKeyVideo.jsx
+│   │   ├── Footer.jsx
+│   │   ├── MessageContent.jsx
+│   │   ├── Navbar.jsx
+│   │   ├── ProtectedAdminRoute.jsx
+│   │   └── Sidebar.jsx
+│   ├── context/            # React context providers for global state
+│   │   ├── AdminAuthContext.jsx
+│   │   ├── AlertContext.jsx
+│   │   ├── AuthContext.jsx
+│   │   └── MachineContext.jsx
+│   ├── hooks/              # Custom React hooks
+│   │   ├── useChatHistory.js
+│   │   ├── useChatSession.js
+│   │   └── useWorkstation.js
+│   ├── pages/              # Full page components and routes
+│   │   ├── AdminDashboard.jsx
+│   │   ├── AdminLogin.jsx
+│   │   ├── ChatPage.jsx
+│   │   ├── CompanyPolicy.jsx
+│   │   ├── FeaturesPage.jsx
+│   │   ├── IntegrationsPage.jsx
+│   │   ├── LandingPage.jsx
+│   │   ├── LegalNotice.jsx
+│   │   ├── MachinesPage.jsx
+│   │   └── PrivacyPolicy.jsx
+│   ├── App.css             # Main application styling
+│   ├── App.jsx             # Root React component (Routing setup)
+│   ├── index.css           # Global CSS (includes Tailwind directives)
+│   └── main.jsx            # React application entry point
+├── .gitignore              # Files and folders ignored by Git
+├── eslint.config.js        # ESLint linting configuration
+├── index.html              # Main HTML template
+├── package-lock.json       # Exact versions of installed dependencies
+├── package.json            # Dependencies and npm scripts
+├── postcss.config.js       # PostCSS config (used by Tailwind)
+├── tailwind.config.js      # Tailwind CSS configuration
+└── vite.config.js          # Vite bundler configuration
 │
 ├── postman/                   # Executable API examples (collection v2.1)
 ├── API_CONTRACT.md            # ★ Authoritative API contract (read this first)
