@@ -1,11 +1,10 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Zap, Wrench, ChevronRight, CheckCircle, Mail, Phone } from 'lucide-react';
+import { ArrowRight, Zap, Wrench, ChevronRight, Mail, Phone } from 'lucide-react';
 import Footer from '../components/Footer';
-import { useAuth, EXPERTISE_DOMAINS } from '../context/AuthContext';
 import { useWorkstation } from '../hooks/useWorkstation';
-import { Shield } from 'lucide-react';
+import { useStartDiagnosing } from '../context/StartDiagnosingContext';
 
 import ChromaKeyVideo from '../components/ChromaKeyVideo';
 
@@ -78,8 +77,8 @@ const PageWrapper = ({ children }) => (
 );
 
 const LandingPage = () => {
-  const { user, login } = useAuth();
   const ws = useWorkstation();
+  const { open: openModal } = useStartDiagnosing();
 
   // Workstation-bound IPs skip the landing+selector flow entirely and land
   // straight in the chat for the bound machine. Unbound IPs (dev/admin) see
@@ -117,52 +116,26 @@ const LandingPage = () => {
                 </motion.p>
 
                 <motion.div {...fadeUp(0.22)} className="flex flex-col sm:flex-row gap-3 mb-8">
-                  <Link to="/chat" className="btn-primary flex items-center justify-center gap-2.5 text-base px-8 py-4 shadow-lg hover:shadow-xl transition-shadow">
+                  <button
+                    type="button"
+                    onClick={openModal}
+                    className="btn-primary flex items-center justify-center gap-2.5 text-base px-8 py-4 shadow-lg hover:shadow-xl transition-shadow"
+                  >
                     Start Diagnosing <ArrowRight size={18} />
-                  </Link>
+                  </button>
                   <Link to="/machines" className="btn-secondary flex items-center justify-center gap-2 text-base px-8 py-4">
                     View Machines <ChevronRight size={16} />
                   </Link>
-                </motion.div>
-
-                {/* Domain selector — calls POST /auth/worker-session */}
-                <motion.div {...fadeUp(0.3)} className="relative z-30 bg-white/50 backdrop-blur-sm border border-tecdia-border rounded-2xl p-6 max-w-xl">
-                  <div className="flex items-center gap-2 mb-4 text-tecdia-textDeep font-bold text-sm">
-                    <Shield size={16} className="text-tecdia-accent" />
-                    Select Your Expertise Domain
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {EXPERTISE_DOMAINS.map(domain => (
-                      <button
-                        key={domain}
-                        type="button"
-                        onClick={async () => {
-                          const result = await login(domain);
-                          if (!result.success) alert(result.error);
-                        }}
-                        className={`text-xs py-2 px-3 rounded-lg border transition-all cursor-pointer ${
-                          user.domain === domain
-                            ? 'bg-tecdia-accent text-white border-tecdia-accent shadow-sm'
-                            : 'bg-white/60 text-tecdia-text/60 border-tecdia-border hover:border-tecdia-accent/60 hover:bg-white hover:shadow-sm'
-                        }`}
-                      >
-                        {domain}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="mt-4 text-[10px] text-tecdia-text/40 leading-relaxed italic">
-                    Select your domain to access relevant machine diagnostics. Sessions last 12 hours.
-                  </p>
                 </motion.div>
               </div>
 
               <motion.div {...fadeUp(0.2)} className="hidden lg:flex items-center justify-end relative">
                 {/* Robot Floating on Left */}
-                <div className="relative w-[260px] h-[260px] -mr-12 z-20 pointer-events-none drop-shadow-2xl translate-y-4">
+                <div className="relative w-[360px] h-[360px] -mr-16 z-20 pointer-events-none drop-shadow-2xl -translate-y-2">
                   <ChromaKeyVideo
                     src="/src/assets/robot.webm"
-                    width={260}
-                    height={260}
+                    width={360}
+                    height={360}
                     className="relative"
                   />
                 </div>

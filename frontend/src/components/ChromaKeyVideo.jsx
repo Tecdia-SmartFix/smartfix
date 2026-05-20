@@ -11,7 +11,20 @@ const ChromaKeyVideo = ({ src, width, height, className = '' }) => {
     if (!video || !canvas || video.paused || video.ended) return;
 
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (!vw || !vh) {
+      rafRef.current = requestAnimationFrame(processFrame);
+      return;
+    }
+    // Aspect-preserving "contain" fit so the robot isn't stretched into a square.
+    const scale = Math.min(canvas.width / vw, canvas.height / vh);
+    const drawW = vw * scale;
+    const drawH = vh * scale;
+    const dx = (canvas.width - drawW) / 2;
+    const dy = (canvas.height - drawH) / 2;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video, dx, dy, drawW, drawH);
     const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const d = frame.data;
 

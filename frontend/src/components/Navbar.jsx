@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ShieldCheck } from 'lucide-react';
+import { Menu, X, ShieldCheck, ArrowRight } from 'lucide-react';
+import { useStartDiagnosing } from '../context/StartDiagnosingContext';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { open: openStartDiagnosing } = useStartDiagnosing();
+  const location = useLocation();
+  // Hide the CTA on /chat (already there) and admin routes (separate flow).
+  const showCta = !location.pathname.startsWith('/chat') && !location.pathname.startsWith('/admin');
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 24);
@@ -50,12 +55,15 @@ const Navbar = () => {
               <ShieldCheck size={14} /> Admin
             </Link>
   
-            <Link to="/chat" className="btn-primary text-sm flex items-center gap-2 px-5 py-2.5">
-              <div className="w-4 h-4 overflow-hidden rounded-sm">
-                <img src="/src/assets/logo.png" alt="" className="w-full h-full object-contain brightness-0 invert" />
-              </div>
-              Get Started
-            </Link>
+            {showCta && (
+              <button
+                type="button"
+                onClick={openStartDiagnosing}
+                className="btn-primary text-sm flex items-center gap-2 px-5 py-2.5"
+              >
+                Start Diagnosing <ArrowRight size={14} />
+              </button>
+            )}
           </div>
   
           {/* Mobile menu button */}
@@ -85,9 +93,15 @@ const Navbar = () => {
             <Link to="/admin/login" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 text-sm font-medium text-tecdia-accent/70 hover:text-tecdia-accent transition-colors">
               <ShieldCheck size={14} /> Admin Login
             </Link>
-            <Link to="/chat" onClick={() => setIsMenuOpen(false)} className="btn-primary text-center text-sm">
-              Get Started
-            </Link>
+            {showCta && (
+              <button
+                type="button"
+                onClick={() => { setIsMenuOpen(false); openStartDiagnosing(); }}
+                className="btn-primary text-center text-sm"
+              >
+                Start Diagnosing
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

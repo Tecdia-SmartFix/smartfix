@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 880" font-family="Inter, system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#111a2e"/>
+    </linearGradient>
+    <linearGradient id="factoryCard" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="deptCard" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1f2a44"/>
+      <stop offset="100%" stop-color="#172036"/>
+    </linearGradient>
+    <linearGradient id="smartfix" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="wsCard" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2a3553"/>
+      <stop offset="100%" stop-color="#1a2540"/>
+    </linearGradient>
+    <linearGradient id="machineImm" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="machineLaser" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#991b1b"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrowCyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#22d3ee"/>
+    </marker>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="880" fill="url(#bg)"/>
+
+  <!-- Title -->
+  <text x="40" y="56" fill="#e2e8f0" font-size="26" font-weight="700">SmartFix in the Tecdia Cebu Factory Hierarchy</text>
+  <text x="40" y="82" fill="#94a3b8" font-size="14">AI troubleshooting assistant scoped per machine, accessed from operator workstations on the plant LAN.</text>
+
+  <!-- Level labels (left rail) -->
+  <g font-size="11" fill="#64748b" font-weight="600" letter-spacing="2">
+    <text x="40" y="148">LEVEL 1</text>
+    <text x="40" y="268">LEVEL 2</text>
+    <text x="40" y="430">LEVEL 3</text>
+    <text x="40" y="640">LEVEL 4</text>
+  </g>
+  <g font-size="12" fill="#cbd5e1">
+    <text x="40" y="164">FACILITY</text>
+    <text x="40" y="284">DEPARTMENT</text>
+    <text x="40" y="446">WORKSTATION</text>
+    <text x="40" y="656">MACHINE</text>
+  </g>
+
+  <!-- LEVEL 1: Facility -->
+  <g transform="translate(180,110)">
+    <rect width="920" height="80" rx="14" fill="url(#factoryCard)" stroke="#334155" stroke-width="1.5"/>
+    <g transform="translate(22,18)">
+      <!-- factory icon -->
+      <path d="M0,44 L0,16 L14,16 L14,8 L28,16 L28,8 L42,16 L42,44 Z M6,40 L10,40 L10,32 L6,32 Z M18,40 L22,40 L22,32 L18,32 Z M30,40 L34,40 L34,32 L30,32 Z" fill="#22d3ee"/>
+    </g>
+    <text x="86" y="38" fill="#f1f5f9" font-size="20" font-weight="700">Tecdia Cebu Factory</text>
+    <text x="86" y="60" fill="#94a3b8" font-size="13">Mactan Economic Zone, Cebu, Philippines · Precision ceramics &amp; tooling</text>
+    <g transform="translate(720,22)" fill="#94a3b8" font-size="12">
+      <rect x="0" y="0" width="178" height="38" rx="8" fill="#0f172a" stroke="#1f2937"/>
+      <text x="14" y="16" fill="#cbd5e1" font-weight="600">Plant LAN</text>
+      <text x="14" y="32" fill="#64748b">192.168.1.0/24</text>
+    </g>
+  </g>
+
+  <!-- LEVEL 2: Departments -->
+  <g transform="translate(220,230)">
+    <rect width="380" height="110" rx="12" fill="url(#deptCard)" stroke="#334155"/>
+    <text x="22" y="34" fill="#f1f5f9" font-size="16" font-weight="700">Manufacturing Dept.</text>
+    <text x="22" y="56" fill="#94a3b8" font-size="12">Injection molding lines · plastic part forming</text>
+    <g transform="translate(22,72)">
+      <rect width="92" height="22" rx="11" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1"/>
+      <text x="46" y="15" fill="#bfdbfe" font-size="11" text-anchor="middle" font-weight="600">significance 5</text>
+    </g>
+  </g>
+
+  <g transform="translate(680,230)">
+    <rect width="380" height="110" rx="12" fill="url(#deptCard)" stroke="#334155"/>
+    <text x="22" y="34" fill="#f1f5f9" font-size="16" font-weight="700">Fabrication Dept.</text>
+    <text x="22" y="56" fill="#94a3b8" font-size="12">Precision laser cutting · sheet &amp; substrate</text>
+    <g transform="translate(22,72)">
+      <rect width="92" height="22" rx="11" fill="#3a1f1f" stroke="#ef4444" stroke-width="1"/>
+      <text x="46" y="15" fill="#fecaca" font-size="11" text-anchor="middle" font-weight="600">significance 4</text>
+    </g>
+  </g>
+
+  <!-- connectors L1 -> L2 -->
+  <path d="M640,190 L640,210 L410,210 L410,230" stroke="#475569" stroke-width="1.5" fill="none"/>
+  <path d="M640,210 L870,210 L870,230" stroke="#475569" stroke-width="1.5" fill="none"/>
+
+  <!-- LEVEL 3: Workstations -->
+  <g transform="translate(220,400)">
+    <rect width="380" height="190" rx="12" fill="url(#wsCard)" stroke="#3b4a6b"/>
+    <text x="22" y="32" fill="#f1f5f9" font-size="15" font-weight="700">Operator Workstation</text>
+    <text x="22" y="52" fill="#94a3b8" font-size="12">Shop-floor terminal · browser-based UI</text>
+
+    <!-- monitor icon -->
+    <g transform="translate(300,18)">
+      <rect x="0" y="0" width="60" height="40" rx="4" fill="#0f172a" stroke="#64748b"/>
+      <rect x="6" y="6" width="48" height="28" rx="2" fill="#22d3ee" opacity="0.25"/>
+      <rect x="22" y="42" width="16" height="6" fill="#64748b"/>
+      <rect x="14" y="48" width="32" height="3" rx="1" fill="#64748b"/>
+    </g>
+
+    <g transform="translate(22,80)" font-size="12">
+      <rect width="336" height="28" rx="6" fill="#0b1424" stroke="#1f2a44"/>
+      <text x="12" y="18" fill="#94a3b8">IP address</text>
+      <text x="200" y="18" fill="#22d3ee" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600">192.168.1.10</text>
+    </g>
+    <g transform="translate(22,116)" font-size="12">
+      <rect width="336" height="28" rx="6" fill="#0b1424" stroke="#1f2a44"/>
+      <text x="12" y="18" fill="#94a3b8">Auto-scopes to</text>
+      <text x="200" y="18" fill="#fbbf24" font-weight="600">INJECTION_MOLDING_MACHINE</text>
+    </g>
+    <g transform="translate(22,152)" font-size="11">
+      <text x="0" y="12" fill="#64748b">workstations.json maps IP → machine, so the chat opens scoped automatically.</text>
+    </g>
+  </g>
+
+  <g transform="translate(680,400)">
+    <rect width="380" height="190" rx="12" fill="url(#wsCard)" stroke="#3b4a6b"/>
+    <text x="22" y="32" fill="#f1f5f9" font-size="15" font-weight="700">Operator Workstation</text>
+    <text x="22" y="52" fill="#94a3b8" font-size="12">Shop-floor terminal · browser-based UI</text>
+
+    <g transform="translate(300,18)">
+      <rect x="0" y="0" width="60" height="40" rx="4" fill="#0f172a" stroke="#64748b"/>
+      <rect x="6" y="6" width="48" height="28" rx="2" fill="#f87171" opacity="0.25"/>
+      <rect x="22" y="42" width="16" height="6" fill="#64748b"/>
+      <rect x="14" y="48" width="32" height="3" rx="1" fill="#64748b"/>
+    </g>
+
+    <g transform="translate(22,80)" font-size="12">
+      <rect width="336" height="28" rx="6" fill="#0b1424" stroke="#1f2a44"/>
+      <text x="12" y="18" fill="#94a3b8">IP address</text>
+      <text x="200" y="18" fill="#22d3ee" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600">192.168.1.11</text>
+    </g>
+    <g transform="translate(22,116)" font-size="12">
+      <rect width="336" height="28" rx="6" fill="#0b1424" stroke="#1f2a44"/>
+      <text x="12" y="18" fill="#94a3b8">Auto-scopes to</text>
+      <text x="200" y="18" fill="#fca5a5" font-weight="600">LASER_CUTTING_MACHINE</text>
+    </g>
+    <g transform="translate(22,152)" font-size="11">
+      <text x="0" y="12" fill="#64748b">No login wall — operator opens the URL and starts asking questions.</text>
+    </g>
+  </g>
+
+  <!-- L2 -> L3 connectors -->
+  <path d="M410,340 L410,400" stroke="#475569" stroke-width="1.5" fill="none"/>
+  <path d="M870,340 L870,400" stroke="#475569" stroke-width="1.5" fill="none"/>
+
+  <!-- LEVEL 4: Machines -->
+  <g transform="translate(220,610)">
+    <rect width="380" height="150" rx="12" fill="url(#machineImm)" opacity="0.92"/>
+    <text x="22" y="34" fill="#1c1917" font-size="16" font-weight="800">IMM-750 Injection Molding</text>
+    <text x="22" y="54" fill="#1c1917" font-size="12" opacity="0.85">Tecdia IMM-750 series · 750-ton clamping</text>
+
+    <!-- machine icon -->
+    <g transform="translate(296,22)" fill="#1c1917">
+      <rect x="0" y="6" width="58" height="30" rx="4"/>
+      <rect x="6" y="0" width="14" height="42" rx="2"/>
+      <rect x="44" y="14" width="22" height="14" rx="2"/>
+    </g>
+
+    <g transform="translate(22,76)" font-size="11" fill="#1c1917">
+      <text x="0" y="12" font-weight="700" opacity="0.85">TYPICAL QUERIES</text>
+      <text x="0" y="32">• What does error code E-04 mean?</text>
+      <text x="0" y="50">• Ejector is stuck and the mold won't open</text>
+      <text x="0" y="68">• Hydraulic oil temperature is too high</text>
+    </g>
+  </g>
+
+  <g transform="translate(680,610)">
+    <rect width="380" height="150" rx="12" fill="url(#machineLaser)" opacity="0.92"/>
+    <text x="22" y="34" fill="#fff" font-size="16" font-weight="800">LC-2040 Laser Cutter</text>
+    <text x="22" y="54" fill="#fff" font-size="12" opacity="0.85">Tecdia LC-2040 precision fiber laser</text>
+
+    <g transform="translate(296,22)" fill="#fff">
+      <rect x="0" y="0" width="58" height="14" rx="3"/>
+      <rect x="22" y="14" width="14" height="22"/>
+      <circle cx="29" cy="40" r="4"/>
+    </g>
+
+    <g transform="translate(22,76)" font-size="11" fill="#fff">
+      <text x="0" y="12" font-weight="700" opacity="0.9">TYPICAL QUERIES</text>
+      <text x="0" y="32">• Beam alignment is drifting on long cuts</text>
+      <text x="0" y="50">• Assist gas pressure warning</text>
+      <text x="0" y="68">• Edge quality degraded on stainless</text>
+    </g>
+  </g>
+
+  <!-- L3 -> L4 connectors -->
+  <path d="M410,590 L410,610" stroke="#475569" stroke-width="1.5" fill="none"/>
+  <path d="M870,590 L870,610" stroke="#475569" stroke-width="1.5" fill="none"/>
+
+  <!-- SmartFix overlay panel on right -->
+  <g transform="translate(1120,110)">
+    <rect width="130" height="650" rx="16" fill="url(#smartfix)" opacity="0.95"/>
+    <g transform="translate(65,40)" text-anchor="middle">
+      <text fill="#fff" font-size="20" font-weight="800" letter-spacing="1">SMART</text>
+      <text y="22" fill="#fff" font-size="20" font-weight="800" letter-spacing="1">FIX</text>
+      <text y="44" fill="#e0e7ff" font-size="10">RAG assistant</text>
+    </g>
+    <g transform="translate(14,130)" fill="#fff" font-size="11">
+      <text y="0" font-weight="700" opacity="0.9">SERVES</text>
+      <text y="20">Every operator</text>
+      <text y="34">at every machine</text>
+      <text y="68" font-weight="700" opacity="0.9">SCOPES BY</text>
+      <text y="88">Workstation IP →</text>
+      <text y="102">machine filter</text>
+      <text y="136" font-weight="700" opacity="0.9">ANSWERS FROM</text>
+      <text y="156">Indexed manuals</text>
+      <text y="170">(ChromaDB)</text>
+      <text y="204" font-weight="700" opacity="0.9">LLM</text>
+      <text y="224">Groq · Llama 3.1</text>
+      <text y="258" font-weight="700" opacity="0.9">FALLBACK</text>
+      <text y="278">"not_found" if no</text>
+      <text y="292">relevant excerpt</text>
+      <text y="326" font-weight="700" opacity="0.9">ADMIN</text>
+      <text y="346">Uploads PDFs →</text>
+      <text y="360">chunked + indexed</text>
+      <text y="394" font-weight="700" opacity="0.9">AUDIT</text>
+      <text y="414">Every Q/A logged</text>
+      <text y="428">to audit.jsonl</text>
+    </g>
+  </g>
+
+  <!-- SmartFix arrows pointing to each workstation -->
+  <path d="M1120,470 C1080,470 1080,495 410,495" stroke="#22d3ee" stroke-width="2" fill="none" stroke-dasharray="6,4" marker-end="url(#arrowCyan)" opacity="0.85"/>
+  <path d="M1120,495 C1090,495 1090,495 870,495" stroke="#22d3ee" stroke-width="2" fill="none" stroke-dasharray="6,4" marker-end="url(#arrowCyan)" opacity="0.85"/>
+
+  <!-- Footer legend -->
+  <g transform="translate(180,800)" font-size="12" fill="#94a3b8">
+    <rect x="0" y="0" width="920" height="58" rx="10" fill="#0f172a" stroke="#1f2937"/>
+    <g transform="translate(18,16)">
+      <text fill="#cbd5e1" font-weight="700" font-size="12">How a question flows</text>
+      <text y="22" fill="#94a3b8" font-size="11">
+        Operator at workstation → SmartFix UI (machine pre-selected by IP) → /query → ChromaDB retrieval → Groq LLM → grounded answer + sources
+      </text>
+    </g>
+  </g>
+</svg>

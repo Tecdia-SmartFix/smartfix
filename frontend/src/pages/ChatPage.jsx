@@ -10,7 +10,7 @@ import {
   Printer, Scissors, Wrench, Gauge, X, FileText, Cpu, Factory,
   Cog, Activity, Flame, Monitor, Layers, Radio, Thermometer,
   HardDrive, Truck, FlaskConical, ShieldAlert, ArrowLeft,
-  BellRing, RefreshCw, BookOpen, AlertTriangle, Square,
+  BellRing, BookOpen, AlertTriangle, Square,
 } from 'lucide-react';
 import { useMachines } from '../context/MachineContext';
 import { useAuth } from '../context/AuthContext';
@@ -246,14 +246,6 @@ const ChatPage = () => {
     }, 0);
   };
 
-  // ── "Start over" — same effect as "+ New chat" now that queryHistory
-  // derives from currentChat.messages: a new chat = empty messages = empty
-  // history. Kept as a separate button for UX clarity (the worker reads it
-  // as "wipe the slate").
-  const handleStartOver = () => {
-    createNewChat();
-  };
-
   // ── Voice input ──────────────────────────────────────────────────────────
   const toggleMic = useCallback(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -355,8 +347,6 @@ const ChatPage = () => {
               </div>
             </div>
 
-            {/* Chat actions — always visible so the user can branch / reset
-                regardless of conversation state or sidebar visibility. */}
             <div className="flex items-center gap-1.5">
               <button
                 onClick={createNewChat}
@@ -364,13 +354,6 @@ const ChatPage = () => {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-tecdia-text/60 hover:text-tecdia-accent hover:bg-tecdia-accent/5 border border-transparent hover:border-tecdia-accent/20 transition-all"
               >
                 <Plus size={13} /> New chat
-              </button>
-              <button
-                onClick={handleStartOver}
-                title="Clear session history and start a new conversation"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-tecdia-text/50 hover:text-tecdia-accent hover:bg-tecdia-accent/5 border border-transparent hover:border-tecdia-accent/20 transition-all"
-              >
-                <RefreshCw size={13} /> Start over
               </button>
             </div>
           </header>
