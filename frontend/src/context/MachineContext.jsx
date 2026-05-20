@@ -8,6 +8,9 @@ const MachineContext = createContext();
 export const MachineProvider = ({ children }) => {
   const [machines, setMachines] = useState([]);
   const [activeJob, setActiveJob] = useState(null); // { job_id, machine_id, status, step, progress, error }
+  // Last submitted upload payload, kept so the user can retry from the
+  // failure panel without re-entering name/file. Cleared on done or dismiss.
+  const [lastUpload, setLastUpload] = useState(null);
   const { user } = useAuth();
 
   /**
@@ -80,6 +83,7 @@ export const MachineProvider = ({ children }) => {
 
         if (job.status === 'done') {
           clearInterval(intervalId);
+          setLastUpload(null);
           await fetchMachines(); // New machine now appears in /machines
         } else if (job.status === 'failed') {
           clearInterval(intervalId);
@@ -103,6 +107,7 @@ export const MachineProvider = ({ children }) => {
    */
   const addMachine = async (formData) => {
     try {
+      setLastUpload(formData);
       setActiveJob({ status: 'queued', step: 'Queuing upload…', progress: 0 });
       const result = await uploadMachine(formData);
       // result = { job_id, status: "queued" }
@@ -115,8 +120,22 @@ export const MachineProvider = ({ children }) => {
     }
   };
 
+  /**
+   * Re-submit the last upload. Used by the Retry button on the failure panel
+   * so the operator doesn't have to re-fill name/category/file. FormData is
+   * reusable across fetch calls; the underlying File blob stays valid as long
+   * as we hold a reference in state.
+   */
+  const retryUpload = async () => {
+    if (!lastUpload) return { success: false, error: 'Nothing to retry' };
+    return addMachine(lastUpload);
+  };
+
   /** Clear the active job display (e.g. after user dismisses progress). */
-  const clearActiveJob = () => setActiveJob(null);
+  const clearActiveJob = () => {
+    setActiveJob(null);
+    setLastUpload(null);
+  };
 
   const deleteMachine = async (id) => {
     try {
@@ -133,6 +152,8 @@ export const MachineProvider = ({ children }) => {
       machines,
       activeJob,
       addMachine,
+      retryUpload,
+      canRetryUpload: !!lastUpload,
       deleteMachine,
       clearActiveJob,
       refreshMachines: fetchMachines,
