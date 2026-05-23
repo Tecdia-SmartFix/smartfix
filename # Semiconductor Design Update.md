@@ -1,4 +1,4 @@
-# Samsung Semiconductor Design Update
+# Semiconductor Design Update
 
 This document contains **all the source files** that were changed to apply the new design, font, and font‑size rules.  
 Replace the existing files in your project with the code shown here (or merge the relevant sections) and keep the rest of the application logic unchanged.
@@ -19,9 +19,9 @@ export default {
   theme: {
     extend: {
       colors: {
-      
-        samsung: {
-          primary: '#1428A0',     
+        // Corporate palette
+        corporate: {
+          primary: '#1428A0',      // Brand Blue
           background: '#000000', // Pure black
           surface: '#ffffff',    // White surface
           text: '#000000',        // Black text
@@ -44,9 +44,9 @@ export default {
         'float': 'float 6s ease-in-out infinite',
         'glow': 'glow 2s ease-in-out infinite',
       },
-     
+      // Use Inter as the default sans‑serif font
       fontFamily: {
-        sans: ['SamsungOne', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
       },
     },
     // keep existing utilities
@@ -76,7 +76,7 @@ export default {
 
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-@import url('https://fonts.cdnfonts.com/css/samsungone');
+@import url('https://fonts.cdnfonts.com/css/Inter');
 
 @tailwind base;
 @tailwind components;
@@ -89,21 +89,21 @@ html {
 
 body {
   @apply antialiased transition-colors duration-500;
-  font-family: 'SamsungOne', 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter', sans-serif;
   margin: 0;
   min-height: 100vh;
   background-color: #ffffff;      /* white background */
   color: #000000;               /* black text */
 }
 
-
+/* Headings – Inter, tight tracking */
 h1,
 h2,
 h3,
 h4,
 h5,
 h6 {
-  font-family: 'SamsungOne', 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter', sans-serif;
   letter-spacing: -0.02em;
   color: #000000;
 }
@@ -142,7 +142,7 @@ h6 {
 }
 .glass-card:hover {
   background: #f7f7f7;
-  border-color: #1428A0;         
+  border-color: #1428A0;          /* Brand Blue on hover */
   box-shadow: none;
 }
 
@@ -178,6 +178,7 @@ h6 {
   box-shadow: none;
 }
 
+/* Input focus – Brand Blue outline */
 .input-glow:focus-within {
   border-color: #1428A0 !important;
   box-shadow: 0 0 0 1px #1428A0 !important;
@@ -471,7 +472,7 @@ const LandingPage = () => {
                   </Link>
                 </motion.div>
 
-                {/* Domain selector */}
+                {/* Domain selector – now uses palette */}
                 <motion.div {...fadeUp(0.3)} className="relative z-30 bg-[#111111] border border-[#333333] p-8 max-w-xl shadow-lg">
                   <div className="flex items-center gap-2 mb-4 text-white font-bold text-sm">
                     <Shield size={16} className="text-[#1428A0]" />
