@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ShieldCheck } from 'lucide-react';
+import { Menu, X, User, LogOut } from 'lucide-react';
+import EndShiftModal from './EndShiftModal';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isEndShiftOpen, setIsEndShiftOpen] = useState(false);
+  const [hoveredPath, setHoveredPath] = useState(null);
+  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 24);
@@ -14,53 +18,82 @@ const Navbar = () => {
   }, []);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-500">
+    <nav className={`${location.pathname.startsWith('/admin') ? 'relative' : 'fixed'} top-0 left-0 right-0 z-50 transition-all duration-500`}>
       <motion.div
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className={`w-full flex items-center justify-between transition-all duration-500 border-b ${
-          scrolled
-            ? 'bg-white/90 backdrop-blur-xl border-tecdia-border shadow-sm'
-            : 'bg-white/40 backdrop-blur-md border-transparent'
+        className={`w-full flex items-center justify-between transition-all duration-500 ${
+          scrolled || location.pathname !== '/'
+            ? 'bg-black/90 backdrop-blur-xl shadow-sm'
+            : 'bg-black/40 backdrop-blur-md'
         }`}
       >
-        <div className="max-w-7xl mx-auto w-full px-6 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto w-full px-6 h-[46px] flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl overflow-hidden border border-tecdia-border bg-tecdia-surface transition-all duration-300 group-hover:scale-105">
-              <img src="/src/assets/logo.png" alt="Tecdia" className="w-full h-full object-contain" />
+          {/* Left Side: Logo & Primary Links */}
+          <div className="flex items-center gap-10 h-full">
+            <Link to="/" className="flex items-center gap-2.5 group">
+              <span className="text-[17px] font-bold tracking-tight text-white transition-all duration-300">
+                Tecdia <span className="text-white">SmartFix</span>
+              </span>
+            </Link>
+            
+            <div className="hidden md:flex items-center gap-6 h-full">
+              <Link to="/features"
+                onMouseEnter={() => setHoveredPath('/features')}
+                onMouseLeave={() => setHoveredPath(null)}
+                className="relative flex items-center gap-1.5 text-xs font-medium transition-colors duration-200 text-white h-full"
+              >
+                Features
+                {hoveredPath === '/features' && (
+                  <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
+                )}
+              </Link>
+              <Link to="/admin/login"
+                onMouseEnter={() => setHoveredPath('/admin/login')}
+                onMouseLeave={() => setHoveredPath(null)}
+                className="relative flex items-center gap-1.5 text-xs font-medium transition-colors duration-200 text-white h-full"
+              >
+                <User size={14} /> Admin
+                {hoveredPath === '/admin/login' && (
+                  <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
+                )}
+              </Link>
             </div>
-            <span className="text-[17px] font-bold tracking-tight text-tecdia-textDeep transition-all duration-300 group-hover:text-tecdia-accent">
-              Tecdia <span className="text-tecdia-accent">SmartFix</span>
-            </span>
-          </Link>
+          </div>
   
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-7">
-            <Link to="/features"
-              className="text-sm font-medium text-tecdia-text/60 hover:text-tecdia-accent transition-colors duration-200"
-            >Features</Link>
+          {/* Right Side: Secondary Links */}
+          <div className="hidden md:flex items-center gap-6 h-full">
+            <button
+              onClick={() => setIsEndShiftOpen(true)}
+              onMouseEnter={() => setHoveredPath('end-shift')}
+              onMouseLeave={() => setHoveredPath(null)}
+              className="relative flex items-center gap-1.5 text-xs font-medium text-white transition-colors duration-200 h-full"
+            >
+              <LogOut size={14} /> End Shift
+              {hoveredPath === 'end-shift' && (
+                <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
+              )}
+            </button>
   
             <div className="h-4 w-px bg-tecdia-border" />
   
-            <Link to="/admin/login"
-              className="flex items-center gap-1.5 text-sm font-medium text-tecdia-text/40 hover:text-tecdia-accent transition-colors duration-200"
+            <Link to="/chat"
+              onMouseEnter={() => setHoveredPath('/chat')}
+              onMouseLeave={() => setHoveredPath(null)}
+              className="relative flex items-center gap-1.5 text-xs font-medium transition-colors duration-200 text-white h-full"
             >
-              <ShieldCheck size={14} /> Admin
-            </Link>
-  
-            <Link to="/chat" className="btn-primary text-sm flex items-center gap-2 px-5 py-2.5">
-              <div className="w-4 h-4 overflow-hidden rounded-sm">
-                <img src="/src/assets/logo.png" alt="" className="w-full h-full object-contain brightness-0 invert" />
-              </div>
               Get Started
+              {hoveredPath === '/chat' && (
+                <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
+              )}
             </Link>
           </div>
   
           {/* Mobile menu button */}
           <button
-            className="md:hidden w-9 h-9 rounded-xl flex items-center justify-center bg-tecdia-surface border border-tecdia-border text-tecdia-text/60 transition-all duration-200"
+            className="md:hidden w-9 h-9 rounded-xl flex items-center justify-center bg-tecdia-surface border border-tecdia-border text-white/60 transition-all duration-200"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -77,20 +110,28 @@ const Navbar = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.97 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden absolute top-[76px] left-4 right-4 rounded-2xl p-6 flex flex-col gap-4 bg-tecdia-surface border border-tecdia-border shadow-xl backdrop-blur-xl"
+            className="md:hidden absolute top-[76px] left-4 right-4 rounded-2xl p-6 flex flex-col gap-4 bg-black/90 border border-tecdia-border shadow-xl backdrop-blur-xl"
           >
-            <Link to="/features" onClick={() => setIsMenuOpen(false)} className="text-sm font-medium text-tecdia-text/60 hover:text-tecdia-accent transition-colors">Features</Link>
+            <Link to="/features" onClick={() => setIsMenuOpen(false)} className="text-xs font-medium text-white transition-colors">Features</Link>
 
             <hr className="border-tecdia-border" />
-            <Link to="/admin/login" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 text-sm font-medium text-tecdia-accent/70 hover:text-tecdia-accent transition-colors">
-              <ShieldCheck size={14} /> Admin Login
+            <button 
+              onClick={() => { setIsMenuOpen(false); setIsEndShiftOpen(true); }} 
+              className="flex items-center gap-2 text-xs font-medium text-white transition-colors w-full text-left"
+            >
+              <LogOut size={14} /> End Shift
+            </button>
+            <Link to="/admin/login" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 text-xs font-medium text-white transition-colors">
+              <User size={14} /> Admin Login
             </Link>
-            <Link to="/chat" onClick={() => setIsMenuOpen(false)} className="btn-primary text-center text-sm">
+            <Link to="/chat" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 text-xs font-medium text-white transition-colors">
               Get Started
             </Link>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <EndShiftModal isOpen={isEndShiftOpen} onClose={() => setIsEndShiftOpen(false)} />
     </nav>
   );
 };

@@ -22,7 +22,7 @@ const PageWrapper = ({ children }) => (
 );
 
 /* ── flow steps ── */
-const THEME_COLOR = '#00A9FF';
+const THEME_COLOR = '#2b8cff';
 
 const STEPS = [
   {
@@ -115,7 +115,7 @@ const FeaturesPage = () => (
 
       {/* Background Blobs */}
       <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full bg-tecdia-accent/5 blur-3xl pointer-events-none" />
-      <div className="absolute top-40 right-10 w-64 h-64 rounded-full bg-[#89CFF3]/20 blur-2xl pointer-events-none" />
+      <div className="absolute top-40 right-10 w-64 h-64 rounded-full bg-[#E5E7EB]/20 blur-2xl pointer-events-none" />
 
       {/* ── Hero ── */}
       <section className="relative px-6 pt-36 pb-12 md:pt-48 md:pb-16 text-center">

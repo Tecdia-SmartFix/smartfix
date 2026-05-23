@@ -9,23 +9,36 @@ export default {
   theme: {
     extend: {
       colors: {
-        tecdia: {
-          background: '#CDF5FD', // Primary background
-          surface:    '#A0E9FF', // Secondary background, card surfaces
-          elevated:   '#ffffff', // Using white for some cards as per instruction
-          border:     '#89CFF3', // Borders, hover states
-          text:       '#1a1a2e', // Dark navy text
-          textDeep:   '#1a1a2e', // Deep navy for headings
+        landing: {
+          background: '#CDF5FD',
+          surface:    '#A0E9FF',
+          elevated:   '#ffffff',
+          border:     '#89CFF3',
+          text:       '#1a1a2e',
+          textDeep:   '#1a1a2e',
           muted:      '#1a1a2e',
           caption:    '#1a1a2e',
-          accent:     '#00A9FF', // Primary accent
-          hover:      '#89CFF3', 
+          accent:     '#00A9FF',
+          hover:      '#89CFF3',
+        },
+        tecdia: {
+          background: '#F2F2F2', // Secondary Background
+          surface:    '#FFFFFF', // White Background
+          elevated:   '#FFFFFF',
+          border:     '#E5E7EB', // subtle gray for borders
+          text:       '#111111', // Primary Text
+          textDeep:   '#111111',
+          secondary:  '#5f5f5f',
+          muted:      '#7a7a7a', // Muted/helper text
+          caption:    '#7a7a7a', // Muted/helper text
+          accent:     '#2b8cff', // Accent Blue (Samsung Blue)
+          hover:      '#1a7ae5', 
           
           // Backward compatibility
-          dark:       '#CDF5FD', 
-          cyan:       '#00A9FF',
-          sky:        '#89CFF3',
-          steel:      '#00A9FF',
+          dark:       '#F2F2F2', 
+          cyan:       '#2b8cff',
+          sky:        '#2b8cff',
+          steel:      '#2b8cff',
         }
       },
       fontFamily: {

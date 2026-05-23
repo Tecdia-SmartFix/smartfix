@@ -13,6 +13,9 @@ import { useAdminAuth } from '../context/AdminAuthContext';
 import { useMachines } from '../context/MachineContext';
 import { useAlerts } from '../context/AlertContext';
 import { fetchApi } from '../api/apiClient';
+import ShiftLogsPanel from '../components/ShiftLogsPanel';
+import bbImg from '../assets/bb.jpg';
+import MachineCard from '../components/MachineCard';
 
 const ICON_OPTIONS = [
   { label: 'Settings',  value: 'Settings2',   icon: Settings2   },
@@ -44,7 +47,7 @@ const ICON_MAP = {
 };
 
 const COLOR_OPTIONS = [
-  { label: 'Theme Blue', value: 'text-tecdia-accent', glow: 'rgba(0,169,255,0.15)', border: 'hover:border-tecdia-accent/40', dot: 'bg-tecdia-accent' },
+  { label: 'Theme Blue', value: 'text-tecdia-accent', glow: 'rgba(17,17,17,0.15)', border: 'hover:border-tecdia-accent/40', dot: 'bg-tecdia-accent' },
 ];
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB — matches backend cap (API_CONTRACT §4.3)
@@ -58,7 +61,7 @@ const ALLOWED_TYPES = {
 const EMPTY_FORM = {
   machine_id: '',         // [A-Z0-9_]+ slug — required by API
   name: '', description: '', category: '', icon: 'Settings2',
-  color: 'text-tecdia-accent', glow: 'rgba(0,169,255,0.15)',
+  color: 'text-tecdia-accent', glow: 'rgba(17,17,17,0.15)',
   border: 'hover:border-tecdia-accent/40',
   customColor: '',
   customIconUrl: null,
@@ -80,18 +83,18 @@ const Toast = ({ message, onClose }) => (
   </motion.div>
 );
 
-const SectionCard = ({ children, className = '' }) => (
-  <div className={`bg-white/40 backdrop-blur-md border border-tecdia-border rounded-2xl p-6 shadow-sm ${className}`}>
+const SectionCard = ({ children, className = '', transparent = false }) => (
+  <div className={`${transparent ? 'bg-transparent' : 'bg-white/40 backdrop-blur-md border border-tecdia-border shadow-sm p-6'} rounded-2xl ${className}`}>
     {children}
   </div>
 );
 
 const InputField = ({ label, ...props }) => (
   <div className="space-y-1.5">
-    <label className="block text-[11px] font-semibold text-tecdia-text/60 uppercase tracking-widest">{label}</label>
+    <label className="block text-[11px] font-semibold text-landing-text/60 uppercase tracking-widest">{label}</label>
     {props.as === 'textarea'
-      ? <textarea {...props} as={undefined} className="w-full bg-tecdia-background border border-tecdia-border rounded-xl py-3 px-4 text-tecdia-text text-sm placeholder:text-tecdia-text/40 focus:outline-none focus:border-tecdia-accent focus:ring-1 focus:ring-tecdia-accent/20 transition-all resize-none" />
-      : <input {...props} className="w-full bg-tecdia-background border border-tecdia-border rounded-xl py-3 px-4 text-tecdia-text text-sm placeholder:text-tecdia-text/40 focus:outline-none focus:border-tecdia-accent focus:ring-1 focus:ring-tecdia-accent/20 transition-all" />
+      ? <textarea {...props} as={undefined} className="w-full bg-transparent border border-landing-border rounded-xl py-3 px-4 text-landing-text text-sm placeholder:text-landing-text/40 focus:outline-none focus:border-tecdia-accent focus:ring-1 focus:ring-tecdia-accent/20 transition-all resize-none" />
+      : <input {...props} className="w-full bg-transparent border border-landing-border rounded-xl py-3 px-4 text-landing-text text-sm placeholder:text-landing-text/40 focus:outline-none focus:border-tecdia-accent focus:ring-1 focus:ring-tecdia-accent/20 transition-all" />
     }
   </div>
 );
@@ -141,8 +144,8 @@ const IngestionProgress = ({ job, onDismiss }) => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
       className={`mb-6 rounded-2xl border p-5 shadow-sm transition-colors duration-300 ${
-        isFailed ? 'bg-[#E6F7FF]/60 border-[#0057D9]/40 shadow-inner'
-        : isDone ? 'bg-[#0057D9]/5 border-[#0057D9]/20'
+        isFailed ? 'bg-[#F2F2F2]/60 border-[#111111]/40 shadow-inner'
+        : isDone ? 'bg-[#111111]/5 border-[#111111]/20'
         : 'bg-white border-tecdia-border'
       }`}
     >
@@ -152,14 +155,14 @@ const IngestionProgress = ({ job, onDismiss }) => {
           <span
             className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-wide ${
               isFailed ? 'bg-[#0A2540]/10 text-[#0A2540] border border-[#0A2540]/20'
-              : isDone ? 'bg-[#0057D9] text-white border border-[#0057D9]'
-              : 'bg-[#42A5F5]/10 text-[#42A5F5] border border-[#42A5F5]/20'
+              : isDone ? 'bg-[#111111] text-white border border-[#111111]'
+              : 'bg-[#555555]/10 text-[#555555] border border-[#555555]/20'
             }`}
           >
             <span className={`w-1.5 h-1.5 rounded-full ${
               isFailed ? 'bg-[#0A2540] animate-pulse'
               : isDone ? 'bg-white'
-              : 'bg-[#42A5F5] animate-pulse'
+              : 'bg-[#555555] animate-pulse'
             }`} />
             {isFailed ? 'FAILED' : isDone ? 'COMPLETE' : 'IN PROGRESS'}
           </span>
@@ -184,15 +187,15 @@ const IngestionProgress = ({ job, onDismiss }) => {
 
       {/* ── Bar ─────────────────────────────────────────────────────────── */}
       <div
-        className={`relative w-full rounded-full h-2.5 mb-4 overflow-hidden bg-[#E6F7FF]`}
+        className={`relative w-full rounded-full h-2.5 mb-4 overflow-hidden bg-[#F2F2F2]`}
       >
         <motion.div
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className={`relative h-full rounded-full overflow-hidden ${
             isFailed ? 'bg-[#0A2540]/30'
-            : isDone ? 'bg-[#0057D9] shadow-[0_0_10px_rgba(0,87,217,0.2)]'
-            : 'bg-[#1E88E5]'
+            : isDone ? 'bg-[#111111] shadow-[0_0_10px_rgba(17,17,17,0.2)]'
+            : 'bg-[#333333]'
           }`}
         >
           {/* Diagonal stripes shimmer — only while in-progress */}
@@ -221,10 +224,10 @@ const IngestionProgress = ({ job, onDismiss }) => {
                 isFailed && reached
                   ? 'bg-tecdia-accent/20 text-tecdia-textDeep'
                   : isCurrent
-                    ? 'bg-[#1E88E5] text-white shadow-sm'
+                    ? 'bg-[#333333] text-white shadow-sm'
                     : reached
-                      ? 'bg-[#42A5F5]/10 text-[#42A5F5]'
-                      : 'bg-[#E6F7FF] text-tecdia-text/30'
+                      ? 'bg-[#555555]/10 text-[#555555]'
+                      : 'bg-[#F2F2F2] text-tecdia-text/30'
               }`}
             >
               <span className={`w-1 h-1 rounded-full ${
@@ -337,7 +340,7 @@ const AuditPanel = () => {
                     : 'text-tecdia-text/60 hover:text-tecdia-textDeep hover:bg-white/50'
                 }`}>
                 {filter === f.id && (
-                  <motion.div layoutId="auditTab" className="absolute inset-0 bg-gradient-to-r from-tecdia-accent to-blue-500 rounded-lg -z-10" transition={{ type: "spring", stiffness: 300, damping: 30 }} />
+                  <motion.div layoutId="auditTab" className="absolute inset-0 bg-gradient-to-r from-tecdia-accent to-gray-800 rounded-lg -z-10" transition={{ type: "spring", stiffness: 300, damping: 30 }} />
                 )}
                 {f.label}
               </button>
@@ -399,7 +402,7 @@ const AuditPanel = () => {
                           <motion.tr 
                             onClick={() => toggleExpanded(i)}
                             initial={{ opacity: 0, backgroundColor: 'rgba(255,255,255,0)' }} 
-                            animate={{ opacity: 1, backgroundColor: isExpanded ? 'rgba(0,169,255,0.08)' : 'rgba(255,255,255,0)' }}
+                            animate={{ opacity: 1, backgroundColor: isExpanded ? 'rgba(17,17,17,0.08)' : 'rgba(255,255,255,0)' }}
                             className={`transition-colors duration-200 cursor-pointer group ${isExpanded ? 'border-l-2 border-tecdia-accent' : 'border-l-2 border-transparent'}`}
                           >
                             <td className={`py-3.5 px-6 font-mono text-[11px] tabular-nums whitespace-nowrap transition-colors ${isExpanded ? 'text-tecdia-accent font-bold' : 'text-tecdia-textDeep/70'}`}>
@@ -511,14 +514,43 @@ const AuditPanel = () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const SEVERITY_PALETTE = {
-  '1': { color: '#B6E6FF', label: 'Informational' },
-  '2': { color: '#7CC7FF', label: 'Minor' },
-  '3': { color: '#42A5F5', label: 'Degraded' },
-  '4': { color: '#0057D9', label: 'Production Impact' },
+  '1': { color: '#E5E7EB', label: 'Informational' },
+  '2': { color: '#999999', label: 'Minor' },
+  '3': { color: '#555555', label: 'Degraded' },
+  '4': { color: '#111111', label: 'Production Impact' },
   '5': { color: '#0A2540', label: 'Safety Risk' },
 };
 
-const MACHINE_COLORS = ['#0057D9', '#42A5F5', '#0A2540', '#7CC7FF', '#1E88E5', '#B6E6FF'];
+const MACHINE_COLORS = ['#111111', '#555555', '#0A2540', '#999999', '#333333', '#E5E7EB'];
+
+const QuestionItem = ({ q }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="flex flex-col bg-[#F0F0F0] mb-0.5 last:mb-0 transition-colors hover:bg-[#E5E5E5]">
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between px-5 py-4 cursor-pointer"
+      >
+        <span className="text-[15px] font-medium text-black">{q.question}</span>
+        <span className="text-black text-2xl leading-none font-light ml-4">{isOpen ? '−' : '+'}</span>
+      </div>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="px-5 pb-4 text-sm text-tecdia-text/70 border-t border-black/5 pt-3">
+              This query has been asked <strong>{q.count}</strong> {q.count === 1 ? 'time' : 'times'}.
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 const AnalyticsPanel = () => {
   const [data, setData]       = useState(null);
@@ -581,8 +613,7 @@ const AnalyticsPanel = () => {
       {/* ── header + refresh ───────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h2 className="text-xl font-bold text-tecdia-textDeep flex items-center gap-2.5">
-            <BarChart3 size={22} className="text-tecdia-accent" />
+          <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-tecdia-textDeep flex items-center gap-2.5">
             Fleet Analytics
           </h2>
           <p className="text-[11px] font-medium text-tecdia-text/40 uppercase tracking-widest mt-1 ml-8">Real-time system diagnostics & query analytics</p>
@@ -594,14 +625,12 @@ const AnalyticsPanel = () => {
             className="btn-secondary text-xs px-4 py-2 flex items-center gap-2 disabled:opacity-50"
             title="Replace the in-memory query log with synthetic demo data"
           >
-            <Database size={14} className={seeding ? 'animate-pulse' : ''} />
             {seeding ? 'Seeding...' : isEmpty ? 'Populate Demo Data' : 'Re-seed Demo Data'}
           </button>
           <button
             onClick={load}
             className="btn-secondary text-xs px-5 py-2 flex items-center gap-2"
           >
-            <Activity size={14} className={loading ? 'animate-spin' : ''} />
             {loading ? 'Refreshing...' : 'Refresh Data'}
           </button>
         </div>
@@ -618,16 +647,15 @@ const AnalyticsPanel = () => {
 
       {/* ── 1. KPI cards ───────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <KpiCard label="Total Queries"  value={totals.queries.toLocaleString()} icon={FileText} />
-        <KpiCard label="Alerts Fired"   value={totals.alerts.toLocaleString()}   icon={AlertCircle} accent="border-[#0057D9]/20 shadow-[0_0_15px_rgba(0,87,217,0.05)]" />
-        <KpiCard label="Alert Rate"     value={`${totals.alert_rate_pct}%`}      icon={TrendingUp} accent="border-[#1E88E5]/20" />
-        <KpiCard label="Active Machines" value={totals.machines}                 icon={Package} />
+        <KpiCard label="Total Queries"  value={totals.queries.toLocaleString()} />
+        <KpiCard label="Alerts Fired"   value={totals.alerts.toLocaleString()}   accent="border-[#111111]/20 shadow-[0_0_15px_rgba(17,17,17,0.05)]" />
+        <KpiCard label="Alert Rate"     value={`${totals.alert_rate_pct}%`}      accent="border-[#333333]/20" />
+        <KpiCard label="Active Machines" value={totals.machines}                 />
       </div>
 
       {/* ── 2. Per-machine table ───────────────────────────────────── */}
       <SectionCard className="mb-6">
         <div className="flex items-center gap-2 mb-4">
-          <Database size={16} className="text-tecdia-accent" />
           <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Per-machine activity</h3>
         </div>
         {per_machine.length === 0 ? (
@@ -650,7 +678,6 @@ const AnalyticsPanel = () => {
                   <tr key={m.machine_id} className="group transition-all duration-200">
                     <td className="px-4 py-3.5 bg-white/30 group-hover:bg-white/60 border-l border-y border-tecdia-border/30 rounded-l-xl">
                       <div className="flex items-center gap-3">
-                        <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ background: MACHINE_COLORS[i % MACHINE_COLORS.length] }} />
                         <span className="font-bold text-tecdia-textDeep">{m.display_name}</span>
                       </div>
                     </td>
@@ -661,13 +688,13 @@ const AnalyticsPanel = () => {
                       <SeverityPill value={m.avg_severity} />
                     </td>
                     <td className="px-4 py-3.5 bg-white/30 group-hover:bg-white/60 border-r border-y border-tecdia-border/30 rounded-r-xl">
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-3">
                         {m.most_asked_codes.length === 0 ? (
                           <span className="text-[10px] text-tecdia-text/20 italic">No codes recorded</span>
                         ) : (
                           m.most_asked_codes.slice(0, 3).map(([code, count]) => (
-                            <span key={code} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white border border-tecdia-border/40 text-tecdia-accent shadow-sm">
-                              {code} <span className="text-tecdia-text/30 font-medium ml-1">×{count}</span>
+                            <span key={code} className="text-[10px] font-bold text-tecdia-textDeep">
+                              {code} <span className="text-tecdia-text/40 font-medium ml-1">×{count}</span>
                             </span>
                           ))
                         )}
@@ -683,51 +710,47 @@ const AnalyticsPanel = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* ── 3. Code frequency bars ────────────────────────────────── */}
-        <SectionCard>
-          <div className="flex items-center gap-2 mb-4">
-            <AlertCircle size={16} className="text-tecdia-accent" />
-            <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Top error / alarm codes</h3>
-          </div>
+        <div>
+          <h3 className="text-lg font-bold text-tecdia-textDeep tracking-tight mb-6">Top Error / Alarm Codes</h3>
           {code_frequency.length === 0 ? (
             <p className="text-sm text-tecdia-text/40 italic">No coded queries yet.</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-4">
               {code_frequency.map((c, i) => {
                 const maxCount = code_frequency[0]?.count || 1;
                 const pct = (c.count / maxCount) * 100;
-                const sev = Math.round(c.avg_severity);
-                const colorObj = SEVERITY_PALETTE[String(sev)] || SEVERITY_PALETTE['1'];
                 return (
-                  <div key={`${c.code}_${c.machine}_${i}`} className="flex items-center gap-3 text-sm">
-                    <span className="w-20 font-mono font-bold text-tecdia-textDeep flex-shrink-0">{c.code}</span>
-                    <div className="flex-1 h-5 bg-[#E6F7FF] rounded-md overflow-hidden relative">
-                      <div
-                        className="h-full rounded-md transition-all duration-500 bg-[#0057D9]"
-                        style={{ width: `${pct}%`, background: colorObj.color, opacity: 0.9 }}
+                  <div key={`${c.code}_${c.machine}_${i}`} className="group">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-mono font-bold text-tecdia-textDeep tracking-wide">{c.code}</span>
+                      <span className="text-xs font-mono tabular-nums text-tecdia-text/40 font-semibold">×{c.count}</span>
+                    </div>
+                    <div className="w-full h-2 bg-[#F0F0F0] rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ duration: 0.8, ease: 'easeOut', delay: i * 0.03 }}
+                        className="h-full rounded-full group-hover:opacity-80 transition-opacity"
+                        style={{ background: i === 0 ? '#111111' : i < 3 ? '#333333' : i < 6 ? '#666666' : '#999999' }}
                       />
                     </div>
-                    <span className="w-10 text-right font-mono tabular-nums text-tecdia-textDeep/60 font-bold">×{c.count}</span>
                   </div>
                 );
               })}
             </div>
           )}
-        </SectionCard>
+        </div>
 
         {/* ── 4. Severity donut ─────────────────────────────────────── */}
-        <SectionCard>
-          <div className="flex items-center gap-2 mb-4">
-            <Activity size={16} className="text-tecdia-accent" />
-            <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Severity distribution</h3>
-          </div>
+        <div>
+          <h3 className="text-lg font-bold text-tecdia-textDeep tracking-tight mb-6">Severity Distribution</h3>
           <SeverityDonut distribution={severity_distribution} />
-        </SectionCard>
+        </div>
       </div>
 
       {/* ── 5. Last 24h activity bars ──────────────────────────────── */}
       <SectionCard className="mb-6">
         <div className="flex items-center gap-2 mb-4">
-          <BarChart3 size={16} className="text-tecdia-accent" />
           <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Query volume — last 24h (UTC)</h3>
         </div>
         <ActivityBars buckets={queries_per_hour_24h} />
@@ -737,7 +760,6 @@ const AnalyticsPanel = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <SectionCard>
           <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle size={16} className="text-tecdia-accent" />
             <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Failure likelihood</h3>
           </div>
           <p className="text-[10px] text-tecdia-text/40 mb-4 ml-6">Poisson estimate from last 7 days of alerts</p>
@@ -746,7 +768,6 @@ const AnalyticsPanel = () => {
 
         <SectionCard>
           <div className="flex items-center gap-2 mb-1">
-            <TrendingUp size={16} className="text-tecdia-accent rotate-180" />
             <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Asset depreciation</h3>
           </div>
           <p className="text-[10px] text-tecdia-text/40 mb-4 ml-6">Straight-line, 12-month trailing</p>
@@ -757,21 +778,24 @@ const AnalyticsPanel = () => {
       {/* ── Top questions (bonus, sparse table) ────────────────────── */}
       {top_questions.length > 0 && (
         <SectionCard>
-          <div className="flex items-center gap-2 mb-4">
-            <FileText size={16} className="text-tecdia-accent" />
+          <div className="flex items-center gap-2 mb-8">
             <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Most-asked questions</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1 mt-2">
-            {top_questions.map((q, i) => (
-              <div key={i} className="group flex items-center gap-4 py-3 border-b border-tecdia-border/20 last:border-0 hover:bg-white/20 px-3 -mx-3 rounded-xl transition-colors">
-                <span className="font-mono tabular-nums text-xs font-bold text-tecdia-accent/40 w-5">{(i + 1).toString().padStart(2, '0')}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-tecdia-textDeep truncate group-hover:text-tecdia-accent transition-colors">{q.question}</p>
-                  <p className="text-[10px] font-bold text-tecdia-text/30 uppercase tracking-widest mt-0.5">{q.machine.replaceAll('_', ' ')}</p>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span className="text-sm font-black text-tecdia-textDeep font-mono">×{q.count}</span>
-                  <span className="text-[9px] font-bold text-tecdia-text/30 uppercase">Queries</span>
+          <div className="flex flex-col gap-10">
+            {Object.entries(
+              top_questions.reduce((acc, q) => {
+                const m = q.machine.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+                if (!acc[m]) acc[m] = [];
+                acc[m].push(q);
+                return acc;
+              }, {})
+            ).map(([machine, qs]) => (
+              <div key={machine} className="flex flex-col">
+                <h2 className="text-[22px] font-bold text-black mb-4">{machine}:</h2>
+                <div className="flex flex-col bg-white">
+                  {qs.map((q, i) => (
+                    <QuestionItem key={i} q={q} />
+                  ))}
                 </div>
               </div>
             ))}
@@ -788,10 +812,10 @@ const FailureLikelihoodList = ({ rows }) => {
   }
   const riskColor = (pct) => {
     if (pct >= 75) return '#0A2540';
-    if (pct >= 40) return '#0057D9';
-    if (pct >= 15) return '#1E88E5';
-    if (pct >  0)  return '#42A5F5';
-    return '#B6E6FF';
+    if (pct >= 40) return '#111111';
+    if (pct >= 15) return '#333333';
+    if (pct >  0)  return '#555555';
+    return '#E5E7EB';
   };
   return (
     <div className="space-y-4">
@@ -808,7 +832,7 @@ const FailureLikelihoodList = ({ rows }) => {
           </div>
           <div className="grid grid-cols-3 gap-2">
             {[['24h', r.prob_24h_pct], ['7d', r.prob_7d_pct], ['30d', r.prob_30d_pct]].map(([label, pct]) => (
-              <div key={label} className="bg-[#E6F7FF]/60 rounded-lg px-2.5 py-1.5">
+              <div key={label} className="bg-[#F2F2F2]/60 rounded-lg px-2.5 py-1.5">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[9px] font-bold uppercase tracking-wider text-tecdia-text/50">{label}</span>
                   <span className="text-xs font-mono font-bold tabular-nums" style={{ color: riskColor(pct) }}>{pct}%</span>
@@ -887,23 +911,16 @@ const KpiCard = ({ label, value, accent, icon: Icon }) => (
 );
 
 const SeverityPill = ({ value }) => {
-  const sev = Math.round(value || 1);
-  const obj = SEVERITY_PALETTE[String(sev)] || SEVERITY_PALETTE['1'];
   return (
-    <span
-      className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-lg border tabular-nums"
-      style={{ borderColor: `${obj.color}30`, color: obj.color, background: `${obj.color}08` }}
-    >
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: obj.color }} />
+    <span className="text-[10px] font-bold text-tecdia-textDeep tabular-nums">
       {(value || 0).toFixed(2)}
     </span>
   );
 };
 
-// Pure SVG donut with professional hover tooltips.
+// Minimal severity donut with black/grey palette.
 const SeverityDonut = ({ distribution }) => {
   const [hovered, setHovered] = useState(null);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const entries = Object.entries(distribution).sort((a, b) => Number(a[0]) - Number(b[0]));
   const total = entries.reduce((sum, [, c]) => sum + c, 0);
   
@@ -911,21 +928,15 @@ const SeverityDonut = ({ distribution }) => {
     return <p className="text-sm text-tecdia-text/40 italic">No queries to distribute yet.</p>;
   }
 
-  const handleMouseMove = (e) => {
-    setMousePos({ x: e.clientX, y: e.clientY });
-  };
-
-  const r = 38;
+  const r = 40;
   const circ = 2 * Math.PI * r;
   let accumulatedPercent = 0;
 
   return (
-    <div className="flex flex-col sm:flex-row items-center gap-10">
-      <div className="relative w-44 h-44 flex-shrink-0 group" onMouseMove={handleMouseMove}>
-        <div className="absolute inset-0 rounded-full bg-tecdia-accent/5 blur-2xl group-hover:bg-tecdia-accent/10 transition-all duration-500" />
-        
-        <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90 drop-shadow-sm overflow-visible">
-          <circle cx="50" cy="50" r={r} fill="none" stroke="#E6F7FF" strokeWidth="10" />
+    <div className="flex flex-col sm:flex-row items-center gap-12">
+      <div className="relative w-40 h-40 flex-shrink-0" >
+        <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90 overflow-visible">
+          <circle cx="50" cy="50" r={r} fill="none" stroke="#F0F0F0" strokeWidth="8" />
           
           {entries.map(([sev, count]) => {
             const percent = (count / total);
@@ -939,49 +950,28 @@ const SeverityDonut = ({ distribution }) => {
             return (
               <motion.circle
                 key={sev} cx="50" cy="50" r={r} fill="none" stroke={config.color}
-                strokeWidth={isHovered ? 13 : 10}
+                strokeWidth={isHovered ? 11 : 8}
                 strokeDasharray={`${dashLength} ${circ}`}
                 strokeDashoffset={dashOffset}
                 strokeLinecap="butt"
                 onMouseEnter={() => setHovered({ sev, count, pct: Math.round(percent * 100), color: config.color, label: config.label })}
                 onMouseLeave={() => setHovered(null)}
-                className="transition-all duration-300 ease-out cursor-pointer pointer-events-auto"
-                style={{ filter: isHovered ? `drop-shadow(0 0 4px ${config.color}40)` : 'none' }}
+                className="transition-all duration-300 ease-out cursor-pointer"
               />
             );
           })}
-          <circle cx="50" cy="50" r="33" fill="white" />
+          <circle cx="50" cy="50" r="34" fill="white" />
         </svg>
 
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center">
-            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-tecdia-text/30 block mb-0.5">Total Queries</span>
-            <span className="text-3xl font-extrabold font-mono tabular-nums text-tecdia-accent">{total}</span>
+            <span className="text-3xl font-extrabold font-mono tabular-nums text-tecdia-textDeep">{total}</span>
+            <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-tecdia-text/30 block mt-0.5">Queries</span>
           </div>
         </div>
-
-        <AnimatePresence>
-          {hovered && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 4 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 4 }}
-              className="absolute z-50 pointer-events-none"
-              style={{ top: '15%', right: '-15%' }}
-            >
-              <div className="bg-white border border-tecdia-border shadow-lg rounded-md px-3 py-2 flex items-center gap-2.5 min-w-max">
-                <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ background: hovered.color }} />
-                <div className="flex flex-col leading-tight">
-                  <span className="text-[11px] font-bold text-tecdia-textDeep">Level {hovered.sev} — {hovered.label}</span>
-                  <span className="text-[10px] font-mono font-bold text-tecdia-accent">{hovered.pct}% • {hovered.count} Queries</span>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
-      <div className="flex-1 w-full space-y-3">
+      <div className="flex-1 w-full space-y-4">
         {entries.map(([sev, count]) => {
           const obj = SEVERITY_PALETTE[sev];
           const pct = total ? Math.round((count / total) * 100) : 0;
@@ -991,26 +981,16 @@ const SeverityDonut = ({ distribution }) => {
               key={sev} 
               onMouseEnter={() => setHovered({ sev, count, pct, color: obj.color, label: obj.label })}
               onMouseLeave={() => setHovered(null)}
-              className={`group flex items-center gap-3 text-sm p-2.5 rounded-2xl transition-all duration-300 border cursor-pointer ${
-                isHovered ? 'bg-white shadow-md border-tecdia-accent/20 translate-x-1' : 'hover:bg-white/60 border-transparent'
+              className={`group flex items-center gap-4 transition-all duration-200 cursor-pointer ${
+                isHovered ? 'translate-x-1' : ''
               }`}
             >
-              <span className="w-3.5 h-3.5 rounded-full flex-shrink-0 shadow-sm border-2 border-white" style={{ background: obj.color }} />
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="font-bold text-tecdia-textDeep text-xs">Level {sev} — {obj.label}</span>
-                  <span className="font-mono tabular-nums font-bold text-tecdia-textDeep">{count}</span>
-                </div>
-                <div className="w-full h-1.5 bg-[#E6F7FF] rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${pct}%` }}
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{ background: obj.color }}
-                  />
-                </div>
-              </div>
-              <span className="font-mono tabular-nums font-black text-tecdia-accent/40 w-10 text-right text-xs">{pct}%</span>
+              <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: obj.color }} />
+              <span className={`flex-1 text-sm font-semibold transition-colors ${ isHovered ? 'text-tecdia-textDeep' : 'text-tecdia-text/70' }`}>
+                Level {sev} — {obj.label}
+              </span>
+              <span className="font-mono tabular-nums font-bold text-tecdia-textDeep text-sm w-8 text-right">{count}</span>
+              <span className="font-mono tabular-nums text-tecdia-text/30 text-xs w-10 text-right font-semibold">{pct}%</span>
             </div>
           );
         })}
@@ -1030,11 +1010,11 @@ const ActivityBars = ({ buckets }) => {
               initial={{ height: 0 }}
               animate={{ height: `${(b.count / max) * 100}%` }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className="w-full bg-[#0057D9] rounded-t-md transition-all duration-300 group-hover:bg-[#0A2540] group-hover:shadow-[0_0_12px_rgba(10,37,64,0.2)] relative"
+              className="w-full bg-[#111111] rounded-t-md transition-all duration-300 group-hover:bg-[#0A2540] group-hover:shadow-[0_0_12px_rgba(10,37,64,0.2)] relative"
               style={{ minHeight: b.count > 0 ? 2 : 0 }}
             >
               {b.count > 0 && (
-                <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-[#1E88E5] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-white px-1.5 py-0.5 rounded-md shadow-sm border border-tecdia-border/30">
+                <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-[#333333] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-white px-1.5 py-0.5 rounded-md shadow-sm border border-tecdia-border/30">
                   {b.count}
                 </span>
               )}
@@ -1158,110 +1138,101 @@ const AdminDashboard = () => {
   const isDefault = (id) => ['INJECTION_MOLDING_MACHINE', 'LASER_CUTTING_MACHINE'].includes(id);
 
   return (
-    <div className="min-h-screen text-tecdia-text pt-[76px]">
+    <div className="min-h-screen text-tecdia-text pt-0 transition-all duration-500 relative z-0">
 
-      {/* ── Top Header ── */}
-      <header className="sticky top-[76px] z-40 border-b border-tecdia-border bg-white/40 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          {/* Brand */}
-          <div className="flex items-center gap-3">
-            <Link to="/" className="flex items-center gap-2 group">
-              <img src="/src/assets/logo.png" alt="Tecdia" className="w-7 h-7 object-contain opacity-100 transition-opacity" />
-              <span className="text-sm font-semibold text-tecdia-text/60 group-hover:text-tecdia-textDeep transition-colors">Tecdia SmartFix</span>
-            </Link>
-            <ChevronRight size={13} className="text-tecdia-border" />
-            <div className="flex items-center gap-1.5 text-sm font-bold text-tecdia-textDeep">
-              <LayoutDashboard size={14} className="text-tecdia-accent" />
-              Admin
+      {/* ── Dynamic Full-Page Background for Add Machine & Alerts ── */}
+      <AnimatePresence>
+        {(activeTab === 'add' || activeTab === 'alerts') && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }}
+            className="fixed inset-0 z-[-1] pointer-events-none bg-[#FFFFFF]"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Tab Bar — sticky at top, always visible when scrolled ── */}
+      <div className="sticky top-0 left-0 right-0 z-50 bg-black border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between gap-4 h-10">
+          {/* Logo & Tabs */}
+          <div className="flex items-center overflow-x-auto scrollbar-hide h-full">
+            
+            {/* Admin Panel Logo */}
+            <div className="flex items-center gap-2 mr-5 border-r border-white/10 pr-5 h-[30px] shrink-0">
+              <div className="relative flex items-center justify-center w-7 h-7">
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+                  <path d="M4 21L12 4l8 17" />
+                  <path d="M5.5 16.5c3-2 7.5-3.5 12-7.5" />
+                  <polyline points="14 9 17.5 9 17.5 12.5" />
+                </svg>
+              </div>
+              <div className="flex flex-col leading-[1.1] text-white font-semibold">
+                <span className="text-[13px] tracking-wide">Admin</span>
+                <span className="text-[13px] tracking-wide">Panel</span>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex items-center gap-4 shrink-0 h-full">
+              {[
+                { id: 'machines',  label: 'All Machines' },
+              { id: 'add',       label: 'Add Machine' },
+              { id: 'alerts',    label: 'Alert History', count: alerts.length },
+              { id: 'analytics', label: 'Analytics' },
+              { id: 'shift_logs',label: 'Shift Logs', isNew: true },
+              { id: 'audit',     label: 'Audit Log' },
+            ].map(tab => (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                className="relative flex items-center gap-1.5 text-xs font-medium transition-colors duration-200 text-white h-full"
+              >
+                {tab.label}
+                {tab.count > 0 && (
+                  <span className="ml-0.5 text-[10px] font-bold text-white/50">
+                    {tab.count}
+                  </span>
+                )}
+                {tab.isNew && (
+                  <span className="ml-1 bg-white/20 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                    NEW
+                  </span>
+                )}
+                {activeTab === tab.id && (
+                  <motion.div layoutId="admin-tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
+                )}
+              </button>
+            ))}
             </div>
           </div>
 
-          {/* Right side */}
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-tecdia-surface border border-tecdia-border">
-              <Shield size={12} className="text-tecdia-text/60" />
-              <span className="text-xs font-semibold text-tecdia-text/80">Admin Session</span>
-            </div>
-            <button
-              onClick={() => navigate('/')}
-              className="p-2 rounded-xl bg-white border border-tecdia-border text-tecdia-text/40 hover:text-red-500 hover:border-red-200 transition-all shadow-sm"
-              title="Exit Admin"
-            >
-              <LogOut size={16} />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-6 py-10">
-
-        {/* ── Page Title + Stats ── */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-          <div>
-            <h1 className="text-2xl font-bold text-tecdia-textDeep mb-1">Admin Dashboard</h1>
-            <p className="text-tecdia-text/60 text-sm">Manage your machine catalogue and diagnostic resources.</p>
-          </div>
-
-          {/* Inline stat pills */}
-          <div className="flex items-center gap-3">
+          {/* Stats Badges */}
+          <div className="flex items-center gap-2">
             {(() => {
               const defaultCount = machines.filter(m => isDefault(m.id)).length;
               return [
-                { icon: Database, label: 'Total', value: machines.length, color: 'text-white', bg: 'bg-[#00A9FF]', border: 'border-[#00A9FF]/20' },
-                { icon: Package, label: 'Default', value: defaultCount, color: 'text-tecdia-textDeep', bg: 'bg-[#89CFF3]', border: 'border-[#89CFF3]/20' },
-                { icon: Plus, label: 'Custom', value: Math.max(0, machines.length - defaultCount), color: 'text-tecdia-textDeep', bg: 'bg-[#A0E9FF]', border: 'border-[#A0E9FF]/20' },
+                { icon: Database, label: 'Total',   value: machines.length },
+                { icon: Package,  label: 'Default', value: defaultCount },
+                { icon: Plus,     label: 'Custom',  value: Math.max(0, machines.length - defaultCount) },
               ];
             })().map(s => {
-              const Icon = s.icon;
               return (
-                <div key={s.label} className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl ${s.bg} border ${s.border} shadow-sm`}>
-                  <Icon size={14} className={s.color} />
-                  <div>
-                    <div className={`text-lg font-bold leading-none ${s.color}`}>{s.value}</div>
-                    <div className={`text-[10px] font-medium mt-0.5 ${s.color === 'text-white' ? 'text-white/80' : 'text-tecdia-text/60'}`}>{s.label}</div>
-                  </div>
+                <div key={s.label} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-landing-background border border-landing-border text-landing-text font-inter">
+                  <span className="text-sm font-bold leading-none">{s.value}</span>
+                  <span className="text-sm font-bold">{s.label}</span>
                 </div>
               );
             })}
           </div>
         </div>
+      </div>
 
-        {/* ── Tab Bar ── */}
-        <div className="flex gap-1 p-1 bg-white border border-tecdia-border rounded-2xl mb-8 w-fit shadow-sm">
-          {[
-            { id: 'machines',  label: 'All Machines',  icon: Package },
-            { id: 'add',       label: 'Add Machine',   icon: Plus },
-            { id: 'alerts',    label: 'Alert History', icon: BellRing, count: alerts.length },
-            { id: 'analytics', label: 'Analytics',     icon: BarChart3 },
-            { id: 'audit',     label: 'Audit Log',     icon: Shield },
-          ].map(tab => {
-            const Icon = tab.icon;
-            return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 relative ${
-                  activeTab === tab.id
-                    ? 'bg-tecdia-accent text-white shadow-md'
-                    : 'text-tecdia-text/60 hover:text-tecdia-accent'
-                }`}>
-                <Icon size={14} /> 
-                {tab.label}
-                {tab.count > 0 && (
-                  <span className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border-2 ${
-                    activeTab === tab.id ? 'bg-red-500 text-white border-tecdia-accent' : 'bg-red-500 text-white border-white'
-                  }`}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+      <div className="max-w-7xl mx-auto px-6 py-10">
 
         {/* ── Global ingestion progress bar ──
             Rendered OUTSIDE the tab content blocks so it remains visible
             after handleAddMachine() switches the active tab to 'machines'.
             Without this, the bar mounted inside the Add tab and was
             immediately unmounted on tab switch — user never saw it. */}
+
+        {/* ── Global ingestion progress bar ── */}
         <AnimatePresence>
           {activeJob && <IngestionProgress job={activeJob} onDismiss={clearActiveJob} />}
         </AnimatePresence>
@@ -1269,77 +1240,48 @@ const AdminDashboard = () => {
         {/* ══════════════ TAB: Machines ══════════════ */}
         {activeTab === 'machines' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {machines.map((machine) => {
-                const Icon = ICON_MAP[machine.icon] || Settings2;
-                const defaultMachine = isDefault(machine.id);
-                const confirming = deleteConfirm === machine.id;
-                return (
-                  <motion.div key={machine.id} layout
-                    className="group relative bg-white border border-tecdia-border rounded-2xl p-5 hover:border-tecdia-accent transition-all duration-200 shadow-sm">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="w-10 h-10 rounded-xl bg-tecdia-accent/10 border border-tecdia-border flex items-center justify-center overflow-hidden">
-                        {machine.customIconUrl ? (
-                          <img src={machine.customIconUrl} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <Icon size={18} className="text-tecdia-accent" />
-                        )}
-                      </div>
-                      {defaultMachine
-                        ? <span className="text-[10px] px-2 py-0.5 rounded-full bg-tecdia-background text-tecdia-text/40 border border-tecdia-border">Default</span>
-                        : (
-                          <button onClick={() => handleDelete(machine.id, machine.name)}
-                            className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all ${
-                              confirming
-                                ? 'bg-tecdia-accent/20 border-tecdia-accent/40 text-tecdia-textDeep'
-                                : 'text-transparent group-hover:text-tecdia-text/40 border-transparent hover:!text-tecdia-accent hover:bg-tecdia-accent/10 hover:border-tecdia-accent/20'
-                            }`}>
-                            <Trash2 size={13} />
-                          </button>
-                        )
-                      }
-                    </div>
-
-                    <h3 className="font-bold text-tecdia-textDeep text-sm mb-1">{machine.name}</h3>
-                    <p className="text-tecdia-text/80 text-xs leading-relaxed">{machine.description}</p>
-                    {machine.category && (
-                      <div className="mt-3 pt-3 border-t border-tecdia-border flex items-center justify-between">
-                        <span className="text-[10px] font-semibold text-tecdia-text/60 uppercase tracking-wider">{machine.category}</span>
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] font-bold text-tecdia-text/40">SIG:</span>
-                          <div className="flex gap-0.5">
-                            {[1, 2, 3, 4, 5].map(i => (
-                              <div key={i} className={`w-1.5 h-1.5 rounded-full ${i <= machine.significance ? 'bg-[#0057D9]' : 'bg-[#E6F7FF] border border-tecdia-border/20'}`} />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
-                );
-              })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {machines.map((machine) => (
+                <MachineCard
+                  key={machine.id}
+                  machine={machine}
+                  isDefault={isDefault(machine.id)}
+                  onDelete={handleDelete}
+                  confirmingDelete={deleteConfirm === machine.id}
+                />
+              ))}
             </div>
           </motion.div>
         )}
 
+      </div>{/* close max-w-7xl — Add Machine goes full width */}
+
         {/* ══════════════ TAB: Add Machine ══════════════ */}
         {activeTab === 'add' && (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
+            className="relative"
+          >
+            {/* Two-column flex layout */}
+            <div className="flex w-full min-h-[calc(100vh-136px)]">
+              {/* LEFT — bb.jpg image: sticky to left half of screen */}
+              <div className="hidden md:block w-1/2 sticky top-[60px]" style={{ height: 'calc(100vh - 60px)' }}>
+                <img src={bbImg} alt="Machine" style={{width:'100%', height:'100%', objectFit:'contain', objectPosition:'center', background:'#ffffff'}} />
+              </div>
+
+              {/* RIGHT — Form: takes up remaining space, scrolls normally */}
+              <div className="w-full md:w-1/2 px-10 py-6 relative z-10">
             {/* (Progress bar moved above tabs — it's rendered globally
                 so it stays visible after the auto-switch to Machines tab.) */}
-            <form onSubmit={handleAddMachine}>
-              {/* Two-column grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <form onSubmit={handleAddMachine} className="relative z-10 w-full">
+              {/* Vertical stack */}
+              <div className="flex flex-col gap-4 mb-4">
 
                 {/* LEFT — Machine Details */}
-                <SectionCard className="bg-white">
-                  <div className="flex items-center gap-2 mb-6">
-                    <div className="w-7 h-7 rounded-lg bg-tecdia-accent/10 border border-tecdia-accent/20 flex items-center justify-center">
-                      <FileText size={13} className="text-tecdia-accent" />
-                    </div>
-                    <h2 className="font-bold text-tecdia-textDeep text-sm">Machine Details</h2>
+                <SectionCard transparent>
+                  <div className="flex items-center gap-2 mb-3">
+                    <h2 className="font-bold text-landing-textDeep text-sm">Machine Details</h2>
                   </div>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <InputField label="Machine Name *" type="text" required value={form.name}
                       onChange={e => {
                         const name = e.target.value;
@@ -1348,28 +1290,23 @@ const AdminDashboard = () => {
                           // Auto-generate slug only if user hasn't manually edited it
                           machine_id: f._slugEdited ? f.machine_id : toSlug(name),
                         }));
-                      }}
-                      placeholder="e.g. CNC Milling Machine" />
+                      }} />
                     <div className="space-y-1.5">
-                      <label className="block text-[11px] font-semibold text-tecdia-text/60 uppercase tracking-widest">Machine ID (slug) *</label>
+                      <label className="block text-[11px] font-semibold text-landing-text/60 uppercase tracking-widest">Machine ID *</label>
                       <input
                         type="text" required
                         value={form.machine_id}
                         onChange={e => setForm(f => ({ ...f, machine_id: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''), _slugEdited: true }))}
-                        placeholder="AUTO_GENERATED_FROM_NAME"
-                        className="w-full bg-tecdia-background border border-tecdia-border rounded-xl py-3 px-4 text-tecdia-text text-sm font-mono placeholder:text-tecdia-text/30 focus:outline-none focus:border-tecdia-accent focus:ring-1 focus:ring-tecdia-accent/20 transition-all"
+                        className="w-full bg-transparent border border-landing-border rounded-xl py-3 px-4 text-landing-text text-sm font-mono placeholder:text-landing-text/30 focus:outline-none focus:border-tecdia-accent focus:ring-1 focus:ring-tecdia-accent/20 transition-all"
                       />
-                      <p className="text-[10px] text-tecdia-text/40">Auto-generated. Only A–Z, 0–9, underscore allowed. Must be unique.</p>
                     </div>
                     <InputField label="Description" as="textarea" rows={4} value={form.description}
-                      onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                      placeholder="Brief description of this machine's diagnostic capabilities..." />
+                      onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
                     <InputField label="Category" type="text" value={form.category}
-                      onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                      placeholder="e.g. Fabrication, Automation" />
+                      onChange={e => setForm(f => ({ ...f, category: e.target.value }))} />
                     
                     <div className="space-y-1.5">
-                      <label className="block text-[11px] font-semibold text-tecdia-text/60 uppercase tracking-widest flex justify-between">
+                      <label className="block text-[11px] font-semibold text-landing-text/60 uppercase tracking-widest flex justify-between">
                         Machine Significance
                         <span className="text-tecdia-accent font-bold">Level {form.significance}</span>
                       </label>
@@ -1377,9 +1314,9 @@ const AdminDashboard = () => {
                         type="range" min="1" max="5" step="1" 
                         value={form.significance} 
                         onChange={e => setForm(f => ({ ...f, significance: parseInt(e.target.value) }))}
-                        className="w-full h-1.5 bg-[#E6F7FF] rounded-lg appearance-none cursor-pointer accent-[#0057D9] border border-tecdia-border/30" 
+                        className="w-full h-1.5 bg-[#F2F2F2] rounded-lg appearance-none cursor-pointer accent-[#111111] border border-landing-border/30" 
                       />
-                      <div className="flex justify-between text-[9px] text-tecdia-text/40 font-bold uppercase tracking-tighter">
+                      <div className="flex justify-between text-[9px] text-landing-text/40 font-bold uppercase tracking-tighter">
                         <span>Low Impact</span>
                         <span>Mission Critical</span>
                       </div>
@@ -1388,17 +1325,14 @@ const AdminDashboard = () => {
                 </SectionCard>
 
                 {/* RIGHT — Appearance */}
-                <SectionCard className="bg-white">
-                  <div className="flex items-center gap-2 mb-6">
-                    <div className="w-7 h-7 rounded-lg bg-tecdia-accent/10 border border-tecdia-accent/20 flex items-center justify-center">
-                      <Settings2 size={13} className="text-tecdia-accent" />
-                    </div>
-                    <h2 className="font-bold text-tecdia-textDeep text-sm">Appearance</h2>
+                <SectionCard transparent className="!p-0">
+                  <div className="flex items-center gap-2 mb-3">
+                    <h2 className="font-bold text-landing-textDeep text-sm">Appearance</h2>
                   </div>
 
                   {/* ── ICON SECTION ── */}
-                  <div className="mb-6">
-                    <label className="block text-[11px] font-semibold text-tecdia-text/60 uppercase tracking-widest mb-3">Icon</label>
+                  <div className="mb-4">
+                    <label className="block text-[11px] font-semibold text-landing-text/60 uppercase tracking-widest mb-3">Icon</label>
 
                     {/* Custom icon upload */}
                     <div className="flex items-center gap-2 mt-2">
@@ -1413,14 +1347,14 @@ const AdminDashboard = () => {
                         }}
                       />
                       <label htmlFor="custom-icon-upload"
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-tecdia-background border border-tecdia-border hover:border-tecdia-accent text-tecdia-text/60 hover:text-tecdia-accent text-xs font-medium cursor-pointer transition-all duration-200">
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-transparent border border-landing-border hover:border-tecdia-accent text-landing-text/60 hover:text-tecdia-accent text-xs font-medium cursor-pointer transition-all duration-200">
                         <Image size={13} /> Upload Custom Icon
                       </label>
                       {form.customIconUrl && (
                         <div className="flex items-center gap-2">
-                          <img src={form.customIconUrl} alt="custom icon" className="w-8 h-8 rounded-lg object-cover border border-tecdia-border" />
+                          <img src={form.customIconUrl} alt="custom icon" className="w-8 h-8 rounded-lg object-cover border border-landing-border" />
                           <button type="button" onClick={() => setForm(f => ({ ...f, customIconUrl: null }))}
-                            className="w-6 h-6 rounded-full bg-tecdia-background border border-tecdia-border flex items-center justify-center text-tecdia-text/40 hover:text-tecdia-accent transition-colors">
+                            className="w-6 h-6 rounded-full bg-transparent border border-landing-border flex items-center justify-center text-landing-text/40 hover:text-tecdia-accent transition-colors">
                             <X size={11} />
                           </button>
                         </div>
@@ -1430,20 +1364,11 @@ const AdminDashboard = () => {
 
                   {/*Live preview */}
                   <div>
-                    <label className="block text-[11px] font-semibold text-tecdia-text/60 uppercase tracking-widest mb-2.5">Preview</label>
-                    <div className="flex items-center gap-3 bg-tecdia-background border border-tecdia-border rounded-xl px-4 py-3">
-                      <div className="w-9 h-9 rounded-xl bg-white border border-tecdia-border flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {form.customIconUrl
-                          ? <img src={form.customIconUrl} alt="" className="w-full h-full object-cover" />
-                          : React.createElement(ICON_MAP[form.icon] || Settings2, {
-                              size: 18,
-                              className: 'text-tecdia-accent',
-                            })
-                        }
-                      </div>
+                    <label className="block text-[11px] font-semibold text-landing-text/60 uppercase tracking-widest mb-2.5">Preview</label>
+                    <div className="flex items-center gap-3 bg-transparent border border-landing-border rounded-xl px-4 py-3">
                       <div>
-                        <span className="font-semibold text-tecdia-textDeep text-sm block">{form.name || 'Machine Name'}</span>
-                        {form.category && <span className="text-[10px] text-tecdia-text/60">{form.category}</span>}
+                        <span className="font-semibold text-landing-textDeep text-sm block">{form.name || 'Machine Name'}</span>
+                        {form.category && <span className="text-[10px] text-landing-text/60">{form.category}</span>}
                       </div>
                     </div>
                   </div>
@@ -1451,13 +1376,10 @@ const AdminDashboard = () => {
               </div>
 
               {/* Unified File Upload */}
-              <SectionCard className="mb-6 bg-white">
+              <SectionCard transparent className="mb-4">
                 <div className="flex items-center justify-between mb-5">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-tecdia-accent/10 border border-tecdia-accent/20 flex items-center justify-center">
-                      <Upload size={13} className="text-tecdia-accent" />
-                    </div>
-                    <h2 className="font-bold text-tecdia-textDeep text-sm">Files & Media</h2>
+                    <h2 className="font-bold text-landing-textDeep text-sm">Files & Media</h2>
                   </div>
                   {form.files.length > 0 && (
                     <span className="text-[11px] px-2.5 py-1 rounded-full bg-tecdia-accent/10 border border-tecdia-accent/20 text-tecdia-accent font-semibold">
@@ -1483,26 +1405,39 @@ const AdminDashboard = () => {
 
                 {/* Drop zone */}
                 <div
-                  onClick={() => fileInputRef.current.click()}
                   onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                   onDragLeave={() => setIsDragging(false)}
                   onDrop={handleDrop}
-                  className={`relative w-full border-2 border-dashed rounded-2xl py-10 flex flex-col items-center gap-3 cursor-pointer transition-all duration-200 ${
+                  className={`relative w-full border border-dashed rounded-xl py-12 flex flex-col items-center transition-all duration-200 ${
                     isDragging
-                      ? 'border-tecdia-accent/60 bg-tecdia-accent/5 scale-[1.01]'
-                      : 'border-[#89CFF3] bg-[#A0E9FF]/20 hover:border-tecdia-accent/50 hover:bg-[#A0E9FF]/40'
+                      ? 'border-[#1A73E8] bg-[#1A73E8]/5 scale-[1.01]'
+                      : 'border-[#D1D5DB] hover:border-[#9CA3AF]'
                   }`}
                 >
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 ${
-                    isDragging ? 'bg-tecdia-accent/15' : 'bg-white border border-tecdia-border'
+                  <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-5 transition-all duration-200 ${
+                    isDragging ? 'bg-[#1A73E8]/20' : 'bg-[#F0F6FF]'
                   }`}>
-                    <Upload size={22} className={isDragging ? 'text-tecdia-accent' : 'text-tecdia-accent/60'} />
+                    <FileText size={36} className="text-[#1A73E8]" />
                   </div>
-                  <div className="text-center">
-                    <p className={`text-sm font-semibold mb-1 transition-colors ${isDragging ? 'text-tecdia-accent' : 'text-tecdia-text/60'}`}>
-                      {isDragging ? 'Drop files here' : 'Drag & drop or click to upload'}
+                  
+                  <div className="text-center flex flex-col items-center">
+                    <p className={`text-base mb-3 transition-colors ${isDragging ? 'text-[#1A73E8]' : 'text-[#374151]'}`}>
+                      {isDragging ? 'Drop your file here' : 'Drag and drop your file'}
                     </p>
-                    <p className="text-xs text-tecdia-text/40">PDF, JPG, PNG, WebP · Max 10 MB per file</p>
+                    
+                    {!isDragging && (
+                      <>
+                        <p className="text-[13px] text-[#6B7280] uppercase mb-3">OR</p>
+                        <div 
+                          onClick={() => fileInputRef.current.click()}
+                          className="bg-[#F0F6FF] text-[#1A73E8] hover:bg-[#E4EFFF] transition-colors font-medium text-sm px-6 py-2.5 rounded-lg mb-5 cursor-pointer"
+                        >
+                          Browse
+                        </div>
+                      </>
+                    )}
+                    
+                    <p className="text-[13px] text-[#6B7280]">PDF, JPG, PNG, WebP &nbsp;|&nbsp; Max 10 MB</p>
                   </div>
                 </div>
 
@@ -1520,22 +1455,22 @@ const AdminDashboard = () => {
                 {/* Uploaded files list */}
                 {form.files.length > 0 && (
                   <div className="mt-5 space-y-2">
-                    <p className="text-[11px] font-semibold text-tecdia-text/60 uppercase tracking-widest mb-3">Uploaded</p>
+                    <p className="text-[11px] font-semibold text-landing-text/60 uppercase tracking-widest mb-3">Uploaded</p>
 
                     {/* Image grid */}
                     {form.files.filter(f => f.type === 'image').length > 0 && (
                       <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-3">
                         {form.files.map((file, idx) => file.type === 'image' && (
                           <div key={idx} className="relative group/img aspect-square">
-                            <img src={file.url} alt={file.name} className="w-full h-full object-cover rounded-xl border border-tecdia-border" />
+                            <img src={file.url} alt={file.name} className="w-full h-full object-cover rounded-xl border border-landing-border" />
                             <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/40 rounded-xl transition-all duration-200 flex items-center justify-center">
                               <button type="button" onClick={() => removeFile(idx)}
-                                className="w-6 h-6 bg-white/70 rounded-full items-center justify-center text-tecdia-textDeep hover:text-tecdia-accent opacity-0 group-hover/img:opacity-100 transition-opacity flex">
+                                className="w-6 h-6 bg-white/70 rounded-full items-center justify-center text-landing-textDeep hover:text-tecdia-accent opacity-0 group-hover/img:opacity-100 transition-opacity flex">
                                 <X size={11} />
                               </button>
                             </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-white/80 rounded-b-xl px-1.5 py-1 opacity-0 group-hover/img:opacity-100 transition-opacity border-t border-tecdia-border">
-                              <p className="text-[9px] text-tecdia-textDeep truncate">{file.name}</p>
+                            <div className="absolute bottom-0 left-0 right-0 bg-white/80 rounded-b-xl px-1.5 py-1 opacity-0 group-hover/img:opacity-100 transition-opacity border-t border-landing-border">
+                              <p className="text-[9px] text-landing-textDeep truncate">{file.name}</p>
                             </div>
                           </div>
                         ))}
@@ -1549,11 +1484,11 @@ const AdminDashboard = () => {
                           <FileText size={14} className="text-tecdia-accent" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-tecdia-textDeep truncate">{file.name}</p>
-                          <p className="text-[10px] text-tecdia-text/60">{(file.size / 1024).toFixed(0)} KB · PDF</p>
+                          <p className="text-sm font-medium text-landing-textDeep truncate">{file.name}</p>
+                          <p className="text-[10px] text-landing-text/60">{(file.size / 1024).toFixed(0)} KB · PDF</p>
                         </div>
                         <button type="button" onClick={() => removeFile(idx)}
-                          className="text-tecdia-text/40 hover:text-tecdia-accent transition-colors opacity-0 group-hover/pdf:opacity-100 flex-shrink-0">
+                          className="text-landing-text/40 hover:text-tecdia-accent transition-colors opacity-0 group-hover/pdf:opacity-100 flex-shrink-0">
                           <X size={14} />
                         </button>
                       </div>
@@ -1567,31 +1502,35 @@ const AdminDashboard = () => {
                 className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2.5 transition-all duration-300 shadow-md ${
                   form.name.trim() && form.machine_id.trim() && form.pdfFile && !isSubmitting
                     ? 'bg-tecdia-accent text-white hover:bg-tecdia-accent/90 active:scale-[0.99]'
-                    : 'bg-tecdia-background border border-tecdia-border text-tecdia-text/40 cursor-not-allowed'
+                    : 'bg-transparent border border-landing-border text-landing-text/40 cursor-not-allowed'
                 }`}>
                 {isSubmitting
                   ? <><span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" /> Uploading...</>
                   : <><Plus size={18} /> Upload & Index Machine</>}
               </button>
             </form>
+              </div>{/* end right column */}
+            </div>{/* end flex split */}
           </motion.div>
         )}
+
+      <div className="max-w-7xl mx-auto px-6">{/* reopen container for remaining tabs */}
 
         {/* ══════════════ TAB: Alerts ══════════════ */}
         {activeTab === 'alerts' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-            {alertThreshold && <p className="text-xs text-tecdia-text/40 mb-4">Alerts fire when score ≥ {alertThreshold} of 25</p>}
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-tecdia-textDeep flex items-center gap-2">
-                <BellRing size={20} className="text-tecdia-accent" />
+            {alertThreshold && <p className="text-sm font-inter text-landing-text/60 mb-4">Alerts fire when score ≥ {alertThreshold} of 25</p>}
+            <div className="flex items-center justify-between mb-10">
+              <h2 className="text-3xl md:text-4xl font-bold font-sora text-slate-800 tracking-tight flex items-center gap-3">
+                <BellRing size={32} className="text-slate-400" />
                 Critical Fault Alerts
               </h2>
-              <div className="flex items-center gap-4">
-                <button onClick={handleTestAlert} className="text-xs font-bold text-tecdia-accent hover:text-tecdia-accent/80 transition-colors">
+              <div className="flex items-center gap-6 mr-48">
+                <button onClick={handleTestAlert} className="text-sm font-bold font-inter text-slate-500 hover:text-slate-700 transition-colors">
                   Inject Test Alert
                 </button>
                 {alerts.length > 0 && (
-                  <button onClick={handleClearAlerts} className="text-xs font-bold text-tecdia-text/40 hover:text-tecdia-accent transition-colors">
+                  <button onClick={handleClearAlerts} className="text-sm font-bold font-inter text-slate-400 hover:text-slate-600 transition-colors">
                     Clear All History
                   </button>
                 )}
@@ -1599,12 +1538,12 @@ const AdminDashboard = () => {
             </div>
 
             {alerts.length === 0 ? (
-              <div className="bg-white border border-tecdia-border rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-sm">
-                <div className="w-16 h-16 rounded-2xl bg-tecdia-background border border-tecdia-border flex items-center justify-center mb-4">
-                  <CheckCircle size={32} className="text-tecdia-text/20" />
+              <div className="bg-white border border-landing-border rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-sm">
+                <div className="w-16 h-16 rounded-2xl bg-landing-background border border-landing-border flex items-center justify-center mb-4">
+                  <CheckCircle size={32} className="text-landing-text/30" />
                 </div>
-                <p className="text-tecdia-textDeep font-bold">No critical alerts detected</p>
-                <p className="text-tecdia-text/60 text-sm max-w-xs mt-1">High-severity fault reports will appear here automatically.</p>
+                <p className="text-landing-textDeep font-bold font-sora text-xl">No critical alerts detected</p>
+                <p className="text-landing-text/60 font-inter text-base max-w-sm mt-2">High-severity fault reports will appear here automatically.</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -1614,60 +1553,56 @@ const AdminDashboard = () => {
                     layout 
                     initial={{ opacity: 0, y: 12 }} 
                     animate={{ opacity: 1, y: 0 }}
-                    className="group relative bg-white border border-tecdia-border rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:border-tecdia-accent/20 transition-all duration-300"
+                    className="group relative border-b border-slate-200 pb-5 mb-5 last:border-b-0 last:mb-0 transition-all duration-300"
                   >
-                    {/* High-Contrast Indicator Strip (Navy) */}
-                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#0A2540]" />
                     
-                    <div className="p-6">
-                      <div className="flex flex-col lg:flex-row gap-6">
+                    <div>
+                      <div className="flex gap-6">
                         {/* Main Info */}
                         <div className="flex-1">
-                          <div className="flex flex-wrap items-center gap-3 mb-3">
-                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500 text-white text-[10px] font-black uppercase tracking-widest shadow-sm">
-                              <Shield size={12} /> Score {alert.score}
-                            </span>
-                            <h3 className="text-base font-bold text-tecdia-textDeep tracking-tight uppercase">
+                          <div className="mb-2 flex items-baseline gap-3">
+                            <h3 className="text-base font-bold font-sora text-slate-800 tracking-tight uppercase">
                               {alert.machine_id.replaceAll('_', ' ')}
                             </h3>
-                            <span className="text-[10px] font-bold text-tecdia-accent bg-tecdia-accent/5 px-2 py-1 rounded-md border border-tecdia-accent/10">
+                            <span className="text-[13px] font-medium font-inter text-slate-400">
                               {new Date(alert.notified_at).toLocaleString('en-US', { 
                                 month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
                               })}
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-4 mb-4">
-                            <div className="flex flex-col">
-                              <span className="text-[9px] font-bold text-tecdia-text/30 uppercase tracking-tighter">Impact Level</span>
-                              <span className="text-xs font-black text-tecdia-textDeep uppercase">Severity {alert.severity_level}</span>
-                            </div>
-                            <div className="w-px h-6 bg-tecdia-border" />
-                            <div className="flex flex-col">
-                              <span className="text-[9px] font-bold text-tecdia-text/30 uppercase tracking-tighter">Significance</span>
-                              <span className="text-xs font-black text-tecdia-textDeep uppercase">Priority {alert.machine_significance}</span>
+                          <div className="flex flex-wrap items-center gap-2 mb-3">
+                            <span className="px-3 py-1 bg-white border border-slate-300 rounded-full text-xs font-bold font-sora text-slate-800">
+                              Score {alert.score}
+                            </span>
+                            <span className="px-3 py-1 bg-white border border-slate-300 rounded-full text-xs font-bold font-sora text-slate-800">
+                              Severity {alert.severity_level}
+                            </span>
+                            <span className="px-3 py-1 bg-white border border-slate-300 rounded-full text-xs font-bold font-sora text-slate-800">
+                              Priority {alert.machine_significance}
+                            </span>
+                            
+                            <div className={`flex items-center justify-center gap-1.5 px-3 py-1 rounded-full border transition-colors duration-300 ${
+                              alert.email_notified 
+                                ? 'bg-slate-50 border-slate-200 text-slate-700' 
+                                : 'bg-white border-slate-200 text-slate-400'
+                            }`}>
+                              <div className={`w-1.5 h-1.5 rounded-full ${alert.email_notified ? 'bg-slate-500 animate-pulse' : 'bg-slate-300'}`} />
+                              <span className="text-xs font-bold font-sora">
+                                {alert.email_notified ? 'System Notified' : 'Dispatch Pending'}
+                              </span>
                             </div>
                           </div>
 
-                          <div className="relative">
-                            <div className="absolute -left-3 top-0 bottom-0 w-0.5 bg-tecdia-accent/10" />
-                            <p className="text-sm text-tecdia-textDeep/80 leading-relaxed pl-3">
-                              {alert.answer_excerpt || alert.question}
-                            </p>
-                          </div>
+                          <p className="text-sm font-inter text-slate-600 leading-relaxed">
+                            {alert.answer_excerpt || alert.question}
+                          </p>
                         </div>
 
-                        {/* Status Side */}
-                        <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between lg:justify-center gap-4 pt-4 lg:pt-0 border-t lg:border-t-0 lg:border-l border-tecdia-border lg:pl-8">
-                          <div className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border transition-colors duration-300 ${
-                            alert.email_notified 
-                              ? 'bg-[#E6F7FF] border-[#B6E6FF] text-[#0057D9]' 
-                              : 'bg-tecdia-background border-tecdia-border text-tecdia-text/40'
-                          }`}>
-                            <div className={`w-2 h-2 rounded-full ${alert.email_notified ? 'bg-tecdia-accent animate-pulse' : 'bg-tecdia-text/20'}`} />
-                            <span className="text-[11px] font-black uppercase tracking-wider">
-                              {alert.email_notified ? 'System Notified' : 'Dispatch Pending'}
-                            </span>
+                        {/* Image - top-right aligned */}
+                        <div className="shrink-0 self-start mr-48">
+                          <div className="w-[120px] h-[90px] rounded-2xl overflow-hidden shadow-sm relative">
+                            <img src={bbImg} alt="Machine" className="w-full h-full object-cover" />
                           </div>
                         </div>
                       </div>
@@ -1681,6 +1616,9 @@ const AdminDashboard = () => {
 
         {/* ══════════════ TAB: Analytics ══════════════ */}
         {activeTab === 'analytics' && <AnalyticsPanel />}
+
+        {/* ══════════════ TAB: Shift Logs ══════════════ */}
+        {activeTab === 'shift_logs' && <ShiftLogsPanel />}
 
         {/* ══════════════ TAB: Audit Log ══════════════ */}
         {activeTab === 'audit' && <AuditPanel />}

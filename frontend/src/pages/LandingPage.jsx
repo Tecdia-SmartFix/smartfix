@@ -1,70 +1,23 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Zap, Wrench, ChevronRight, CheckCircle, Mail, Phone } from 'lucide-react';
+import { ArrowRight, ChevronRight, ChevronLeft, CheckCircle, Mail, Phone, Shield, MessageSquare, BookOpen, BellRing, Award } from 'lucide-react';
 import Footer from '../components/Footer';
 import { useAuth, EXPERTISE_DOMAINS } from '../context/AuthContext';
 import { useWorkstation } from '../hooks/useWorkstation';
-import { Shield } from 'lucide-react';
+import { fetchApi } from '../api/apiClient';
+import MachineCard from '../components/MachineCard';
 
-import ChromaKeyVideo from '../components/ChromaKeyVideo';
+import imageeImg from '../assets/imagee.png';
+import pImg from '../assets/p.png';
+import manualImg from '../assets/manual.png';
+import alertImg from '../assets/alert.png';
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 32 },
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.65, delay, ease: [0.22, 1, 0.36, 1] },
 });
-
-const ChatPreview = () => (
-  <div className="relative w-full max-w-lg mx-auto">
-    <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-tecdia-accent/30 to-tecdia-border/20 blur-sm" />
-    <div className="relative bg-white rounded-2xl border border-tecdia-border overflow-hidden shadow-xl">
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-tecdia-border bg-tecdia-background/60">
-        <div className="w-7 h-7 rounded-lg bg-tecdia-accent/10 border border-tecdia-accent/20 flex items-center justify-center">
-          <Wrench size={13} className="text-tecdia-accent" />
-        </div>
-        <div>
-          <p className="text-xs font-bold text-tecdia-textDeep">Hydraulic Press</p>
-          <div className="flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <p className="text-[10px] text-tecdia-text/50">AI ready</p>
-          </div>
-        </div>
-      </div>
-      <div className="p-4 space-y-3">
-        <div className="flex justify-end">
-          <div className="max-w-[75%] bg-tecdia-accent text-white px-4 py-2.5 rounded-2xl rounded-tr-sm text-sm leading-relaxed">
-            Hydraulic pressure drops mid-cycle. Seal 2 might be leaking.
-          </div>
-        </div>
-        <div className="flex gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-[#CDF5FD] border border-tecdia-border flex items-center justify-center flex-shrink-0 mt-1">
-            <Zap size={12} className="text-tecdia-accent" />
-          </div>
-          <div className="max-w-[80%] bg-[#CDF5FD] px-4 py-3 rounded-2xl rounded-tl-sm text-sm leading-relaxed">
-            <p className="text-tecdia-textDeep font-semibold mb-1 text-xs">Diagnostic Result</p>
-            <p className="text-tecdia-text/80 text-xs mb-2">Consistent with <strong className="text-tecdia-textDeep">cylinder-2 rod seal failure</strong>. Internal bypass is likely causing the pressure drop.</p>
-            <div className="space-y-1">
-              {['Isolate cylinder 2 and inspect rod seal', 'Check for contamination in hydraulic fluid', 'Replace seal kit — P/N HYD-224-RS'].map((s, i) => (
-                <div key={i} className="flex items-start gap-2 text-[11px] text-tecdia-text/70">
-                  <span className="text-tecdia-accent font-bold flex-shrink-0">{i + 1}.</span>{s}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="px-4 pb-4">
-        <div className="flex items-center gap-2 bg-tecdia-background border border-tecdia-border rounded-xl px-3 py-2.5">
-          <p className="text-xs text-tecdia-text/30 flex-1">Ask about your machine...</p>
-          <div className="w-6 h-6 rounded-lg bg-tecdia-accent flex items-center justify-center">
-            <ArrowRight size={11} className="text-white" />
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
 
 const PageWrapper = ({ children }) => (
   <motion.div
@@ -77,13 +30,56 @@ const PageWrapper = ({ children }) => (
   </motion.div>
 );
 
+const FeatureCard = ({ icon: Icon, imageSrc, badgeText, title, description }) => (
+  <div className="relative group rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 min-h-[320px] flex flex-col justify-center p-8 sm:p-10 border border-slate-200/50">
+    {/* Background */}
+    <div className="absolute inset-0 bg-slate-800 overflow-hidden">
+      {imageSrc ? (
+        <img src={imageSrc} alt={title} className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-700" />
+      ) : (
+        <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 opacity-90 group-hover:scale-105 transition-transform duration-700" />
+      )}
+    </div>
+
+    {/* Gradient Overlay for Readability */}
+    <div className="absolute inset-0 bg-gradient-to-r from-slate-900/95 via-slate-900/60 to-transparent"></div>
+
+    {/* Content */}
+    <div className="relative z-10 max-w-[90%]">
+      {badgeText && (
+        <div className="mb-4 inline-flex items-center text-[#89CFF3] font-bold text-xs uppercase tracking-widest">
+          {badgeText}
+        </div>
+      )}
+      <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4 leading-tight tracking-tight">{title}</h3>
+      <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-light">
+        {description}
+      </p>
+    </div>
+  </div>
+);
+
 const LandingPage = () => {
   const { user, login } = useAuth();
   const ws = useWorkstation();
+  const [machines, setMachines] = useState([]);
+  const sliderRef = useRef(null);
 
-  // Workstation-bound IPs skip the landing+selector flow entirely and land
-  // straight in the chat for the bound machine. Unbound IPs (dev/admin) see
-  // the existing landing page below.
+  const scrollSlider = (direction) => {
+    if (sliderRef.current) {
+      const scrollAmount = direction === 'left' ? -350 : 350;
+      sliderRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    fetchApi('/api/machines').then(res => {
+      if (res.success && res.data) {
+        setMachines(res.data);
+      }
+    }).catch(console.error);
+  }, []);
+
   if (ws.loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-tecdia-text/60 text-sm">
@@ -91,121 +87,198 @@ const LandingPage = () => {
       </div>
     );
   }
-  if (ws.bound && ws.machine?.id) {
+  if (false && ws.bound && ws.machine?.id) {
     return <Navigate to={`/chat?machine=${encodeURIComponent(ws.machine.id)}`} replace />;
   }
 
   return (
     <PageWrapper>
-      <div className="relative overflow-hidden min-h-screen">
-        <section className="relative px-6 pt-36 pb-20 md:pt-48 md:pb-28 overflow-hidden">
-          <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full bg-tecdia-accent/10 blur-3xl pointer-events-none" />
-          <div className="absolute top-40 right-10 w-64 h-64 rounded-full bg-[#89CFF3]/30 blur-2xl pointer-events-none" />
-          <div className="absolute top-20 left-10 w-48 h-48 rounded-full bg-white/40 blur-2xl pointer-events-none" />
-
+      <div className="relative min-h-screen">
+        
+        {/* HERO SECTION (Dark theme with background image) */}
+        <section 
+          className="relative px-6 pt-32 pb-24 md:pt-40 md:pb-32 overflow-hidden bg-slate-950"
+          style={{
+            backgroundImage: `linear-gradient(to bottom, rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.95)), url(${imageeImg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        >
           <div className="max-w-7xl mx-auto relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-              <div className="relative z-20">
-                <motion.h1 {...fadeUp(0.05)} className="text-5xl sm:text-6xl md:text-7xl font-bold leading-[1.06] mb-6">
-                  <span className="text-tecdia-textDeep">Tecdia </span>
-                  <span className="text-tecdia-accent">SmartFix</span>
-                </motion.h1>
+            <div className="max-w-3xl">
+              <motion.h1 {...fadeUp(0.05)} className="text-5xl sm:text-6xl md:text-[80px] font-bold leading-[1.05] mb-4 text-white">
+                TECDIA SmartFix
+              </motion.h1>
+              <motion.h2 {...fadeUp(0.1)} className="text-3xl sm:text-4xl md:text-5xl font-bold leading-[1.1] mb-6 text-white">
+                Industrial AI Diagnostics
+              </motion.h2>
 
-                <motion.p {...fadeUp(0.15)} className="text-tecdia-text/70 text-lg max-w-xl mb-10 leading-relaxed">
-                  Select your machine, describe the issue, and get expert-level fault analysis
-                  in seconds — powered by industrial AI trained on real engineering data.
-                </motion.p>
+              <motion.p {...fadeUp(0.15)} className="text-slate-300 text-lg md:text-xl max-w-2xl mb-10 leading-relaxed font-light">
+                Select your machine, describe the issue, and get expert-level fault analysis in seconds — powered by industrial AI trained on real engineering data.
+              </motion.p>
 
-                <motion.div {...fadeUp(0.22)} className="flex flex-col sm:flex-row gap-3 mb-8">
-                  <Link to="/chat" className="btn-primary flex items-center justify-center gap-2.5 text-base px-8 py-4 shadow-lg hover:shadow-xl transition-shadow">
-                    Start Diagnosing <ArrowRight size={18} />
-                  </Link>
-                  <Link to="/machines" className="btn-secondary flex items-center justify-center gap-2 text-base px-8 py-4">
-                    View Machines <ChevronRight size={16} />
-                  </Link>
-                </motion.div>
-
-                {/* Domain selector — calls POST /auth/worker-session */}
-                <motion.div {...fadeUp(0.3)} className="relative z-30 bg-white/50 backdrop-blur-sm border border-tecdia-border rounded-2xl p-6 max-w-xl">
-                  <div className="flex items-center gap-2 mb-4 text-tecdia-textDeep font-bold text-sm">
-                    <Shield size={16} className="text-tecdia-accent" />
-                    Select Your Expertise Domain
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {EXPERTISE_DOMAINS.map(domain => (
-                      <button
-                        key={domain}
-                        type="button"
-                        onClick={async () => {
-                          const result = await login(domain);
-                          if (!result.success) alert(result.error);
-                        }}
-                        className={`text-xs py-2 px-3 rounded-lg border transition-all cursor-pointer ${
-                          user.domain === domain
-                            ? 'bg-tecdia-accent text-white border-tecdia-accent shadow-sm'
-                            : 'bg-white/60 text-tecdia-text/60 border-tecdia-border hover:border-tecdia-accent/60 hover:bg-white hover:shadow-sm'
-                        }`}
-                      >
-                        {domain}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="mt-4 text-[10px] text-tecdia-text/40 leading-relaxed italic">
-                    Select your domain to access relevant machine diagnostics. Sessions last 12 hours.
-                  </p>
-                </motion.div>
-              </div>
-
-              <motion.div {...fadeUp(0.2)} className="hidden lg:flex items-center justify-end relative">
-                {/* Robot Floating on Left */}
-                <div className="relative w-[260px] h-[260px] -mr-12 z-20 pointer-events-none drop-shadow-2xl translate-y-4">
-                  <ChromaKeyVideo
-                    src="/src/assets/robot.webm"
-                    width={260}
-                    height={260}
-                    className="relative"
-                  />
-                </div>
-
-                {/* Chat Preview on Right */}
-                <div className="relative z-10 w-full max-w-[420px]">
-                  <ChatPreview />
-                </div>
+              <motion.div {...fadeUp(0.22)} className="flex flex-col sm:flex-row gap-4">
+                <Link to="/chat" className="bg-white text-slate-900 font-bold hover:bg-slate-100 flex items-center justify-center gap-2.5 text-base px-8 py-4 rounded-full shadow-lg hover:shadow-xl transition-all">
+                  Start Diagnosing <ArrowRight size={18} />
+                </Link>
+                <Link to="/machines" className="bg-slate-800/50 backdrop-blur-md text-white border border-slate-700 hover:bg-slate-800 flex items-center justify-center gap-2 text-base px-8 py-4 rounded-full transition-all">
+                  View Machines <ChevronRight size={16} />
+                </Link>
               </motion.div>
             </div>
           </div>
         </section>
 
-        {/* Support Section */}
-        <section className="relative px-6 py-20 bg-[#C6EFFF]">
-          <div className="max-w-3xl mx-auto text-center">
-            <motion.h2 {...fadeUp(0)} className="text-3xl md:text-4xl font-bold text-tecdia-textDeep mb-4">
-              Expert <span className="text-tecdia-accent">Technician Support</span>
+        {/* DOMAIN SELECTOR SECTION (White background) */}
+        <section className="relative px-6 pt-20 md:pt-32 pb-10 bg-white">
+          <div className="max-w-4xl mx-auto text-center">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
+              <h2 className="text-3xl md:text-4xl font-bold text-landing-textDeep mb-6">
+                Tailored for your <span className="text-landing-accent">Expertise</span>
+              </h2>
+              <p className="text-landing-text/60 mb-8 leading-relaxed text-lg max-w-2xl mx-auto">
+                Access machine diagnostics specific to your operational domain. Our AI adapts to your specialized engineering field.
+              </p>
+
+              <div className="bg-landing-background/50 border border-landing-border rounded-2xl p-6 max-w-xl mx-auto text-left shadow-sm">
+                <div className="flex items-center gap-2 mb-5 text-landing-textDeep font-bold text-sm">
+                  <Shield size={18} className="text-landing-accent" />
+                  Select Your Expertise Domain
+                </div>
+                <div className="flex flex-col gap-3">
+                  {EXPERTISE_DOMAINS.map(domain => (
+                    <button
+                      key={domain}
+                      type="button"
+                      onClick={async () => {
+                        const result = await login(domain);
+                        if (!result.success) alert(result.error);
+                      }}
+                      className={`text-sm py-3 px-4 rounded-xl border text-left font-semibold transition-all cursor-pointer flex justify-between items-center ${
+                        user.domain === domain
+                          ? 'bg-landing-accent text-white border-landing-accent shadow-md'
+                          : 'bg-white text-landing-text/70 border-landing-border hover:border-landing-accent/60 hover:bg-slate-50 hover:shadow-sm'
+                      }`}
+                    >
+                      {domain}
+                      {user.domain === domain && <CheckCircle size={18} />}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-5 text-[11px] text-landing-text/40 leading-relaxed italic text-center">
+                  Select your domain to access relevant machine diagnostics. Sessions last 12 hours.
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* EQUIPMENT SLIDER SECTION (Dark Theme) */}
+        {machines.length > 0 && (
+          <section className="relative px-6 py-20 bg-black overflow-hidden">
+            <div className="max-w-[1400px] mx-auto">
+              <div className="flex items-end justify-between mb-10">
+                <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">
+                  Supported Equipment
+                </h2>
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => scrollSlider('left')}
+                    className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 transition-colors"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button 
+                    onClick={() => scrollSlider('right')}
+                    className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 transition-colors"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+              </div>
+
+              <div 
+                ref={sliderRef}
+                className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory scrollbar-hide"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {machines.map(machine => (
+                  <div key={machine.id} className="snap-start shrink-0 w-[280px] sm:w-[320px] md:w-[350px]">
+                    <MachineCard machine={machine} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* FEATURES GRID (Bento Style) */}
+        <section className="relative px-6 py-10 md:pb-16 bg-white">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-4xl md:text-5xl font-bold text-landing-textDeep mb-10 tracking-tight">
+              Intelligent Diagnostics
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              <div className="md:col-span-2">
+                <FeatureCard 
+                  icon={MessageSquare}
+                  imageSrc={pImg}
+                  badgeText="Core Interface"
+                  title="Natural Language Diagnostics"
+                  description="Workers simply describe machine symptoms in plain English to receive immediate, actionable troubleshooting steps."
+                />
+              </div>
+
+              <div className="md:col-span-1">
+                <FeatureCard 
+                  icon={BookOpen}
+                  imageSrc={manualImg}
+                  badgeText="AI Retrieval"
+                  title="Instant Manual Retrieval"
+                  description="Uses advanced AI to instantly retrieve the exact relevant pages from thousands of indexed engineering manuals."
+                />
+              </div>
+
+              <div className="md:col-span-1">
+                <FeatureCard 
+                  icon={BellRing}
+                  imageSrc={alertImg}
+                  badgeText="Monitoring"
+                  title="Severity-Weighted Alerts"
+                  description="Automatically calculates issue severity and fires immediate alerts to managers when critical faults are detected."
+                />
+              </div>
+
+
+
+            </div>
+          </div>
+        </section>
+
+        {/* SUPPORT SECTION */}
+        <section className="relative px-6 py-20 overflow-hidden">
+
+          {/* Light overlay for readability */}
+          <div className="absolute inset-0 bg-white/50"></div>
+
+          <div className="relative z-10 max-w-3xl mx-auto text-center">
+            <motion.h2 {...fadeUp(0)} className="text-3xl md:text-4xl font-bold text-black mb-4">
+              Expert Technician Support
             </motion.h2>
-            <motion.p {...fadeUp(0.1)} className="text-tecdia-text/60 leading-relaxed max-w-2xl mx-auto mb-12">
+            <motion.p {...fadeUp(0.1)} className="text-black font-medium leading-relaxed max-w-2xl mx-auto mb-12">
               Facing a complex issue? Our expert engineers are here to help you get back to peak productivity. Reach out directly for specialized machine diagnostics and technical assistance.
             </motion.p>
             
             <motion.div {...fadeUp(0.2)} className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-16">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#A5E3FE] text-tecdia-accent flex items-center justify-center">
-                  <Mail size={20} />
-                </div>
-                <div className="text-left">
-                  <p className="text-[10px] font-bold text-tecdia-text/40 uppercase tracking-widest mb-0.5">Email Support</p>
-                  <a href="mailto:smartfix@tecdia.co.jp" className="text-sm font-bold text-tecdia-textDeep hover:text-tecdia-accent transition-colors">smartfix@tecdia.co.jp</a>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#A5E3FE] text-tecdia-accent flex items-center justify-center">
-                  <Phone size={20} />
-                </div>
-                <div className="text-left">
-                  <p className="text-[10px] font-bold text-tecdia-text/40 uppercase tracking-widest mb-0.5">Technician Hotline</p>
-                  <a href="tel:+813XXXXXXXX" className="text-sm font-bold text-tecdia-textDeep hover:text-tecdia-accent transition-colors">+81-3-XXXX-XXXX</a>
-                </div>
-              </div>
+              <Link to="/contact" className="bg-white text-black font-bold hover:bg-gray-100 flex items-center justify-center gap-2 text-base px-10 py-4 rounded-full shadow-lg hover:shadow-xl transition-all">
+                Contact Us
+              </Link>
             </motion.div>
           </div>
         </section>

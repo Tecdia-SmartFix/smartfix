@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,27 +6,73 @@
 
 @layer base {
   html {
+    font-size: 10px;
     scroll-behavior: smooth;
+  }
+
+  ::selection {
+    background-color: #2b8cff;
+    color: #FFFFFF;
+  }
+
+  a, button {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  a:focus, button:focus {
+    outline: none;
   }
 
   body {
     @apply antialiased transition-colors duration-500;
-    font-family: 'Inter', sans-serif;
     margin: 0;
     min-height: 100vh;
-    background-color: #CDF5FD;
-    color: #1a1a2e;
+    font-family: 'Inter', sans-serif;
+    font-size: 1.5rem; /* 15px instead of 16 */
+    font-weight: 400;
+    line-height: 1.75;
+    letter-spacing: 0.15px;
+    color: #eaeaea;
+    background: #050816;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    font-family: "Nunito", sans-serif;
+  /* Main Hero Heading */
+  h1 {
+    font-family: 'Sora', sans-serif;
+    font-size: clamp(4.8rem, 7vw, 7.2rem);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -0.035em;
+    color: #111111;
+  }
+
+  /* Section Heading */
+  h2 {
+    font-family: 'Sora', sans-serif;
+    font-size: clamp(3.2rem, 4vw, 4.6rem);
+    font-weight: 700;
+    line-height: 1.15;
     letter-spacing: -0.02em;
-    color: #1a1a2e;
+    color: #111111;
+  }
+
+  /* Card / Feature Titles */
+  h3 {
+    font-family: 'Sora', sans-serif;
+    font-size: 2.1rem;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    color: #111111;
+  }
+
+  /* Paragraph */
+  p {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 400;
+    line-height: 1.8;
+    color: #5f5f5f;
   }
 
   .font-angkor {
@@ -35,66 +81,100 @@
     font-style: normal;
   }
 
-  /* Custom scrollbar */
+  /* Custom scrollbar matching dark sleek theme */
   ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 14px;
+    height: 14px;
   }
 
   ::-webkit-scrollbar-track {
-    background: #CDF5FD;
-    border-radius: 99px;
+    background: #1e1e1e;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #89CFF3;
-    border-radius: 99px;
+    background: #424242;
+    border: 3px solid #1e1e1e;
+    border-radius: 7px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #00A9FF;
+    background: #4f4f4f;
+  }
+
+  ::-webkit-scrollbar-button {
+    background-color: #1e1e1e;
+    display: block;
+    height: 14px;
+  }
+
+  ::-webkit-scrollbar-button:single-button:vertical:decrement {
+    background: #1e1e1e url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='4' viewBox='0 0 8 4'%3E%3Cpath d='M4 0L8 4H0z' fill='%23cccccc'/%3E%3C/svg%3E") no-repeat center center;
+  }
+
+  ::-webkit-scrollbar-button:single-button:vertical:increment {
+    background: #1e1e1e url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='4' viewBox='0 0 8 4'%3E%3Cpath d='M0 0h8L4 4z' fill='%23cccccc'/%3E%3C/svg%3E") no-repeat center center;
+  }
+
+  ::-webkit-scrollbar-button:single-button:vertical:decrement:hover,
+  ::-webkit-scrollbar-button:single-button:vertical:increment:hover {
+    background-color: #2d2d2d;
   }
 }
 
 @layer components {
+
+  /* Sub-heading */
+  .sub-heading {
+    font-size: 2.4rem; /* was 28px */
+    font-weight: 500;
+    line-height: 1.55;
+    color: #5f5f5f;
+  }
+
+  /* Small text */
+  .small-text {
+    font-size: 1.15rem;
+    color: #7a7a7a;
+    line-height: 1.6;
+  }
 
   /* ── Solid surfaces ── */
   .glass,
   .glass-card,
   .stat-pill {
     @apply rounded-2xl p-6 border transition-all duration-200;
-    background: #A0E9FF;
-    border-color: #89CFF3;
+    background: #FFFFFF;
+    border-color: #E5E7EB;
   }
 
   .glass-card:hover {
-    background: #CDF5FD;
-    border-color: #00A9FF;
+    background: #F2F2F2;
+    border-color: #2b8cff;
   }
 
   .glass-deep {
-    background: #CDF5FD;
-    border: 1px solid #89CFF3;
+    background: #F2F2F2;
+    border: 1px solid #E5E7EB;
   }
 
   /* ── Accent text ── */
   .text-gradient,
   .text-gradient-bright {
-    color: #00A9FF;
+    color: #2b8cff;
   }
 
   /* ── Buttons ── */
   .btn-primary {
     @apply font-bold rounded-xl transition-all duration-200 active:scale-95;
     padding: 0.75rem 1.5rem;
-    background: #00A9FF;
+    background: #2b8cff;
     color: #ffffff;
-    box-shadow: 0 8px 32px rgba(0, 169, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(43, 140, 255, 0.3);
   }
 
   .btn-primary:hover {
-    background: #0088cc;
-    box-shadow: 0 12px 40px rgba(0, 169, 255, 0.4);
+    background: #1a7ae5;
+    box-shadow: 0 12px 40px rgba(43, 140, 255, 0.4);
     transform: translateY(-1px);
   }
 
@@ -102,41 +182,42 @@
     @apply font-bold rounded-xl border-2 transition-all duration-200 active:scale-95;
     padding: 0.75rem 1.5rem;
     background: #ffffff;
-    color: #00A9FF;
-    border-color: #00A9FF;
+    color: #2b8cff;
+    border-color: #2b8cff;
   }
 
   .btn-secondary:hover {
     background: #f0faff;
-    border-color: #0088cc;
-    color: #0088cc;
+    border-color: #1a7ae5;
+    color: #1a7ae5;
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(0, 169, 255, 0.15);
+    box-shadow: 0 4px 16px rgba(43, 140, 255, 0.15);
   }
 
   /* ── Input glow ── */
   .input-glow:focus-within {
-    border-color: #00A9FF !important;
-    box-shadow: 0 0 0 3px rgba(0, 169, 255, 0.1) !important;
+    border-color: #2b8cff !important;
+    box-shadow: 0 0 0 3px rgba(43, 140, 255, 0.1) !important;
   }
 
   /* ── Feature card ── */
   .feature-card {
     @apply rounded-2xl p-7 transition-all duration-200 relative overflow-hidden;
-    background: #A0E9FF;
-    border: 2px solid #89CFF3;
+    background: #FFFFFF;
+    border: 2px solid #E5E7EB;
   }
 
   .feature-card:hover {
     background: white;
-    border-color: #00A9FF;
-    box-shadow: 0 8px 32px rgba(0, 169, 255, 0.12);
+    border-color: #2b8cff;
+    box-shadow: 0 8px 32px rgba(43, 140, 255, 0.12);
     transform: translateY(-2px);
   }
 
   /* ── Custom scrollbar class ── */
   .custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
+    width: 5px;
+    height: 5px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
@@ -144,12 +225,16 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #89CFF3;
+    background: rgba(255, 255, 255, 0.12);
     border-radius: 99px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #00A9FF;
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-button {
+    display: none;
   }
 }
 

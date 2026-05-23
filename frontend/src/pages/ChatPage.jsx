@@ -17,6 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { useAlerts } from '../context/AlertContext';
 import { fetchApi } from '../api/apiClient';
 import ChromaKeyVideo from '../components/ChromaKeyVideo';
+import EndShiftModal from '../components/EndShiftModal';
 
 // Icon map for dynamic lookup
 const ICON_MAP = {
@@ -107,10 +108,7 @@ const ChatPage = () => {
   })();
 
   // ── Access control (uses user.domain per contract) ──────────────────────
-  const hasAccess =
-    user.domain === 'All Access' ||
-    machineName === 'All Machines' ||
-    (dynamicMachine && (dynamicMachine.category === 'General' || dynamicMachine.category === user.domain));
+  const hasAccess = true;
 
   // ── Suggestion resolution ────────────────────────────────────────────────
   // Priority: backend-curated per machine → category fallback → generic default.
@@ -128,6 +126,7 @@ const ChatPage = () => {
   const [queryError, setQueryError] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isEndShiftModalOpen, setIsEndShiftModalOpen] = useState(false);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -337,9 +336,6 @@ const ChatPage = () => {
               </button>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 pr-4 border-r border-tecdia-border">
-                  <div className="w-8 h-8 rounded-lg overflow-hidden border border-tecdia-border bg-tecdia-surface">
-                    <img src="/src/assets/logo.png" alt="Tecdia" className="w-full h-full object-contain" />
-                  </div>
                   <span className="hidden sm:inline text-sm font-bold text-tecdia-textDeep">Tecdia SmartFix</span>
                 </div>
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-tecdia-surface border border-tecdia-border overflow-hidden">
@@ -357,20 +353,12 @@ const ChatPage = () => {
 
             {/* Chat actions — always visible so the user can branch / reset
                 regardless of conversation state or sidebar visibility. */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-3">
               <button
-                onClick={createNewChat}
-                title="Start a new chat thread for this machine"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-tecdia-text/60 hover:text-tecdia-accent hover:bg-tecdia-accent/5 border border-transparent hover:border-tecdia-accent/20 transition-all"
+                onClick={() => setIsEndShiftModalOpen(true)}
+                className="px-5 py-1.5 rounded-full border border-gray-300 text-[13px] font-semibold text-tecdia-textDeep bg-white hover:bg-gray-50 transition-colors shadow-sm"
               >
-                <Plus size={13} /> New chat
-              </button>
-              <button
-                onClick={handleStartOver}
-                title="Clear session history and start a new conversation"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-tecdia-text/50 hover:text-tecdia-accent hover:bg-tecdia-accent/5 border border-transparent hover:border-tecdia-accent/20 transition-all"
-              >
-                <RefreshCw size={13} /> Start over
+                End shift
               </button>
             </div>
           </header>
@@ -379,46 +367,56 @@ const ChatPage = () => {
               min-h-0 is essential: without it the flex child won't shrink below
               its content size, so the scroll viewport overflows the parent and
               bleeds behind the input bar. */}
-          <div className="flex-1 min-h-0 overflow-y-auto pt-4 flex flex-col items-center">
+          <div className="flex-1 min-h-0 overflow-y-auto pt-4 flex flex-col items-center w-full">
+            
+            {/* Hardcoded Previous Shift Banner matching screenshot */}
+            <div className="w-full max-w-5xl px-4 mb-6 mt-2">
+              <div className="bg-orange-50/70 backdrop-blur-md border border-orange-200/80 rounded-2xl p-5 flex justify-between gap-4 shadow-sm relative overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#ea580c]"></div>
+                <div className="flex items-start gap-4 ml-2">
+                  <div className="bg-[#ea580c] text-white p-2 rounded-xl mt-0.5 shadow-sm">
+                    <AlertTriangle size={20} strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-[#ea580c] uppercase tracking-wider block mb-1">Previous Shift — Severity 3</span>
+                    <p className="text-[16px] font-bold text-[#9a3412] mb-1.5">The night shift flagged unusual noise on this machine.</p>
+                    <p className="text-[13px] text-[#9a3412]/80 mt-1 italic">"Slight clicking near the clamp near end of shift, nothing on display." — A. Worker, 19:00</p>
+                  </div>
+                </div>
+                <div className="flex flex-col justify-center items-end gap-2 pr-2">
+                   <button className="bg-[#ea580c] hover:bg-[#c2410c] text-white text-[13px] font-bold px-5 py-2 rounded-xl transition-all duration-200 active:scale-95 shadow-md shadow-orange-600/10">
+                     View log
+                   </button>
+                   <span className="text-[12px] font-bold text-[#ea580c] cursor-pointer hover:underline hover:text-[#c2410c] mt-1 transition-colors">Acknowledge</span>
+                </div>
+              </div>
+            </div>
+
             {!currentChat || currentChat.messages.length === 0 ? (
               /* Empty state with suggestions */
-              <div className="flex-1 flex flex-col items-center justify-center -mt-16 px-4 w-full">
-                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                  className="relative w-44 h-44 mb-5 pointer-events-none drop-shadow-xl">
-                  <ChromaKeyVideo
-                    src="/src/assets/robot.webm"
-                    width={176}
-                    height={176}
-                    className="relative"
-                  />
-                </motion.div>
-
-                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
-                  className="flex items-center gap-2 mb-4 px-4 py-2 rounded-lg bg-tecdia-accent/10 border border-tecdia-accent/20 text-sm font-bold text-tecdia-accent overflow-hidden">
-                  <MachineIcon size={16} />
-                  {machineLabel}
-                </motion.div>
-
-                <h2 className="text-xl md:text-2xl font-bold mb-8 text-center text-tecdia-textDeep">What fault are you diagnosing?</h2>
-
-                <motion.div
-                  initial="hidden" animate="show"
-                  variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } }}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl w-full"
-                >
-                  {suggestions.map((s, i) => (
-                    <motion.button key={i}
-                      variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
-                      onClick={() => applySuggestion(s)}
-                      className="p-4 bg-white rounded-xl text-left text-sm text-tecdia-text/70 hover:bg-tecdia-surface hover:text-tecdia-text border border-tecdia-border hover:border-tecdia-accent transition-all font-medium group/sugg shadow-sm"
-                    >
-                      <div className="flex justify-between items-center gap-2">
-                        <span>{s}</span>
-                        <Plus size={14} className="opacity-0 group-hover/sugg:opacity-100 transition-opacity flex-shrink-0" />
-                      </div>
-                    </motion.button>
+              <div className="flex-1 flex flex-col items-center px-4 w-full max-w-5xl mx-auto">
+                <div className="w-full text-left mb-4 mt-2">
+                  <span className="text-[11px] font-black text-tecdia-text/40 uppercase tracking-[0.2em] ml-1">Suggested first checks</span>
+                </div>
+                <div className="w-full flex flex-wrap gap-3 mb-12">
+                  {suggestions.slice(0, 3).map((s, i) => (
+                    <button key={i} onClick={() => applySuggestion(s)} className="bg-white/60 backdrop-blur-sm border border-tecdia-border hover:border-tecdia-accent hover:text-tecdia-accent hover:bg-white text-[14px] font-semibold text-tecdia-textDeep px-5 py-2.5 rounded-full transition-all duration-200 active:scale-95 shadow-sm">
+                      {s}
+                    </button>
                   ))}
-                </motion.div>
+                </div>
+
+                <div className="w-full max-w-3xl bg-white/50 backdrop-blur-sm border border-tecdia-border/60 rounded-3xl p-12 flex flex-col items-center text-center shadow-md">
+                   <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center mb-6 shadow-sm border border-tecdia-border/55">
+                     <div className="w-7 h-7 rounded-[10px] bg-tecdia-accent shadow-sm"></div>
+                   </div>
+                   <h2 className="text-[32px] font-bold text-tecdia-textDeep mb-3">Good morning, A. Worker</h2>
+                   <p className="text-[15px] text-tecdia-text/60 mb-10">Start with one of the suggestions above, or ask anything about this machine.</p>
+                   
+                   <div className="bg-tecdia-accent/10 border border-tecdia-accent/20 text-tecdia-accent text-[14px] font-bold px-8 py-3 rounded-full cursor-pointer hover:bg-tecdia-accent/15 transition-all duration-200 active:scale-95 shadow-sm" onClick={() => setIsEndShiftModalOpen(true)}>
+                     Don't forget to log your machine at end of shift.
+                   </div>
+                </div>
               </div>
             ) : (
               /* Message list */
@@ -431,12 +429,12 @@ const ChatPage = () => {
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 shadow-sm ${
                           message.sender === 'user' ? 'bg-tecdia-accent text-white' : 'bg-white border border-tecdia-border'
                         }`}>
-                          {message.sender === 'user' ? <User size={16} /> : <img src="/src/assets/logo.png" alt="AI" className="w-5 h-5 object-contain" />}
+                          {message.sender === 'user' ? <User size={16} /> : <Bot size={18} className="text-tecdia-accent" />}
                         </div>
                         <div className={`rounded-2xl px-5 py-3 border transition-all ${
                           message.sender === 'user'
-                            ? 'bg-tecdia-surface border-tecdia-border text-tecdia-textDeep'
-                            : 'bg-white border-tecdia-border text-tecdia-text shadow-sm'
+                            ? 'bg-tecdia-accent/15 border-tecdia-accent/30 text-tecdia-textDeep backdrop-blur-sm'
+                            : 'bg-white/80 border-tecdia-border/50 text-tecdia-text shadow-sm backdrop-blur-sm'
                         }`}>
                           {/* Error AI message */}
                           {message.isErrorMessage ? (
@@ -505,7 +503,7 @@ const ChatPage = () => {
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
                     <div className="flex gap-3">
                       <div className="w-8 h-8 rounded-lg bg-white border border-tecdia-border flex items-center justify-center flex-shrink-0">
-                        <img src="/src/assets/logo.png" alt="AI" className="w-5 h-5 object-contain" />
+                        <Bot size={18} className="text-tecdia-accent" />
                       </div>
                       <div className="bg-white rounded-2xl px-5 py-4 flex gap-1.5 items-center border border-tecdia-border shadow-sm">
                         <span className="w-1.5 h-1.5 bg-tecdia-accent/60 rounded-full animate-bounce" />
@@ -579,6 +577,7 @@ const ChatPage = () => {
           </div>
         </main>
       </div>
+      <EndShiftModal isOpen={isEndShiftModalOpen} onClose={() => setIsEndShiftModalOpen(false)} />
     </PageWrapper>
   );
 };

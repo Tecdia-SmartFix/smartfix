@@ -544,17 +544,19 @@ _VERIFY_INTERSTITIAL = """\
 <meta name="robots" content="noindex">
 <style>
   body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;
-       background:linear-gradient(135deg,#89CFF3 0%,#A0E9FF 50%,#89CFF3 100%);
-       min-height:100vh;display:flex;align-items:center;justify-content:center;color:#0a3a5e;}}
-  .card{{background:#fff;border-radius:20px;padding:40px;max-width:440px;width:90%;
-        box-shadow:0 20px 60px rgba(0,40,80,0.15);text-align:center;}}
-  h1{{font-size:24px;margin:0 0 8px;font-weight:800;}}
-  p{{font-size:14px;color:#1a1a2e;opacity:0.65;margin:0 0 24px;line-height:1.5;}}
-  button{{background:#00A9FF;color:#fff;border:0;padding:14px 32px;font-size:15px;
-         font-weight:700;border-radius:12px;cursor:pointer;
-         box-shadow:0 4px 16px rgba(0,169,255,0.35);}}
-  button:hover{{background:#0091e0;}}
-  .hint{{font-size:11px;color:#1a1a2e;opacity:0.45;margin-top:24px;}}
+       background:#111111;
+       min-height:100vh;display:flex;align-items:center;justify-content:center;}}
+  .card{{background:#ffffff;backdrop-filter:blur(20px);
+        border-radius:1.5rem;padding:3rem;max-width:32rem;width:90%;
+        border:1px solid rgba(255,255,255,0.6);box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);
+        text-align:center;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;}}
+  h1{{font-size:1.25rem;font-weight:900;color:#111111;margin:0 0 0.5rem;}}
+  p{{font-size:0.875rem;color:rgba(17,17,17,0.6);line-height:1.625;margin:0 0 1.5rem;max-width:20rem;}}
+  form{{margin:0;}}
+  button{{background:transparent;color:#5f6368;border:none;
+         padding:0;font-size:0.875rem;font-weight:500;cursor:pointer;}}
+  button:active{{transform:scale(0.98);}}
+  .hint{{font-size:0.75rem;color:rgba(17,17,17,0.6);margin-top:1.5rem;}}
 </style>
 </head>
 <body>
@@ -563,7 +565,7 @@ _VERIFY_INTERSTITIAL = """\
   <p>Click below to complete admin sign-in. This link is single-use.</p>
   <form method="POST" action="/auth/verify">
     <input type="hidden" name="token" value="{token}">
-    <button type="submit">Sign in &rarr;</button>
+    <button type="submit">Sign in</button>
   </form>
   <div class="hint">The link expires 15 minutes after it was sent.</div>
 </div>

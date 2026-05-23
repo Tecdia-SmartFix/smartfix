@@ -176,7 +176,7 @@ const CookiePolicy = () => (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <span className="font-bold text-black">Email:</span>
-                <a href="mailto:support@tecdia.com" className="text-black hover:text-tecdia-accent transition-colors font-bold underline decoration-black/30 underline-offset-4">support@tecdia.com</a>
+                <a href="mailto:support@tecdia.com" className="text-black hover:text-black transition-colors font-bold underline decoration-black/30 underline-offset-4">support@tecdia.com</a>
               </div>
               <div className="flex items-start gap-3">
                 <span className="font-bold text-black">Address:</span>

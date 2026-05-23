@@ -21,6 +21,7 @@ import IntegrationsPage from './pages/IntegrationsPage';
 import CookiePolicy from './pages/LegalNotice';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import CompanyPolicy from './pages/CompanyPolicy';
+import ContactPage from './pages/ContactPage';
 
 /**
  * Wraps <ChatPage /> with a React `key` derived from the ?machine= URL param.
@@ -57,6 +58,7 @@ const AnimatedRoutes = () => {
           <Route path="/company-policy" element={<CompanyPolicy />} />
           <Route path="/integration"  element={<IntegrationsPage />} />
           <Route path="/machines"     element={<MachinesPage />} />
+          <Route path="/contact"      element={<ContactPage />} />
           <Route path="/chat"         element={<ChatRoute />} />
           <Route path="/admin/login"  element={<AdminLogin />} />
           <Route path="/admin"        element={
@@ -78,8 +80,7 @@ function App() {
         <MachineProvider>
           <AlertProvider>
             <Router>
-              <div className="min-h-screen relative transition-colors duration-500 text-tecdia-text"
-                   style={{ background: 'linear-gradient(135deg, #89CFF3 0%, #A0E9FF 50%, #89CFF3 100%)' }}>
+              <div className="min-h-screen relative transition-colors duration-500 text-tecdia-text bg-tecdia-background">
                 <BackgroundAnimation />
                 <div className="relative z-10">
                   <AnimatedRoutes />

@@ -5,16 +5,18 @@ import { Lock, Mail, AlertCircle, CheckCircle2, ArrowRight, ExternalLink } from 
 import { useAdminAuth } from '../context/AdminAuthContext';
 
 const InputField = ({ icon: Icon, label, ...props }) => (
-  <div className="space-y-2">
-    <label className="block text-[11px] font-black uppercase tracking-widest text-[#1a1a2e]/50">
+  <div className="space-y-2 group">
+    <label className="block text-[11px] font-black uppercase tracking-widest text-[#111111]/50">
       {label}
     </label>
-    <div className="relative group">
-      <Icon size={15}
-        className="absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors duration-200 text-[#1a1a2e]/30 group-focus-within:text-[#00A9FF]" />
+    <div className="relative">
+      {Icon && (
+        <Icon size={15}
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors duration-200 text-[#111111]/30 group-focus-within:text-[#111111]" />
+      )}
       <input
         {...props}
-        className="w-full py-3.5 pl-10 pr-4 text-sm text-[#1a1a2e] placeholder:text-[#1a1a2e]/30 rounded-xl outline-none transition-all duration-200 bg-white border-2 border-[#89CFF3] focus:border-[#00A9FF] focus:ring-2 focus:ring-[#00A9FF]/10"
+        className="w-full py-3.5 px-4 text-sm text-[#111111] placeholder:text-[#111111]/30 focus:placeholder:text-[#111111] outline-none transition-all duration-200 bg-transparent border-0 border-b-2 border-[#E5E7EB] focus:ring-0 focus:border-b-[#111111]"
       />
     </div>
   </div>
@@ -58,35 +60,33 @@ const AdminLogin = () => {
   return (
     <div
       className="min-h-screen flex items-center justify-center px-4 pt-20 relative overflow-hidden"
-      style={{ background: 'linear-gradient(160deg, #89CFF3 0%, #CDF5FD 50%, #A0E9FF 100%)' }}
+      style={{ background: '#111111' }}
     >
-      {/* Decorative blobs */}
-      <div className="pointer-events-none absolute top-1/4 left-1/4 w-[350px] h-[350px] rounded-full bg-[#00A9FF]/15 blur-[80px] -z-0" />
-      <div className="pointer-events-none absolute bottom-1/4 right-1/4 w-[280px] h-[280px] rounded-full bg-[#89CFF3]/40 blur-[60px] -z-0" />
+
 
       <motion.div
         initial={{ opacity: 0, y: 28, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-md relative z-10"
+        className="w-full max-w-lg relative z-10"
       >
-        {/* Brand */}
-        <div className="text-center mb-10">
-          <Link to="/" className="inline-flex items-center gap-2.5 mb-7">
-            <div className="w-10 h-10 rounded-xl overflow-hidden bg-white border-2 border-[#89CFF3] shadow-sm">
-              <img src="/src/assets/logo.png" alt="Tecdia" className="w-full h-full object-contain" />
-            </div>
-            <span className="text-lg font-bold text-[#1a1a2e]">Tecdia <span className="text-[#00A9FF]">SmartFix</span></span>
-          </Link>
+        {/* Brand — only visible on step 1 */}
+        {step === 1 && (
+          <div className="text-center mb-10">
+            <Link to="/" className="inline-flex items-center gap-2.5 mb-7">
 
-          <h1 className="text-3xl font-black text-[#1a1a2e] mb-2">Welcome back</h1>
-          <p className="text-sm text-[#1a1a2e]/50">Restricted area — authorized personnel only</p>
-        </div>
+              <span className="text-5xl sm:text-6xl font-bold leading-[1.05] text-white tracking-tight">Tecdia SmartFix</span>
+            </Link>
+
+            <h1 className="text-3xl font-black text-white/50 mb-2">Sign in</h1>
+            <p className="text-sm text-white/50">Enter your email to receive a secure sign-in link</p>
+          </div>
+        )}
 
         {/* Form Card */}
         <div
-          className="rounded-3xl p-8 border border-white/60 shadow-2xl overflow-hidden relative"
-          style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(20px)' }}
+          className="rounded-3xl p-12 border border-white/60 shadow-2xl overflow-hidden relative"
+          style={{ background: '#ffffff', backdropFilter: 'blur(20px)' }}
         >
           <AnimatePresence mode="wait">
             {step === 1 ? (
@@ -95,12 +95,11 @@ const AdminLogin = () => {
                 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
 
                 <InputField
-                  icon={Mail}
                   label="Admin Email"
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder="admin@tecdia.com.ph"
+                  placeholder="Email address"
                   autoComplete="email"
                   required
                 />
@@ -112,23 +111,22 @@ const AdminLogin = () => {
                   </motion.div>
                 )}
 
-                <button
-                  type="submit"
-                  disabled={loading || !email}
-                  className={`w-full py-4 rounded-2xl font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${loading || !email
-                    ? 'bg-[#A0E9FF] text-[#1a1a2e]/40 cursor-not-allowed border-2 border-[#89CFF3]'
-                    : 'bg-[#00A9FF] text-white active:scale-[0.98]'
-                    }`}
-                >
+                <div className="text-center pt-2">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="font-medium text-sm text-[#5f6368] border-b-[1.5px] border-[#5f6368] pb-[1px] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2 leading-none"
+                  >
                   {loading ? (
                     <>
                       <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                       Sending...
                     </>
                   ) : (
-                    <><Mail size={14} /> Request Login Link</>
+                    "Request Login Link"
                   )}
                 </button>
+                </div>
               </motion.form>
 
             ) : (
@@ -136,31 +134,31 @@ const AdminLogin = () => {
               <motion.div key="step2" className="space-y-5"
                 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
 
-                {/* Success icon */}
-                <div className="flex flex-col items-center text-center py-4">
-                  <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center mb-5">
-                    <CheckCircle2 size={32} className="text-emerald-500" />
-                  </div>
-                  <h2 className="text-xl font-black text-[#1a1a2e] mb-2">Check your email</h2>
-                  <p className="text-sm text-[#1a1a2e]/60 leading-relaxed max-w-xs">
+                {/* Success text */}
+                <div className="flex flex-col items-start text-left pt-2 pb-1">
+                  <h2 className="text-xl font-black text-[#111111] mb-2">Check your email</h2>
+                  <p className="text-sm text-[#111111] leading-relaxed max-w-xs">
                     We sent a secure login link to{' '}
-                    <span className="font-bold text-[#00A9FF]">{email}</span>.
+                    <span className="font-normal">{email}</span>.
                     Click the link in the email to sign in.
                   </p>
                 </div>
 
+                <div className="h-[1px] w-full bg-[#111111]" />
+
                 {/* Info note */}
-                <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-[#89CFF3]/20 border border-[#89CFF3]/40 text-xs text-[#1a1a2e]/60">
-                  <Lock size={13} className="flex-shrink-0 mt-0.5 text-[#00A9FF]" />
+                <div className="text-xs text-[#111111]/60">
                   <span>The link expires in <strong>15 minutes</strong> and is single-use. If you don't see the email, check your spam folder.</span>
                 </div>
 
+                <div className="h-[1px] w-full bg-[#111111]" />
+
                 {/* Resend link */}
-                <div className="text-center">
+                <div className="text-center pt-1">
                   <button
                     type="button"
                     onClick={() => { setStep(1); setError(''); }}
-                    className="text-xs text-[#1a1a2e]/50 hover:text-[#00A9FF] transition-colors underline underline-offset-2"
+                    className="text-xs text-[#111111]/50 transition-colors underline underline-offset-2 select-none"
                   >
                     Didn't receive the email? Try again
                   </button>
@@ -170,9 +168,7 @@ const AdminLogin = () => {
           </AnimatePresence>
         </div>
 
-        <p className="text-center text-xs mt-6 text-[#1a1a2e]/40">
-          <Link to="/" className="transition-colors duration-200 hover:text-[#00A9FF]">← Back to Tecdia SmartFix</Link>
-        </p>
+
       </motion.div>
     </div>
   );

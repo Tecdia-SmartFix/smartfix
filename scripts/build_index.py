@@ -51,7 +51,7 @@ def load_chunks(cache_dir: Path) -> list[dict]:
     chunks = []
     for json_file in sorted(cache_dir.glob("*.json")):
         print(f"Reading {json_file.name}...")
-        with json_file.open() as f:
+        with json_file.open("r", encoding="utf-8") as f:
             data = json.load(f)
         for raw in data:
             chunks.append(normalize_chunk(raw, json_file.stem.replace("_chunks", "")))
