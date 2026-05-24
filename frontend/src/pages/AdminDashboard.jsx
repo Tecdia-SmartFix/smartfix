@@ -548,14 +548,28 @@ const MACHINE_COLORS = ['#111111', '#555555', '#0A2540', '#999999', '#333333', '
 
 const QuestionItem = ({ q }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const machineLabel = (q.machine || '')
+    .replaceAll('_', ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, l => l.toUpperCase());
   return (
     <div className="flex flex-col bg-[#F0F0F0] mb-0.5 last:mb-0 transition-colors hover:bg-[#E5E5E5]">
-      <div 
+      <div
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between px-5 py-4 cursor-pointer"
+        className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer"
       >
-        <span className="text-[15px] font-medium text-black">{q.question}</span>
-        <span className="text-black text-2xl leading-none font-light ml-4">{isOpen ? '−' : '+'}</span>
+        <div className="flex flex-col min-w-0 flex-1">
+          <span className="text-[15px] font-medium text-black truncate">{q.question}</span>
+          {machineLabel && (
+            <span className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-tecdia-text/45">
+              {machineLabel}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-[11px] font-mono tabular-nums text-tecdia-text/45 font-semibold">×{q.count}</span>
+          <span className="text-black text-2xl leading-none font-light">{isOpen ? '−' : '+'}</span>
+        </div>
       </div>
       <AnimatePresence>
         {isOpen && (
@@ -572,6 +586,40 @@ const QuestionItem = ({ q }) => {
         )}
       </AnimatePresence>
     </div>
+  );
+};
+
+// Most-asked questions, flat list. Initial render shows TOP_N, "Show more"
+// expands the rest into a scroll area so the card doesn't dominate the page.
+const TOP_QUESTIONS_INITIAL = 5;
+const TopQuestions = ({ questions }) => {
+  const [expanded, setExpanded] = useState(false);
+  // Defensive sort — backend already orders by count, but if a caller wires
+  // this up with a different source it'll still render the heaviest first.
+  const sorted = [...questions].sort((a, b) => (b.count || 0) - (a.count || 0));
+  const visible = expanded ? sorted : sorted.slice(0, TOP_QUESTIONS_INITIAL);
+  const hiddenCount = Math.max(0, sorted.length - TOP_QUESTIONS_INITIAL);
+
+  return (
+    <SectionCard>
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Most-asked questions</h3>
+        <span className="text-[11px] font-mono text-tecdia-text/40 tabular-nums">{sorted.length} total</span>
+      </div>
+      <div className={`flex flex-col ${expanded ? 'custom-scrollbar max-h-[420px] overflow-y-auto pr-2' : ''}`}>
+        {visible.map((q, i) => (
+          <QuestionItem key={`${q.machine}_${q.question}_${i}`} q={q} />
+        ))}
+      </div>
+      {hiddenCount > 0 && (
+        <button
+          onClick={() => setExpanded(e => !e)}
+          className="mt-4 w-full text-center text-[12px] font-bold uppercase tracking-[0.16em] text-tecdia-accent hover:text-tecdia-textDeep transition-colors"
+        >
+          {expanded ? 'Show fewer' : `Show ${hiddenCount} more`}
+        </button>
+      )}
+    </SectionCard>
   );
 };
 
@@ -738,7 +786,9 @@ const AnalyticsPanel = () => {
           {code_frequency.length === 0 ? (
             <p className="text-sm text-tecdia-text/40 italic">No coded queries yet.</p>
           ) : (
-            <div className="space-y-4">
+            // Cap visible bars so this card matches the donut card next to it;
+            // overflow scrolls the rest. ~6 rows fit before scroll kicks in.
+            <div className="custom-scrollbar space-y-4 max-h-[280px] overflow-y-auto pr-2">
               {code_frequency.map((c, i) => {
                 const maxCount = code_frequency[0]?.count || 1;
                 const pct = (c.count / maxCount) * 100;
@@ -798,32 +848,9 @@ const AnalyticsPanel = () => {
         </SectionCard>
       </div>
 
-      {/* ── Top questions (bonus, sparse table) ────────────────────── */}
+      {/* ── Top questions (flat list, machine shown per row) ────────── */}
       {top_questions.length > 0 && (
-        <SectionCard>
-          <div className="flex items-center gap-2 mb-8">
-            <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Most-asked questions</h3>
-          </div>
-          <div className="flex flex-col gap-10">
-            {Object.entries(
-              top_questions.reduce((acc, q) => {
-                const m = q.machine.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-                if (!acc[m]) acc[m] = [];
-                acc[m].push(q);
-                return acc;
-              }, {})
-            ).map(([machine, qs]) => (
-              <div key={machine} className="flex flex-col">
-                <h2 className="text-[22px] font-bold text-black mb-4">{machine}:</h2>
-                <div className="flex flex-col bg-white">
-                  {qs.map((q, i) => (
-                    <QuestionItem key={i} q={q} />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
+        <TopQuestions questions={top_questions} />
       )}
     </motion.div>
   );
