@@ -1,19 +1,7 @@
-<<<<<<< Updated upstream
 import React, { useEffect, useState } from 'react';
 import { Settings2, Trash2, ChevronDown, FileCog, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchApi } from '../api/apiClient';
-=======
-import React from 'react';
-import { Trash2 } from 'lucide-react';
-import { motion } from 'framer-motion';
-import laserImg from '../assets/laser.png';
-
-// Map machine IDs to their respective images
-const MACHINE_IMAGES = {
-  LASER_CUTTING_MACHINE: laserImg,
-};
->>>>>>> Stashed changes
 
 // Two layouts in one component:
 //   • collapsed — the 400px tile shown in the grid
@@ -33,7 +21,6 @@ const MachineCard = ({
   onToggleExpand,
   onEditParameters,
 }) => {
-<<<<<<< Updated upstream
   const Icon = machine.icon ? null : Settings2;
 
   // Fetch a one-line preview of the configured parameters whenever the card
@@ -59,14 +46,10 @@ const MachineCard = ({
       .finally(() => !cancelled && setPreviewLoading(false));
     return () => { cancelled = true; };
   }, [isExpanded, machine?.id]);
-=======
-  const machineImage = MACHINE_IMAGES[machine.id] || machine.customIconUrl;
->>>>>>> Stashed changes
 
   return (
     <motion.div
       layout
-<<<<<<< Updated upstream
       onClick={onToggleExpand}
       transition={{ layout: { duration: 0.28, ease: [0.2, 0.8, 0.2, 1] } }}
       className={`theme-machine-card group relative flex w-full cursor-pointer flex-col overflow-hidden rounded-2xl border bg-[#111] transition-colors duration-200 ${
@@ -92,35 +75,12 @@ const MachineCard = ({
         )}
 
         {/* Delete (admin only, non-default machines) */}
-=======
-      onClick={onClick}
-      className="theme-machine-card group relative flex h-[400px] w-full cursor-pointer flex-col overflow-hidden rounded-2xl bg-[#1a1a1a] transition-transform duration-300 hover:-translate-y-1"
-    >
-      {/* ── Full-card image with gradient overlay ── */}
-      <div className="relative w-full h-full">
-        {machineImage ? (
-          <img src={machineImage} alt={machine.name} className="absolute inset-0 w-full h-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-[#1a2a3a] to-[#0d1b2a]" />
-        )}
-
-        {/* Dark gradient overlay — fades from transparent at top to solid dark at bottom */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#1a1a1a]" style={{ background: 'linear-gradient(to bottom, transparent 30%, rgba(26,26,26,0.6) 55%, rgba(26,26,26,0.95) 75%, #1a1a1a 100%)' }} />
-
-        {/* Delete Button (only in admin) */}
->>>>>>> Stashed changes
         {onDelete && !isDefault && (
           <div className="absolute top-4 right-4 z-10">
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(machine.id, machine.name); }}
               className={`p-2 rounded-full transition-colors ${
-<<<<<<< Updated upstream
                 confirmingDelete ? 'bg-red-500 text-white' : 'bg-black/20 text-white hover:bg-red-500'
-=======
-                confirmingDelete 
-                  ? 'bg-red-500 text-white' 
-                  : 'bg-black/40 text-white/70 hover:bg-red-500 hover:text-white'
->>>>>>> Stashed changes
               }`}
             >
               <Trash2 size={16} />
@@ -128,7 +88,6 @@ const MachineCard = ({
           </div>
         )}
 
-<<<<<<< Updated upstream
         {/* Expand/collapse chevron — visual affordance the card is clickable */}
         <div className="absolute bottom-3 right-3 rounded-full bg-black/35 p-1.5 backdrop-blur-sm">
           <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.25 }}>
@@ -249,28 +208,6 @@ const MachineCard = ({
           )}
         </AnimatePresence>
       </motion.div>
-=======
-        {/* ── Text content pinned to bottom ── */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 flex flex-col">
-          <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-[#66d8e9]">
-            ID: {machine.id}
-          </div>
-          
-          <h3 className="mb-3 line-clamp-2 text-[22px] font-black leading-tight tracking-normal text-white">
-            {machine.name}
-          </h3>
-          
-          <div className="flex flex-col">
-            <span className="mb-0.5 text-[12px] font-bold text-white">
-              {machine.category || 'General Equipment'}
-            </span>
-            <span className="text-[11px] text-white/45 leading-snug line-clamp-2">
-              {machine.description || 'No description provided.'}
-            </span>
-          </div>
-        </div>
-      </div>
->>>>>>> Stashed changes
     </motion.div>
   );
 };

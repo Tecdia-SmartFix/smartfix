@@ -214,7 +214,6 @@ const EndShiftModal = ({ isOpen, onClose, machineId, machineName }) => {
                   />
                 </div>
 
-<<<<<<< Updated upstream
                 {error && (
                   <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-[13px] text-red-300">
                     {error}
@@ -240,68 +239,6 @@ const EndShiftModal = ({ isOpen, onClose, machineId, machineName }) => {
                 </div>
               </form>
             )}
-=======
-              <div className="mb-6">
-                <h3 className="mb-3 text-sm font-black uppercase tracking-[0.18em] text-white">Visual checks</h3>
-                <div className="space-y-3">
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors ${formData.leaksObserved ? 'bg-[#2b8cff] border-[#2b8cff]' : 'border-white/24 group-hover:border-[#70dceb]'}`}>
-                      {formData.leaksObserved && <Check size={14} className="text-white" strokeWidth={3} />}
-                    </div>
-                    <span className="text-[14px] text-white/82">Leaks observed</span>
-                    <input type="checkbox" name="leaksObserved" checked={formData.leaksObserved} onChange={handleChange} className="hidden" />
-                  </label>
-                  
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors ${formData.unusualNoise ? 'bg-[#2b8cff] border-[#2b8cff]' : 'border-white/24 group-hover:border-[#70dceb]'}`}>
-                      {formData.unusualNoise && <Check size={14} className="text-white" strokeWidth={3} />}
-                    </div>
-                    <span className="text-[14px] text-white/82">Unusual noise</span>
-                    {formData.unusualNoise && (
-                      <span className="ml-2 px-2 py-0.5 rounded text-[11px] font-bold text-[#2b8cff] border border-[#2b8cff]/30 bg-[#2b8cff]/10">
-                        Will flag
-                      </span>
-                    )}
-                    <input type="checkbox" name="unusualNoise" checked={formData.unusualNoise} onChange={handleChange} className="hidden" />
-                  </label>
-
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors ${formData.vibrationNormal ? 'bg-[#2b8cff] border-[#2b8cff]' : 'border-white/24 group-hover:border-[#70dceb]'}`}>
-                      {formData.vibrationNormal && <Check size={14} className="text-white" strokeWidth={3} />}
-                    </div>
-                    <span className="text-[14px] text-white/82">Vibration normal</span>
-                    <input type="checkbox" name="vibrationNormal" checked={formData.vibrationNormal} onChange={handleChange} className="hidden" />
-                  </label>
-                </div>
-              </div>
-
-              <div className="mb-8">
-                <h3 className="mb-2 text-sm font-black uppercase tracking-[0.18em] text-white">Anything else?</h3>
-                <textarea 
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleChange}
-                  className="custom-scrollbar h-20 w-full resize-none rounded-2xl border border-white/12 bg-white/[0.055] px-4 py-3 text-[14px] text-white outline-none transition-all focus:border-[#70dceb] focus:ring-1 focus:ring-[#2b8cff]/40"
-                />
-              </div>
-
-              <div className="flex items-center justify-between pt-2">
-                <button 
-                  type="button" 
-                  onClick={onClose}
-                  className="text-[13px] font-bold text-white/46 transition-colors hover:text-white"
-                >
-                  Skip — nothing notable
-                </button>
-                <button 
-                  type="submit" 
-                  className="flex items-center gap-2 rounded-full bg-[#2b8cff] px-7 py-3 text-[14px] font-bold text-white shadow-lg shadow-[#2b8cff]/25 transition-all hover:brightness-110"
-                >
-                  Submit log <span className="text-lg leading-none">→</span>
-                </button>
-              </div>
-            </form>
->>>>>>> Stashed changes
           </motion.div>
         </div>
       )}
