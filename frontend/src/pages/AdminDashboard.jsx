@@ -3,11 +3,11 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Upload, FileText, Image, Trash2, LogOut, Settings2,
-  Printer, Scissors, Bot, Wrench, Gauge, Cpu, ChevronRight,
+  Printer, Scissors, Bot, Wrench, Gauge, Cpu, ChevronRight, ChevronDown,
   CheckCircle, X, LayoutDashboard, Package, Database, Shield, AlertCircle,
   Factory, Cog, Activity, Flame, Monitor, Layers, Radio, Thermometer,
   HardDrive, Truck, FlaskConical, Pipette, BellRing, BarChart3, TrendingUp,
-  AlertTriangle,
+  AlertTriangle, RotateCw,
 } from 'lucide-react';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useMachines } from '../context/MachineContext';
@@ -103,6 +103,17 @@ const InputField = ({ label, ...props }) => (
 const toSlug = (name) =>
   name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 
+const CATEGORY_OPTIONS = [
+  'Manufacturing',
+  'Fabrication',
+  'Heavy Machinery',
+  'Additive Manufacturing',
+  'Assembly',
+  'Inspection',
+  'Material Handling',
+  'Packaging',
+];
+
 // Ingestion job lifecycle. Order matters — drives the stage display.
 const JOB_STAGES = [
   { key: 'queued',    label: 'Queued',    pct: 0   },
@@ -125,7 +136,7 @@ const STAGE_PCT = Object.fromEntries(JOB_STAGES.map(s => [s.key, s.pct]));
  *
  * Reference: https://designsystem.elisa.fi/9b207b2c3/p/159293-progressbar
  */
-const IngestionProgress = ({ job, onDismiss }) => {
+const IngestionProgress = ({ job, onDismiss, onRetry }) => {
   if (!job) return null;
   const isFailed = job.status === 'failed';
   const isDone   = job.status === 'done';
@@ -176,12 +187,23 @@ const IngestionProgress = ({ job, onDismiss }) => {
           )}
         </div>
         {(isDone || isFailed) && (
-          <button
-            onClick={onDismiss}
-            className="text-xs font-medium text-tecdia-text/40 hover:text-tecdia-text px-2 py-1 rounded-md hover:bg-white/60 transition-all"
-          >
-            Dismiss
-          </button>
+          <div className="flex items-center gap-1.5">
+            {isFailed && onRetry && (
+              <button
+                onClick={onRetry}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#0057D9] hover:bg-[#0048b3] px-3 py-1.5 rounded-md transition-all"
+              >
+                <RotateCw size={12} />
+                Retry upload
+              </button>
+            )}
+            <button
+              onClick={onDismiss}
+              className="text-xs font-medium text-tecdia-text/40 hover:text-tecdia-text px-2 py-1 rounded-md hover:bg-white/60 transition-all"
+            >
+              Dismiss
+            </button>
+          </div>
         )}
       </div>
 
@@ -1030,7 +1052,7 @@ const ActivityBars = ({ buckets }) => {
 
 const AdminDashboard = () => {
   const { adminLogout } = useAdminAuth();
-  const { machines, addMachine, deleteMachine, activeJob, clearActiveJob } = useMachines();
+  const { machines, addMachine, deleteMachine, activeJob, clearActiveJob, retryUpload, canRetryUpload } = useMachines();
   const { alerts, alertThreshold, clearAlerts, testAlert } = useAlerts();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -1234,7 +1256,13 @@ const AdminDashboard = () => {
 
         {/* ── Global ingestion progress bar ── */}
         <AnimatePresence>
-          {activeJob && <IngestionProgress job={activeJob} onDismiss={clearActiveJob} />}
+          {activeJob && (
+            <IngestionProgress
+              job={activeJob}
+              onDismiss={clearActiveJob}
+              onRetry={canRetryUpload ? retryUpload : undefined}
+            />
+          )}
         </AnimatePresence>
 
         {/* ══════════════ TAB: Machines ══════════════ */}
@@ -1301,9 +1329,24 @@ const AdminDashboard = () => {
                       />
                     </div>
                     <InputField label="Description" as="textarea" rows={4} value={form.description}
-                      onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-                    <InputField label="Category" type="text" value={form.category}
-                      onChange={e => setForm(f => ({ ...f, category: e.target.value }))} />
+                      onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                      placeholder="Brief description of this machine's diagnostic capabilities..." />
+                    <div className="space-y-1.5">
+                      <label className="block text-[11px] font-semibold text-landing-text/60 uppercase tracking-widest">Category</label>
+                      <div className="relative">
+                        <select
+                          value={form.category}
+                          onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                          className={`w-full appearance-none bg-transparent border border-landing-border rounded-xl py-3 pl-4 pr-10 text-sm focus:outline-none focus:border-tecdia-accent focus:ring-1 focus:ring-tecdia-accent/20 transition-all ${form.category ? 'text-landing-text' : 'text-landing-text/40'}`}
+                        >
+                          <option value="">Select a category…</option>
+                          {CATEGORY_OPTIONS.map(c => (
+                            <option key={c} value={c} className="text-landing-text">{c}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-landing-text/40" />
+                      </div>
+                    </div>
                     
                     <div className="space-y-1.5">
                       <label className="block text-[11px] font-semibold text-landing-text/60 uppercase tracking-widest flex justify-between">

@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { AdminAuthProvider } from './context/AdminAuthContext';
 import { MachineProvider } from './context/MachineContext';
 import { AlertProvider } from './context/AlertContext';
+import { StartDiagnosingProvider } from './context/StartDiagnosingContext';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 import Navbar from './components/Navbar';
 import BackgroundAnimation from './components/BackgroundAnimation';
@@ -46,7 +47,7 @@ const ChatRoute = () => {
 const AnimatedRoutes = () => {
   const location = useLocation();
   return (
-    <>
+    <StartDiagnosingProvider>
       <Navbar />
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
@@ -68,7 +69,7 @@ const AnimatedRoutes = () => {
           } />
         </Routes>
       </AnimatePresence>
-    </>
+    </StartDiagnosingProvider>
   );
 };
 

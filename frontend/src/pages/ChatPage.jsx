@@ -351,14 +351,19 @@ const ChatPage = () => {
               </div>
             </div>
 
-            {/* Chat actions — always visible so the user can branch / reset
-                regardless of conversation state or sidebar visibility. */}
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setIsEndShiftModalOpen(true)}
                 className="px-5 py-1.5 rounded-full border border-gray-300 text-[13px] font-semibold text-tecdia-textDeep bg-white hover:bg-gray-50 transition-colors shadow-sm"
               >
                 End shift
+              </button>
+              <button
+                onClick={createNewChat}
+                title="Start a new chat thread for this machine"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-tecdia-text/60 hover:text-tecdia-accent hover:bg-tecdia-accent/5 border border-transparent hover:border-tecdia-accent/20 transition-all"
+              >
+                <Plus size={13} /> New chat
               </button>
             </div>
           </header>

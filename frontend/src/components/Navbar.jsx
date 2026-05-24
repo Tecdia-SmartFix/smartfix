@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, User, LogOut } from 'lucide-react';
+import { ArrowRight, Menu, X, User, LogOut } from 'lucide-react';
 import EndShiftModal from './EndShiftModal';
+import { useStartDiagnosing } from '../context/StartDiagnosingContext';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isEndShiftOpen, setIsEndShiftOpen] = useState(false);
   const [hoveredPath, setHoveredPath] = useState(null);
+  const { open: openStartDiagnosing } = useStartDiagnosing();
   const location = useLocation();
+  const showCta = !location.pathname.startsWith('/chat') && !location.pathname.startsWith('/admin');
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 24);
@@ -79,16 +82,20 @@ const Navbar = () => {
   
             <div className="h-4 w-px bg-tecdia-border" />
   
-            <Link to="/chat"
-              onMouseEnter={() => setHoveredPath('/chat')}
-              onMouseLeave={() => setHoveredPath(null)}
-              className="relative flex items-center gap-1.5 text-xs font-medium transition-colors duration-200 text-white h-full"
-            >
-              Get Started
-              {hoveredPath === '/chat' && (
-                <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
-              )}
-            </Link>
+            {showCta && (
+              <button
+                type="button"
+                onClick={openStartDiagnosing}
+                onMouseEnter={() => setHoveredPath('start-diagnosing')}
+                onMouseLeave={() => setHoveredPath(null)}
+                className="relative flex items-center gap-1.5 text-xs font-medium transition-colors duration-200 text-white h-full"
+              >
+                Start Diagnosing <ArrowRight size={14} />
+                {hoveredPath === 'start-diagnosing' && (
+                  <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
+                )}
+              </button>
+            )}
           </div>
   
           {/* Mobile menu button */}
@@ -124,9 +131,15 @@ const Navbar = () => {
             <Link to="/admin/login" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 text-xs font-medium text-white transition-colors">
               <User size={14} /> Admin Login
             </Link>
-            <Link to="/chat" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 text-xs font-medium text-white transition-colors">
-              Get Started
-            </Link>
+            {showCta && (
+              <button
+                type="button"
+                onClick={() => { setIsMenuOpen(false); openStartDiagnosing(); }}
+                className="flex items-center gap-2 text-xs font-medium text-white transition-colors text-left"
+              >
+                Start Diagnosing <ArrowRight size={14} />
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

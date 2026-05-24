@@ -1,10 +1,11 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, ChevronRight, ChevronLeft, CheckCircle, Mail, Phone, Shield, MessageSquare, BookOpen, BellRing, Award } from 'lucide-react';
 import Footer from '../components/Footer';
 import { useAuth, EXPERTISE_DOMAINS } from '../context/AuthContext';
 import { useWorkstation } from '../hooks/useWorkstation';
+import { useStartDiagnosing } from '../context/StartDiagnosingContext';
 import { fetchApi } from '../api/apiClient';
 import MachineCard from '../components/MachineCard';
 
@@ -62,6 +63,7 @@ const FeatureCard = ({ icon: Icon, imageSrc, badgeText, title, description }) =>
 const LandingPage = () => {
   const { user, login } = useAuth();
   const ws = useWorkstation();
+  const { open: openStartDiagnosing } = useStartDiagnosing();
   const [machines, setMachines] = useState([]);
   const sliderRef = useRef(null);
 
@@ -73,11 +75,9 @@ const LandingPage = () => {
   };
 
   useEffect(() => {
-    fetchApi('/api/machines').then(res => {
-      if (res.success && res.data) {
-        setMachines(res.data);
-      }
-    }).catch(console.error);
+    fetchApi('/machines')
+      .then(res => setMachines(res?.machines || []))
+      .catch(console.error);
   }, []);
 
   if (ws.loading) {
@@ -87,7 +87,7 @@ const LandingPage = () => {
       </div>
     );
   }
-  if (false && ws.bound && ws.machine?.id) {
+  if (ws.bound && ws.machine?.id) {
     return <Navigate to={`/chat?machine=${encodeURIComponent(ws.machine.id)}`} replace />;
   }
 
@@ -118,9 +118,13 @@ const LandingPage = () => {
               </motion.p>
 
               <motion.div {...fadeUp(0.22)} className="flex flex-col sm:flex-row gap-4">
-                <Link to="/chat" className="bg-white text-slate-900 font-bold hover:bg-slate-100 flex items-center justify-center gap-2.5 text-base px-8 py-4 rounded-full shadow-lg hover:shadow-xl transition-all">
+                <button
+                  type="button"
+                  onClick={openStartDiagnosing}
+                  className="bg-white text-slate-900 font-bold hover:bg-slate-100 flex items-center justify-center gap-2.5 text-base px-8 py-4 rounded-full shadow-lg hover:shadow-xl transition-all"
+                >
                   Start Diagnosing <ArrowRight size={18} />
-                </Link>
+                </button>
                 <Link to="/machines" className="bg-slate-800/50 backdrop-blur-md text-white border border-slate-700 hover:bg-slate-800 flex items-center justify-center gap-2 text-base px-8 py-4 rounded-full transition-all">
                   View Machines <ChevronRight size={16} />
                 </Link>
