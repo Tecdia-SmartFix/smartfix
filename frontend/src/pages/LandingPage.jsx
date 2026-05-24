@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowRight,
@@ -147,17 +147,6 @@ const LandingPage = () => {
       .catch(console.error);
   }, []);
 
-<<<<<<< Updated upstream
-  if (ws.loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-black text-sm text-white/60">
-        Checking workstation...
-      </div>
-    );
-  }
-
-=======
->>>>>>> Stashed changes
   const slide = heroSlides[activeHero];
 
   return (
