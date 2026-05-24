@@ -25,7 +25,7 @@ export function useWorkstation() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchApi('/workstation')
+    fetchApi(`/workstation?_t=${Date.now()}`)
       .then((data) => {
         if (cancelled) return;
         setState({

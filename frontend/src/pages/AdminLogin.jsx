@@ -59,8 +59,7 @@ const AdminLogin = () => {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 pt-20 relative overflow-hidden"
-      style={{ background: 'radial-gradient(circle at 75% 12%, rgba(43,140,255,0.28), transparent 30%), linear-gradient(135deg, #050505 0%, #111 56%, #041f27 100%)' }}
+      className="min-h-screen flex items-center justify-center px-4 pt-20 relative overflow-hidden bg-[#111]"
     >
 
 
@@ -83,7 +82,6 @@ const AdminLogin = () => {
           className="relative overflow-hidden rounded-3xl border border-white/70 p-8 shadow-2xl sm:p-12"
           style={{ background: '#ffffff', backdropFilter: 'blur(20px)' }}
         >
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#2b8cff] to-[#10b9d2]" />
           <AnimatePresence mode="wait">
             {step === 1 ? (
               /* ── Step 1: Email input ── */

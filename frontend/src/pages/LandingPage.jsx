@@ -122,7 +122,6 @@ const CapabilityCard = ({ icon: Icon, image, eyebrow, title, description, large 
 
 const LandingPage = () => {
   const { user, login } = useAuth();
-  const ws = useWorkstation();
   const { open: openStartDiagnosing } = useStartDiagnosing();
   const [machines, setMachines] = useState([]);
   const [activeHero, setActiveHero] = useState(0);
@@ -148,6 +147,7 @@ const LandingPage = () => {
       .catch(console.error);
   }, []);
 
+<<<<<<< Updated upstream
   if (ws.loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black text-sm text-white/60">
@@ -156,6 +156,8 @@ const LandingPage = () => {
     );
   }
 
+=======
+>>>>>>> Stashed changes
   const slide = heroSlides[activeHero];
 
   return (
@@ -204,7 +206,7 @@ const LandingPage = () => {
                 className="bg-transparent py-4 lg:self-end"
               >
                 <div className="mb-6 flex flex-wrap items-center gap-x-7 gap-y-3">
-                  <div className="min-w-max whitespace-nowrap bg-gradient-to-r from-[#46d8ed] to-[#2b8cff] bg-clip-text text-[clamp(3.8rem,13vw,5.7rem)] font-black leading-none text-transparent drop-shadow-[0_8px_24px_rgba(43,140,255,0.35)]">{slide.metric}</div>
+                  <div className="min-w-max whitespace-nowrap text-white text-[clamp(3.8rem,13vw,5.7rem)] font-black leading-none">{slide.metric}</div>
                   <p className="min-w-0 text-base font-black uppercase leading-7 tracking-[0.22em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">{slide.label}</p>
                 </div>
                 <p className="mb-7 text-base font-semibold leading-8 text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.92)]">
@@ -214,7 +216,7 @@ const LandingPage = () => {
                   <button
                     type="button"
                     onClick={openStartDiagnosing}
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#2b8cff] to-[#10b9d2] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#2b8cff]/20 transition hover:brightness-110"
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-black transition hover:bg-zinc-200"
                   >
                     Start Diagnosing <ArrowRight size={17} />
                   </button>
@@ -239,7 +241,7 @@ const LandingPage = () => {
                     type="button"
                     onClick={() => setActiveHero(index)}
                     className={`h-2.5 rounded-full transition-all ${
-                      activeHero === index ? 'w-12 bg-white' : 'w-2.5 bg-white/35 hover:bg-white/60'
+                      activeHero === index ? 'w-12 bg-[#2b8cff]' : 'w-2.5 bg-white/35 hover:bg-white/60'
                     }`}
                     aria-label={`Show ${item.kicker} slide`}
                   />
@@ -265,62 +267,17 @@ const LandingPage = () => {
           </div>
         </section>
 
-        <section className="theme-content px-5 py-20 sm:px-8 lg:px-10">
-          <div className="mx-auto grid max-w-[1680px] gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-            <div className="sticky top-24">
-              <div className="mb-5 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.28em] text-black/45">
-                <Shield size={16} />
-                Controlled access
-              </div>
-              <h2 className="max-w-2xl text-[clamp(3rem,7vw,7.5rem)] font-black uppercase leading-[0.86] tracking-normal text-black">
-                Expertise matched to the line.
-              </h2>
-              <p className="mt-7 max-w-xl text-base leading-8 text-black/58">
-                SmartFix adapts the diagnostic experience to the operating domain, keeping the knowledge base focused on the work your technicians actually perform.
-              </p>
-            </div>
 
-            <div className="theme-card rounded-[28px] bg-white p-5 shadow-[0_24px_80px_rgba(0,0,0,0.10)] sm:p-7">
-              <div className="mb-5 flex items-center justify-between gap-4 border-b border-black/10 pb-5">
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-[0.24em] text-black/40">Select domain</div>
-                  <div className="mt-1 text-lg font-bold text-black">12-hour secure session</div>
-                </div>
-                <Gauge className="text-black/35" size={28} />
-              </div>
-              <div className="grid gap-3">
-                {EXPERTISE_DOMAINS.map((domain) => (
-                  <button
-                    key={domain}
-                    type="button"
-                    onClick={async () => {
-                      const result = await login(domain);
-                      if (!result.success) alert(result.error);
-                    }}
-                    className={`flex items-center justify-between rounded-2xl border px-5 py-4 text-left text-sm font-bold transition ${
-                      user.domain === domain
-                        ? 'border-black bg-black text-white'
-                        : 'border-black/10 bg-[#eef1ef] text-black hover:border-black/35'
-                    }`}
-                  >
-                    {domain}
-                    {user.domain === domain ? <CheckCircle size={18} /> : <ArrowRight size={17} />}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
 
         {machines.length > 0 && (
-          <section className="theme-dark-band overflow-hidden bg-[#111] px-5 py-20 text-white sm:px-8 lg:px-10">
+          <section className="theme-light-band overflow-hidden bg-white px-5 py-20 text-black sm:px-8 lg:px-10">
             <div className="mx-auto max-w-[1680px]">
               <div className="mb-10 flex items-end justify-between gap-6">
                 <div>
-                  <div className="mb-4 text-xs font-bold uppercase tracking-[0.28em] text-white/40">
+                  <div className="mb-4 text-xs font-bold uppercase tracking-[0.28em] text-black/40">
                     Connected equipment
                   </div>
-                  <h2 className="text-[clamp(3rem,7vw,7rem)] font-black uppercase leading-[0.86] tracking-normal text-white">
+                  <h2 className="text-[clamp(3rem,7vw,7rem)] font-black uppercase leading-[0.86] tracking-normal text-black">
                     Machines
                   </h2>
                 </div>
@@ -328,7 +285,7 @@ const LandingPage = () => {
                   <button
                     type="button"
                     onClick={() => scrollSlider('left')}
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-white transition hover:bg-white/10"
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-black/20 text-black transition hover:bg-black/5"
                     aria-label="Scroll machines left"
                   >
                     <ChevronLeft size={20} />
@@ -336,7 +293,7 @@ const LandingPage = () => {
                   <button
                     type="button"
                     onClick={() => scrollSlider('right')}
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-white transition hover:bg-white/10"
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-black/20 text-black transition hover:bg-black/5"
                     aria-label="Scroll machines right"
                   >
                     <ChevronRight size={20} />
@@ -377,24 +334,24 @@ const LandingPage = () => {
           </div>
         </section>
 
-        <section className="theme-dark-band bg-black px-5 py-20 text-white sm:px-8 lg:px-10">
+        <section className="theme-light-band bg-white px-5 py-20 text-black sm:px-8 lg:px-10">
           <div className="mx-auto grid max-w-[1680px] gap-10 lg:grid-cols-[1fr_0.55fr] lg:items-end">
             <div>
-              <div className="mb-5 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.28em] text-white/45">
+              <div className="mb-5 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.28em] text-black/45">
                 <Microscope size={16} />
                 Expert escalation
               </div>
-              <h2 className="max-w-5xl text-[clamp(3.2rem,8vw,8.5rem)] font-black uppercase leading-[0.84] tracking-normal text-white">
+              <h2 className="max-w-5xl text-[clamp(3.2rem,8vw,8.5rem)] font-black uppercase leading-[0.84] tracking-normal text-black">
                 Keep the shift moving.
               </h2>
             </div>
-            <div className="border-t border-white/20 pt-7">
-              <p className="mb-7 text-base leading-8 text-white/62">
+            <div className="border-t border-black/20 pt-7">
+              <p className="mb-7 text-base leading-8 text-black/62">
                 When an issue needs human judgment, route it quickly with the machine context, symptom trail, and severity already organized.
               </p>
               <Link
                 to="/contact"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-3 text-sm font-bold text-black transition hover:bg-zinc-200"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-black px-7 py-3 text-sm font-bold text-white transition hover:bg-zinc-800"
               >
                 Contact Support <ArrowRight size={17} />
               </Link>

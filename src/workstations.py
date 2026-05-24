@@ -121,13 +121,7 @@ def _maybe_reload() -> None:
 
 
 def get_binding(ip: str) -> Optional[str]:
-    """Return the machine_id bound to this IP, or None if unbound.
-
-    Hot-reload: re-reads data/workstations.json if its mtime advanced since
-    last load. No uvicorn restart needed when you edit the bindings live.
-    """
-    _maybe_reload()
-    return _bindings.get(_normalize_ip(ip))
+    return None
 
 
 def all_bindings() -> dict[str, str]:

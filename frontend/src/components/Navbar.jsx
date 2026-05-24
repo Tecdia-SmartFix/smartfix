@@ -6,12 +6,26 @@ import EndShiftModal from './EndShiftModal';
 import { useStartDiagnosing } from '../context/StartDiagnosingContext';
 import BrandMark from './BrandMark';
 import { useTheme } from '../context/ThemeContext';
+import MegaMenu from './MegaMenu';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isEndShiftOpen, setIsEndShiftOpen] = useState(false);
   const [hoveredPath, setHoveredPath] = useState(null);
+  const [megaMenuOpen, setMegaMenuOpen] = useState(false);
+  let megaMenuTimeout;
+
+  const handleMouseEnterMegaMenu = () => {
+    clearTimeout(megaMenuTimeout);
+    setMegaMenuOpen(true);
+  };
+
+  const handleMouseLeaveMegaMenu = () => {
+    megaMenuTimeout = setTimeout(() => {
+      setMegaMenuOpen(false);
+    }, 150);
+  };
   const { open: openStartDiagnosing } = useStartDiagnosing();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
@@ -42,20 +56,40 @@ const Navbar = () => {
             <BrandMark className="text-white" logoClassName="h-10 w-auto shrink-0" />
             
             <div className="hidden md:flex items-center gap-8 h-full">
-              <Link to="/features"
-                onMouseEnter={() => setHoveredPath('/features')}
-                onMouseLeave={() => setHoveredPath(null)}
-                className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors duration-200 text-[#79ddeb] hover:text-white h-full"
+              <div 
+                onMouseEnter={() => { setHoveredPath('/products'); handleMouseEnterMegaMenu(); }}
+                onMouseLeave={() => { setHoveredPath(null); handleMouseLeaveMegaMenu(); }}
+                className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors duration-200 text-white hover:text-white h-full cursor-pointer"
               >
-                Features
-                {hoveredPath === '/features' && (
+                Products
+                {hoveredPath === '/products' && (
                   <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
                 )}
-              </Link>
+              </div>
+              <div 
+                onMouseEnter={() => { setHoveredPath('/support'); handleMouseEnterMegaMenu(); }}
+                onMouseLeave={() => { setHoveredPath(null); handleMouseLeaveMegaMenu(); }}
+                className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors duration-200 text-white hover:text-white h-full cursor-pointer"
+              >
+                Support
+                {hoveredPath === '/support' && (
+                  <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
+                )}
+              </div>
+              <div 
+                onMouseEnter={() => { setHoveredPath('/technologies'); handleMouseEnterMegaMenu(); }}
+                onMouseLeave={() => { setHoveredPath(null); handleMouseLeaveMegaMenu(); }}
+                className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors duration-200 text-white hover:text-white h-full cursor-pointer"
+              >
+                Technologies
+                {hoveredPath === '/technologies' && (
+                  <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
+                )}
+              </div>
               <Link to="/admin/login"
                 onMouseEnter={() => setHoveredPath('/admin/login')}
                 onMouseLeave={() => setHoveredPath(null)}
-                className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors duration-200 text-[#79ddeb] hover:text-white h-full"
+                className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors duration-200 text-white hover:text-white h-full"
               >
                 <User size={14} /> Admin
                 {hoveredPath === '/admin/login' && (
@@ -71,7 +105,7 @@ const Navbar = () => {
               onClick={() => setIsEndShiftOpen(true)}
               onMouseEnter={() => setHoveredPath('end-shift')}
               onMouseLeave={() => setHoveredPath(null)}
-              className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-[#79ddeb] transition-colors duration-200 hover:text-white h-full"
+              className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-white transition-colors duration-200 hover:text-white h-full"
             >
               <LogOut size={14} /> End Shift
               {hoveredPath === 'end-shift' && (
@@ -84,7 +118,7 @@ const Navbar = () => {
             <button
               type="button"
               onClick={toggleTheme}
-              className="relative flex h-8 w-8 items-center justify-center rounded-full border border-white/15 text-[#79ddeb] transition hover:bg-white/10 hover:text-white"
+              className="relative flex h-8 w-8 items-center justify-center rounded-full border border-white/15 text-white transition hover:bg-white/10 hover:text-white"
               aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
               title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             >
@@ -162,6 +196,12 @@ const Navbar = () => {
       </AnimatePresence>
 
       <EndShiftModal isOpen={isEndShiftOpen} onClose={() => setIsEndShiftOpen(false)} />
+      
+      <MegaMenu 
+        isHovered={megaMenuOpen} 
+        onMouseEnter={handleMouseEnterMegaMenu} 
+        onMouseLeave={handleMouseLeaveMegaMenu} 
+      />
     </nav>
   );
 };
