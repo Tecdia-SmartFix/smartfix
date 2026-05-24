@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowRight,
@@ -154,10 +154,6 @@ const LandingPage = () => {
         Checking workstation...
       </div>
     );
-  }
-
-  if (ws.bound && ws.machine?.id) {
-    return <Navigate to={`/chat?machine=${encodeURIComponent(ws.machine.id)}`} replace />;
   }
 
   const slide = heroSlides[activeHero];
