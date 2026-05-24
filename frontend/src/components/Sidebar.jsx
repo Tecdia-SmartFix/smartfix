@@ -32,7 +32,7 @@ const Sidebar = ({
           ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}
         style={{
-          background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)',
+          background: 'linear-gradient(180deg, #050505 0%, #0a1e25 100%)',
         }}
       >
         {/* Gradient top accent bar */}
@@ -47,7 +47,8 @@ const Sidebar = ({
         </button>
 
         {/* ── New Chat — flex-shrink-0 keeps it always visible ── */}
-        <div className="flex-shrink-0 p-4 border-b border-white/[0.06]">
+        <div className="flex-shrink-0 border-b border-white/[0.06] p-4">
+          <div className="mb-4 text-[11px] font-black uppercase tracking-[0.24em] text-white/42">SmartFix chats</div>
           <button
             onClick={() => { onNewChat(); if (window.innerWidth < 768) onClose(); }}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 border-white/10 text-white/70 text-sm font-semibold hover:bg-white/[0.06] hover:text-white hover:border-[#2b8cff]/40 transition-all group/btn active:scale-95 bg-white/[0.03]"
@@ -122,4 +123,3 @@ const Sidebar = ({
 };
 
 export default Sidebar;
-

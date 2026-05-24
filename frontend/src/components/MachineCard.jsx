@@ -15,14 +15,14 @@ const MachineCard = ({
     <motion.div 
       layout
       onClick={onClick}
-      className="relative flex flex-col w-full h-[400px] rounded-3xl overflow-hidden bg-[#1E1E1E] group hover:-translate-y-1 transition-transform duration-300 cursor-pointer"
+      className="theme-machine-card group relative flex h-[400px] w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#111] transition-transform duration-300 hover:-translate-y-1"
     >
       {/* ── Top Image Area ── */}
-      <div className="w-full h-[180px] bg-gradient-to-br from-slate-300 to-slate-400 relative overflow-hidden">
+      <div className="relative h-[180px] w-full overflow-hidden bg-gradient-to-br from-[#2b8cff]/20 to-[#10b9d2]/10">
         {machine.customIconUrl ? (
           <img src={machine.customIconUrl} alt={machine.name} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-500 opacity-20">
+          <div className="flex h-full w-full items-center justify-center text-white opacity-35">
             {Icon && <Icon size={80} />}
           </div>
         )}
@@ -45,17 +45,17 @@ const MachineCard = ({
       </div>
 
       {/* ── Bottom Text Area ── */}
-      <div className="p-6 flex flex-col flex-grow relative">
-        <div className="text-[11px] font-bold text-white mb-2">
+      <div className="relative flex flex-grow flex-col p-6">
+        <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#66d8e9]">
           ID: {machine.id}
         </div>
         
-        <h3 className="text-white font-bold text-[19px] leading-tight mb-4 line-clamp-3">
+        <h3 className="mb-4 line-clamp-3 text-[21px] font-black leading-tight tracking-normal text-white">
           {machine.name}
         </h3>
         
         <div className="mt-auto pt-4 flex flex-col">
-          <span className="text-[11px] font-bold text-white mb-0.5">
+          <span className="mb-0.5 text-[11px] font-bold uppercase tracking-[0.18em] text-white">
             {machine.category || 'General Equipment'}
           </span>
           <span className="text-[10px] text-white/50 leading-snug line-clamp-2">

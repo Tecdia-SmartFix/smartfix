@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Menu, X, User, LogOut } from 'lucide-react';
+import { ArrowRight, Menu, X, User, LogOut, Moon, Sun } from 'lucide-react';
 import EndShiftModal from './EndShiftModal';
 import { useStartDiagnosing } from '../context/StartDiagnosingContext';
+import BrandMark from './BrandMark';
+import { useTheme } from '../context/ThemeContext';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -11,6 +13,7 @@ const Navbar = () => {
   const [isEndShiftOpen, setIsEndShiftOpen] = useState(false);
   const [hoveredPath, setHoveredPath] = useState(null);
   const { open: openStartDiagnosing } = useStartDiagnosing();
+  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const showCta = !location.pathname.startsWith('/chat') && !location.pathname.startsWith('/admin');
 
@@ -26,27 +29,23 @@ const Navbar = () => {
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className={`w-full flex items-center justify-between transition-all duration-500 ${
+        className={`theme-nav w-full flex items-center justify-between transition-all duration-500 ${
           scrolled || location.pathname !== '/'
-            ? 'bg-black/90 backdrop-blur-xl shadow-sm'
-            : 'bg-black/40 backdrop-blur-md'
+            ? 'bg-black/[0.92] backdrop-blur-xl shadow-sm'
+            : 'bg-black/10 backdrop-blur-[2px]'
         }`}
       >
-        <div className="max-w-7xl mx-auto w-full px-6 h-[46px] flex items-center justify-between">
+        <div className="max-w-[1680px] mx-auto w-full px-5 sm:px-8 lg:px-10 h-[64px] flex items-center justify-between">
           {/* Logo */}
           {/* Left Side: Logo & Primary Links */}
           <div className="flex items-center gap-10 h-full">
-            <Link to="/" className="flex items-center gap-2.5 group">
-              <span className="text-[17px] font-bold tracking-tight text-white transition-all duration-300">
-                Tecdia <span className="text-white">SmartFix</span>
-              </span>
-            </Link>
+            <BrandMark className="text-white" logoClassName="h-10 w-auto shrink-0" />
             
-            <div className="hidden md:flex items-center gap-6 h-full">
+            <div className="hidden md:flex items-center gap-8 h-full">
               <Link to="/features"
                 onMouseEnter={() => setHoveredPath('/features')}
                 onMouseLeave={() => setHoveredPath(null)}
-                className="relative flex items-center gap-1.5 text-xs font-medium transition-colors duration-200 text-white h-full"
+                className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors duration-200 text-[#79ddeb] hover:text-white h-full"
               >
                 Features
                 {hoveredPath === '/features' && (
@@ -56,7 +55,7 @@ const Navbar = () => {
               <Link to="/admin/login"
                 onMouseEnter={() => setHoveredPath('/admin/login')}
                 onMouseLeave={() => setHoveredPath(null)}
-                className="relative flex items-center gap-1.5 text-xs font-medium transition-colors duration-200 text-white h-full"
+                className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors duration-200 text-[#79ddeb] hover:text-white h-full"
               >
                 <User size={14} /> Admin
                 {hoveredPath === '/admin/login' && (
@@ -67,12 +66,12 @@ const Navbar = () => {
           </div>
   
           {/* Right Side: Secondary Links */}
-          <div className="hidden md:flex items-center gap-6 h-full">
+          <div className="hidden md:flex items-center gap-7 h-full">
             <button
               onClick={() => setIsEndShiftOpen(true)}
               onMouseEnter={() => setHoveredPath('end-shift')}
               onMouseLeave={() => setHoveredPath(null)}
-              className="relative flex items-center gap-1.5 text-xs font-medium text-white transition-colors duration-200 h-full"
+              className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-[#79ddeb] transition-colors duration-200 hover:text-white h-full"
             >
               <LogOut size={14} /> End Shift
               {hoveredPath === 'end-shift' && (
@@ -80,7 +79,17 @@ const Navbar = () => {
               )}
             </button>
   
-            <div className="h-4 w-px bg-tecdia-border" />
+            <div className="h-4 w-px bg-white/20" />
+
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="relative flex h-8 w-8 items-center justify-center rounded-full border border-white/15 text-[#79ddeb] transition hover:bg-white/10 hover:text-white"
+              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
   
             {showCta && (
               <button
@@ -88,7 +97,7 @@ const Navbar = () => {
                 onClick={openStartDiagnosing}
                 onMouseEnter={() => setHoveredPath('start-diagnosing')}
                 onMouseLeave={() => setHoveredPath(null)}
-                className="relative flex items-center gap-1.5 text-xs font-medium transition-colors duration-200 text-white h-full"
+                className="relative flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] transition-colors duration-200 text-white hover:text-white h-full"
               >
                 Start Diagnosing <ArrowRight size={14} />
                 {hoveredPath === 'start-diagnosing' && (
@@ -100,7 +109,7 @@ const Navbar = () => {
   
           {/* Mobile menu button */}
           <button
-            className="md:hidden w-9 h-9 rounded-xl flex items-center justify-center bg-tecdia-surface border border-tecdia-border text-white/60 transition-all duration-200"
+            className="md:hidden flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition-all duration-200"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -117,25 +126,33 @@ const Navbar = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.97 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden absolute top-[76px] left-4 right-4 rounded-2xl p-6 flex flex-col gap-4 bg-black/90 border border-tecdia-border shadow-xl backdrop-blur-xl"
+            className="md:hidden absolute top-[76px] left-4 right-4 rounded-3xl p-6 flex flex-col gap-4 bg-black/[0.92] border border-white/15 shadow-xl backdrop-blur-xl"
           >
-            <Link to="/features" onClick={() => setIsMenuOpen(false)} className="text-xs font-medium text-white transition-colors">Features</Link>
+            <Link to="/features" onClick={() => setIsMenuOpen(false)} className="text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors">Features</Link>
 
-            <hr className="border-tecdia-border" />
+            <hr className="border-white/15" />
+            <button
+              type="button"
+              onClick={() => { toggleTheme(); }}
+              className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#79ddeb] transition-colors text-left"
+            >
+              {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            </button>
             <button 
               onClick={() => { setIsMenuOpen(false); setIsEndShiftOpen(true); }} 
-              className="flex items-center gap-2 text-xs font-medium text-white transition-colors w-full text-left"
+              className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors w-full text-left"
             >
               <LogOut size={14} /> End Shift
             </button>
-            <Link to="/admin/login" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 text-xs font-medium text-white transition-colors">
+            <Link to="/admin/login" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors">
               <User size={14} /> Admin Login
             </Link>
             {showCta && (
               <button
                 type="button"
                 onClick={() => { setIsMenuOpen(false); openStartDiagnosing(); }}
-                className="flex items-center gap-2 text-xs font-medium text-white transition-colors text-left"
+                className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors text-left"
               >
                 Start Diagnosing <ArrowRight size={14} />
               </button>

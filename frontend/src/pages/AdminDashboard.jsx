@@ -1160,7 +1160,7 @@ const AdminDashboard = () => {
   const isDefault = (id) => ['INJECTION_MOLDING_MACHINE', 'LASER_CUTTING_MACHINE'].includes(id);
 
   return (
-    <div className="min-h-screen text-tecdia-text pt-0 transition-all duration-500 relative z-0">
+    <div className="relative z-0 min-h-screen bg-[#eef1ef] pt-0 text-tecdia-text transition-all duration-500">
 
       {/* ── Dynamic Full-Page Background for Add Machine & Alerts ── */}
       <AnimatePresence>
@@ -1173,24 +1173,14 @@ const AdminDashboard = () => {
       </AnimatePresence>
 
       {/* ── Tab Bar — sticky at top, always visible when scrolled ── */}
-      <div className="sticky top-0 left-0 right-0 z-50 bg-black border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between gap-4 h-10">
+      <div className="sticky left-0 right-0 top-0 z-50 border-b border-white/10 bg-black">
+        <div className="mx-auto flex h-14 max-w-[1680px] items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
           {/* Logo & Tabs */}
           <div className="flex items-center overflow-x-auto scrollbar-hide h-full">
             
             {/* Admin Panel Logo */}
-            <div className="flex items-center gap-2 mr-5 border-r border-white/10 pr-5 h-[30px] shrink-0">
-              <div className="relative flex items-center justify-center w-7 h-7">
-                <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
-                  <path d="M4 21L12 4l8 17" />
-                  <path d="M5.5 16.5c3-2 7.5-3.5 12-7.5" />
-                  <polyline points="14 9 17.5 9 17.5 12.5" />
-                </svg>
-              </div>
-              <div className="flex flex-col leading-[1.1] text-white font-semibold">
-                <span className="text-[13px] tracking-wide">Admin</span>
-                <span className="text-[13px] tracking-wide">Panel</span>
-              </div>
+            <div className="mr-5 flex h-[34px] shrink-0 items-center gap-3 border-r border-white/10 pr-5">
+              <span className="text-[11px] font-black uppercase tracking-[0.22em] text-white/62">SmartFix Admin</span>
             </div>
 
             {/* Tabs */}
@@ -1218,7 +1208,7 @@ const AdminDashboard = () => {
                   </span>
                 )}
                 {activeTab === tab.id && (
-                  <motion.div layoutId="admin-tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
+                  <motion.div layoutId="admin-tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#2b8cff] to-[#10b9d2]" />
                 )}
               </button>
             ))}
@@ -1236,7 +1226,7 @@ const AdminDashboard = () => {
               ];
             })().map(s => {
               return (
-                <div key={s.label} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-landing-background border border-landing-border text-landing-text font-inter">
+                <div key={s.label} className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/8 px-3 py-1.5 font-inter text-white">
                   <span className="text-sm font-bold leading-none">{s.value}</span>
                   <span className="text-sm font-bold">{s.label}</span>
                 </div>
@@ -1246,7 +1236,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-10">
+      <div className="mx-auto max-w-[1680px] px-5 py-10 sm:px-8 lg:px-10">
 
         {/* ── Global ingestion progress bar ──
             Rendered OUTSIDE the tab content blocks so it remains visible

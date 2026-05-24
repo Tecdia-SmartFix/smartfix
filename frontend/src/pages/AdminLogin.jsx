@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Mail, AlertCircle, CheckCircle2, ArrowRight, ExternalLink } from 'lucide-react';
 import { useAdminAuth } from '../context/AdminAuthContext';
@@ -60,7 +60,7 @@ const AdminLogin = () => {
   return (
     <div
       className="min-h-screen flex items-center justify-center px-4 pt-20 relative overflow-hidden"
-      style={{ background: '#111111' }}
+      style={{ background: 'radial-gradient(circle at 75% 12%, rgba(43,140,255,0.28), transparent 30%), linear-gradient(135deg, #050505 0%, #111 56%, #041f27 100%)' }}
     >
 
 
@@ -73,21 +73,17 @@ const AdminLogin = () => {
         {/* Brand — only visible on step 1 */}
         {step === 1 && (
           <div className="text-center mb-10">
-            <Link to="/" className="inline-flex items-center gap-2.5 mb-7">
-
-              <span className="text-5xl sm:text-6xl font-bold leading-[1.05] text-white tracking-tight">Tecdia SmartFix</span>
-            </Link>
-
-            <h1 className="text-3xl font-black text-white/50 mb-2">Sign in</h1>
+            <h1 className="text-4xl font-black uppercase tracking-normal text-white mb-2">Admin Sign In</h1>
             <p className="text-sm text-white/50">Enter your email to receive a secure sign-in link</p>
           </div>
         )}
 
         {/* Form Card */}
         <div
-          className="rounded-3xl p-12 border border-white/60 shadow-2xl overflow-hidden relative"
+          className="relative overflow-hidden rounded-3xl border border-white/70 p-8 shadow-2xl sm:p-12"
           style={{ background: '#ffffff', backdropFilter: 'blur(20px)' }}
         >
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#2b8cff] to-[#10b9d2]" />
           <AnimatePresence mode="wait">
             {step === 1 ? (
               /* ── Step 1: Email input ── */

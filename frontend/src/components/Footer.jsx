@@ -2,70 +2,65 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const Footer = () => (
-  <footer className="w-full py-14 px-6 bg-white">
-    <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-12">
+  <footer className="w-full border-t border-black/10 bg-black px-5 py-14 text-white sm:px-8 lg:px-10">
+    <div className="mx-auto grid max-w-[1680px] grid-cols-1 gap-12 md:grid-cols-5">
 
       {/* Brand */}
       <div className="col-span-1 md:col-span-2">
-        <Link to="/" className="inline-flex items-center gap-2.5 mb-5 group">
-
-          <span className="text-lg font-bold text-black transition-colors">
-            Tecdia <span className="text-black">SmartFix</span>
-          </span>
-        </Link>
-        <p className="text-sm leading-relaxed max-w-xs mb-6 text-black">
-          AI-powered industrial diagnostics — select your machine, describe the issue, and get expert-level fault analysis instantly.
+        <h3 className="mb-6 text-lg font-black uppercase tracking-[0.24em] text-white">SmartFix</h3>
+        <p className="mb-6 max-w-sm text-sm leading-7 text-white/58">
+          AI-powered industrial diagnostics for precision manufacturing lines, machine manuals, and severity-aware shift support.
         </p>
         {/* Stat chips */}
       </div>
 
       {/* Product */}
       <div>
-        <h4 className="text-sm font-bold text-black mb-5 uppercase tracking-widest">Product</h4>
-        <ul className="space-y-3 text-sm text-black">
+        <h4 className="mb-5 text-xs font-black uppercase tracking-[0.24em] text-[#66d8e9]">Product</h4>
+        <ul className="space-y-3 text-sm text-white/62">
           <li>
-            <Link to="/features" className="transition-colors duration-200 hover:text-black">Features</Link>
+            <Link to="/features" className="transition-colors duration-200 hover:text-white">Features</Link>
           </li>
           <li>
-            <Link to="/integrations" className="transition-colors duration-200 hover:text-black">Integrations</Link>
+            <Link to="/integrations" className="transition-colors duration-200 hover:text-white">Integrations</Link>
           </li>
         </ul>
       </div>
 
       {/* Support */}
       <div>
-        <h4 className="text-sm font-bold text-black mb-5 uppercase tracking-widest">Support</h4>
-        <ul className="space-y-3 text-sm text-black">
+        <h4 className="mb-5 text-xs font-black uppercase tracking-[0.24em] text-[#66d8e9]">Support</h4>
+        <ul className="space-y-3 text-sm text-white/62">
           <li>
-            <a href="mailto:smartfix@tecdia.co.jp" className="transition-colors duration-200 hover:text-black">smartfix@tecdia.co.jp</a>
+            <a href="mailto:smartfix@tecdia.co.jp" className="transition-colors duration-200 hover:text-white">smartfix@tecdia.co.jp</a>
           </li>
           <li>
-            <a href="tel:+813XXXXXXXX" className="transition-colors duration-200 hover:text-black">+81-3-XXXX-XXXX</a>
+            <a href="tel:+813XXXXXXXX" className="transition-colors duration-200 hover:text-white">+81-3-XXXX-XXXX</a>
           </li>
         </ul>
       </div>
 
       {/* Company */}
       <div>
-        <h4 className="text-sm font-bold text-black mb-5 uppercase tracking-widest">Company</h4>
-        <ul className="space-y-3 text-sm text-black">
+        <h4 className="mb-5 text-xs font-black uppercase tracking-[0.24em] text-[#66d8e9]">Company</h4>
+        <ul className="space-y-3 text-sm text-white/62">
           <li>
-            <Link to="/cookie-policy" className="transition-colors duration-200 hover:text-black">Cookie Policy</Link>
+            <Link to="/cookie-policy" className="transition-colors duration-200 hover:text-white">Cookie Policy</Link>
           </li>
           <li>
-              <Link to="/privacy-policy" className="transition-colors duration-200 hover:text-black">Privacy Policy</Link>
+              <Link to="/privacy-policy" className="transition-colors duration-200 hover:text-white">Privacy Policy</Link>
             </li>
             <li>
-              <Link to="/company-policy" className="transition-colors duration-200 hover:text-black">Company Policy</Link>
+              <Link to="/company-policy" className="transition-colors duration-200 hover:text-white">Company Policy</Link>
             </li>
         </ul>
       </div>
     </div>
 
     {/* Bottom bar */}
-    <div className="max-w-7xl mx-auto mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-3 text-xs text-black">
+    <div className="mx-auto mt-12 flex max-w-[1680px] flex-col items-center justify-between gap-3 border-t border-white/10 pt-8 text-xs text-white/42 md:flex-row">
       <p>© {new Date().getFullYear()} Tecdia SmartFix. All rights reserved.</p>
-      <p>Built for the future of industrial AI.</p>
+      <p>Precision manufacturing intelligence.</p>
     </div>
   </footer>
 );

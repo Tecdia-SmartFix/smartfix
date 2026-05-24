@@ -17,7 +17,18 @@ const keyFor = (machineKey) => `${PREFIX}:${machineKey || 'ALL'}`;
 const loadChats = (storageKey) => {
   try {
     const raw = localStorage.getItem(storageKey);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(chat => chat && typeof chat === 'object')
+      .map(chat => ({
+        ...chat,
+        id: String(chat.id || Date.now() + Math.random()),
+        title: typeof chat.title === 'string' ? chat.title : 'New Chat',
+        messages: Array.isArray(chat.messages) ? chat.messages : [],
+        lastModified: chat.lastModified || new Date().toISOString(),
+      }));
   } catch {
     return [];
   }
@@ -33,7 +44,8 @@ export const useChatHistory = (machineKey = 'ALL') => {
     localStorage.setItem(storageKey, JSON.stringify(chats));
   }, [chats, storageKey]);
 
-  const currentChat = chats.find(c => c.id === currentChatId) || null;
+  const safeChats = Array.isArray(chats) ? chats : [];
+  const currentChat = safeChats.find(c => c.id === currentChatId) || null;
 
   const createNewChat = () => {
     const newChat = {
@@ -42,7 +54,7 @@ export const useChatHistory = (machineKey = 'ALL') => {
       messages: [],
       lastModified: new Date().toISOString(),
     };
-    setChats([newChat, ...chats]);
+    setChats([newChat, ...safeChats]);
     setCurrentChatId(newChat.id);
     return newChat.id;
   };

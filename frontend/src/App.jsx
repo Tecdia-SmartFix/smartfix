@@ -6,6 +6,7 @@ import { AdminAuthProvider } from './context/AdminAuthContext';
 import { MachineProvider } from './context/MachineContext';
 import { AlertProvider } from './context/AlertContext';
 import { StartDiagnosingProvider } from './context/StartDiagnosingContext';
+import { ThemeProvider } from './context/ThemeContext';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 import Navbar from './components/Navbar';
 import BackgroundAnimation from './components/BackgroundAnimation';
@@ -20,7 +21,7 @@ import IntegrationsPage from './pages/IntegrationsPage';
 // (EasyList etc.) match any path containing those words and block the module
 // fetch, which would crash the whole React tree on mount.
 import CookiePolicy from './pages/LegalNotice';
-import PrivacyPolicy from './pages/PrivacyPolicy';
+import PrivacyPolicy from './pages/DataNotice';
 import CompanyPolicy from './pages/CompanyPolicy';
 import ContactPage from './pages/ContactPage';
 
@@ -76,22 +77,24 @@ const AnimatedRoutes = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <AdminAuthProvider>
-        <MachineProvider>
-          <AlertProvider>
-            <Router>
-              <div className="min-h-screen relative transition-colors duration-500 text-tecdia-text bg-tecdia-background">
-                <BackgroundAnimation />
-                <div className="relative z-10">
-                  <AnimatedRoutes />
+    <ThemeProvider>
+      <AuthProvider>
+        <AdminAuthProvider>
+          <MachineProvider>
+            <AlertProvider>
+              <Router>
+                <div className="theme-app min-h-screen relative transition-colors duration-500 text-tecdia-text bg-tecdia-background">
+                  <BackgroundAnimation />
+                  <div className="relative z-10">
+                    <AnimatedRoutes />
+                  </div>
                 </div>
-              </div>
-            </Router>
-          </AlertProvider>
-        </MachineProvider>
-      </AdminAuthProvider>
-    </AuthProvider>
+              </Router>
+            </AlertProvider>
+          </MachineProvider>
+        </AdminAuthProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

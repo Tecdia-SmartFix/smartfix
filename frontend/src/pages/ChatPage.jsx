@@ -52,7 +52,7 @@ const PageWrapper = ({ children }) => (
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
     transition={{ duration: 0.3 }}
-    className="h-screen pt-[76px]"
+    className="h-screen bg-[#eef1ef] pt-[76px]"
   >
     {children}
   </motion.div>
@@ -312,7 +312,7 @@ const ChatPage = () => {
 
   return (
     <PageWrapper>
-      <div className="flex h-[calc(100vh-76px)] text-tecdia-text overflow-hidden relative">
+      <div className="relative flex h-[calc(100vh-76px)] overflow-hidden text-tecdia-text">
         <Sidebar
           currentChatId={currentChatId}
           chats={chats}
@@ -329,23 +329,23 @@ const ChatPage = () => {
               types a multi-line follow-up, the input bar (shrink-0, growing)
               competes with this header for space inside <main>. Without
               shrink-0 the header gets collapsed to 0px by flex distribution. */}
-          <header className="h-16 shrink-0 flex items-center justify-between px-4 border-b border-tecdia-border bg-white/40 backdrop-blur-md relative z-20">
+          <header className="relative z-20 flex h-16 shrink-0 items-center justify-between border-b border-black/10 bg-white/86 px-4 backdrop-blur-md">
             <div className="flex items-center gap-4">
               <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 text-tecdia-text/60 hover:text-tecdia-text">
                 <Menu size={20} />
               </button>
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 pr-4 border-r border-tecdia-border">
-                  <span className="hidden sm:inline text-sm font-bold text-tecdia-textDeep">Tecdia SmartFix</span>
+                <div className="flex items-center gap-2 pr-4 border-r border-black/10">
+                  <span className="hidden text-[11px] font-black uppercase tracking-[0.22em] text-black/50 sm:inline">SmartFix</span>
                 </div>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-tecdia-surface border border-tecdia-border overflow-hidden">
+                <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border border-[#2b8cff]/20 bg-gradient-to-br from-[#2b8cff]/14 to-[#10b9d2]/10">
                   {dynamicMachine?.icon && dynamicMachine.icon !== 'Settings2'
                     ? <MachineIcon size={16} className="text-tecdia-text/60" />
                     : <MachineIcon size={16} className="text-tecdia-text/60" />
                   }
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-tecdia-accent border border-tecdia-accent/20 text-xs font-bold text-white">
+              <div className="flex items-center gap-1.5 rounded-full border border-[#2b8cff]/20 bg-gradient-to-r from-[#2b8cff] to-[#10b9d2] px-3 py-1 text-xs font-bold text-white shadow-sm shadow-[#2b8cff]/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                 <span className="leading-none">{machineLabel}</span>
               </div>
@@ -354,14 +354,14 @@ const ChatPage = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setIsEndShiftModalOpen(true)}
-                className="px-5 py-1.5 rounded-full border border-gray-300 text-[13px] font-semibold text-tecdia-textDeep bg-white hover:bg-gray-50 transition-colors shadow-sm"
+                className="rounded-full border border-black/10 bg-white px-5 py-1.5 text-[13px] font-semibold text-tecdia-textDeep shadow-sm transition-colors hover:bg-gray-50"
               >
                 End shift
               </button>
               <button
                 onClick={createNewChat}
                 title="Start a new chat thread for this machine"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-tecdia-text/60 hover:text-tecdia-accent hover:bg-tecdia-accent/5 border border-transparent hover:border-tecdia-accent/20 transition-all"
+                className="flex items-center gap-1.5 rounded-xl border border-transparent px-3 py-1.5 text-xs font-medium text-tecdia-text/60 transition-all hover:border-tecdia-accent/20 hover:bg-tecdia-accent/5 hover:text-tecdia-accent"
               >
                 <Plus size={13} /> New chat
               </button>

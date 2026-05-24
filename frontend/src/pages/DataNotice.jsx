@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import Footer from '../components/Footer';
+import { PublicHero, ContentShell } from '../components/TecdiaPage';
 
 /* ── animation ── */
 const fadeUp = (delay = 0) => ({
@@ -282,28 +283,15 @@ const PrivacyPolicy = () => (
   <PageWrapper>
     <div className="relative min-h-screen overflow-hidden">
 
-      {/* Background Blobs */}
-      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full bg-tecdia-accent/5 blur-3xl pointer-events-none" />
-      <div className="absolute top-40 right-10 w-64 h-64 rounded-full bg-[#E5E7EB]/20 blur-2xl pointer-events-none" />
-
-      {/* ── Hero ── */}
-      <section className="relative px-6 pt-36 pb-6 md:pt-48 md:pb-10 text-center">
-        <motion.h1
-          {...fadeUp(0)}
-          className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight text-tecdia-textDeep mb-4"
-        >
-          Privacy <span className="text-tecdia-accent">Policy</span>
-        </motion.h1>
-        <motion.p
-          {...fadeUp(0.08)}
-          className="text-lg text-tecdia-text/60 max-w-2xl mx-auto leading-relaxed font-medium"
-        >
-          How SmartFix handles your data — transparent, minimal, and respectful.
-        </motion.p>
-      </section>
+      <PublicHero
+        eyebrow="Data notice"
+        title="Privacy"
+        accent="Policy"
+        description="How SmartFix handles production support data: transparent, minimal, and focused on secure troubleshooting."
+      />
 
       {/* ── Operator Badge ── */}
-      <section className="relative px-6 pb-12">
+      <section className="relative px-5 pt-12 pb-8 sm:px-8 lg:px-10">
         <motion.div
           {...fadeUp(0.12)}
           className="max-w-3xl mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-tecdia-text/60 font-medium bg-white/50 border border-tecdia-border rounded-2xl px-8 py-5"
@@ -320,7 +308,7 @@ const PrivacyPolicy = () => (
       </section>
 
       {/* ── Intro ── */}
-      <section className="relative px-6 pb-14">
+      <section className="relative px-5 pb-8 sm:px-8 lg:px-10">
         <motion.p
           {...fadeUp(0.15)}
           className="max-w-3xl mx-auto text-center text-tecdia-text/60 leading-relaxed font-medium"
@@ -331,13 +319,13 @@ const PrivacyPolicy = () => (
       </section>
 
       {/* ── Section Cards ── */}
-      <section className="relative px-6 pb-28">
-        <div className="max-w-3xl mx-auto flex flex-col gap-6">
+      <ContentShell className="pt-0">
+        <div className="mx-auto flex max-w-4xl flex-col gap-6">
           {SECTIONS.map((section, i) => (
             <SectionCard key={section.number} section={section} index={i} />
           ))}
         </div>
-      </section>
+      </ContentShell>
 
       <Footer />
     </div>

@@ -1,108 +1,85 @@
 import React from 'react';
 import Footer from '../components/Footer';
+import { PageWrapper, PublicHero, ContentShell } from '../components/TecdiaPage';
 
 const INTEGRATIONS = [
   {
     name: 'Groq LLM API',
     category: 'AI Engine',
-    desc: 'Uses the Groq LPU™ Inference Engine for lightning-fast responses, powering our fault diagnosis and severity analysis.',
+    desc: 'Uses the Groq LPU Inference Engine for fast fault diagnosis and severity analysis.',
   },
   {
     name: 'FastAPI Backend',
     category: 'Core API',
-    desc: 'A robust Python-based API server that handles all requests, domain-based access control, and background ingestion jobs.',
+    desc: 'Handles requests, domain-based access control, machine binding, and background ingestion jobs.',
   },
   {
     name: 'ChromaDB',
     category: 'Vector Database',
-    desc: 'The primary storage for machine manuals. It stores document embeddings and performs similarity searches to find relevant fixes.',
+    desc: 'Stores machine manual embeddings and performs similarity searches for relevant procedures.',
   },
   {
     name: 'Sentence Transformers',
     category: 'Embedding',
-    desc: 'Uses the all-MiniLM-L6-v2 model to convert technical text into high-dimensional vectors for semantic search.',
+    desc: 'Converts technical text into vectors for semantic manual retrieval.',
   },
   {
     name: 'Docling Parser',
     category: 'Document Processing',
-    desc: 'Advanced PDF parsing engine used by our ingestion pipeline to accurately extract text and layout from engineering manuals.',
+    desc: 'Extracts text and layout from engineering manuals for ingestion.',
   },
   {
     name: 'React & Vite',
     category: 'Frontend Stack',
-    desc: 'Modern frontend technologies providing a fast, reactive, and intuitive interface for both workers and administrators.',
+    desc: 'Provides a fast, reactive interface for technicians and administrators.',
   },
   {
     name: 'Tailwind CSS',
     category: 'Design System',
-    desc: 'A utility-first CSS framework that allows us to build premium, responsive, and consistent user interfaces.',
+    desc: 'Supplies responsive visual primitives and consistent styling across the app.',
   },
   {
     name: 'Framer Motion',
     category: 'Animations',
-    desc: 'Powering the fluid transitions and micro-interactions that make the SmartFix experience feel alive and premium.',
+    desc: 'Powers page transitions and compact interaction feedback.',
   },
   {
     name: 'Lucide React',
     category: 'Iconography',
-    desc: 'A beautiful and consistent icon library used across the application to provide visual cues and clarity.',
-  }
+    desc: 'Provides clear interface icons for machine, support, and admin workflows.',
+  },
 ];
 
-const IntegrationsPage = () => {
-  return (
-    <div className="relative min-h-screen bg-tecdia-background flex flex-col">
-      <div className="relative z-10 flex-grow">
-        {/* Header */}
-        <header className="px-6 pt-36 pb-20 text-center max-w-4xl mx-auto">
-          <h1 className="text-4xl md:text-5xl font-bold text-tecdia-textDeep mb-4">
-            System <span className="text-tecdia-accent">Integrations</span>
-          </h1>
-          <p className="text-base md:text-lg text-tecdia-text/60 leading-relaxed font-medium">
-            The core technology and services powering the SmartFix platform.
-          </p>
-        </header>
-
-        {/* Integrations List */}
-        <main className="px-6 pb-32">
-          <div className="max-w-4xl mx-auto space-y-16">
-            {INTEGRATIONS.map((item, index) => (
-              <div key={item.name} className="relative group">
-                <div className="flex flex-col md:grid md:grid-cols-12 gap-4 md:gap-8 items-start">
-                  
-                  {/* Category - Bold and Larger as requested */}
-                  <div className="md:col-span-4 lg:col-span-3">
-                    <h2 className="text-xl md:text-2xl font-bold text-tecdia-accent uppercase tracking-tight">
-                      {item.category}
-                    </h2>
-                  </div>
-
-                  {/* Content */}
-                  <div className="md:col-span-8 lg:col-span-9 flex flex-col gap-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-1.5 h-1.5 rounded-full bg-tecdia-accent/40" />
-                      <h3 className="text-xl font-bold text-tecdia-textDeep">
-                        {item.name}
-                      </h3>
-                    </div>
-                    <p className="text-base text-tecdia-text/65 leading-relaxed font-medium pl-4 border-l-2 border-tecdia-accent/10">
-                      {item.desc}
-                    </p>
-                  </div>
-                </div>
-                
-                {index < INTEGRATIONS.length - 1 && (
-                  <div className="mt-16 h-px w-full bg-tecdia-accent/5" />
-                )}
+const IntegrationsPage = () => (
+  <PageWrapper>
+    <div className="min-h-screen">
+      <PublicHero
+        eyebrow="System"
+        title="Platform"
+        accent="Integrations"
+        description="The core services behind SmartFix diagnostic retrieval, alerting, and shift-ready operation."
+      />
+      <ContentShell>
+        <div className="mx-auto max-w-6xl">
+          {INTEGRATIONS.map((item, index) => (
+            <article key={item.name} className="grid gap-5 border-t border-black/10 py-8 md:grid-cols-[240px_1fr] md:gap-10">
+              <div>
+                <div className="text-xs font-black uppercase tracking-[0.24em] text-black/40">0{index + 1}</div>
+                <h2 className="mt-3 bg-gradient-to-r from-[#2b8cff] to-[#10b9d2] bg-clip-text text-2xl font-black uppercase leading-tight tracking-normal text-transparent">
+                  {item.category}
+                </h2>
               </div>
-            ))}
-          </div>
-        </main>
-      </div>
-
+              <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-[0_18px_60px_rgba(0,0,0,0.06)] md:p-8">
+                <h3 className="mb-3 text-2xl font-black tracking-normal text-black">{item.name}</h3>
+                <p className="max-w-3xl text-base leading-8 text-black/62">{item.desc}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </ContentShell>
       <Footer />
     </div>
-  );
-};
+  </PageWrapper>
+);
 
 export default IntegrationsPage;

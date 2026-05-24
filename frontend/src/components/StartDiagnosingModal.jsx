@@ -37,7 +37,7 @@ const StartDiagnosingModal = ({
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-tecdia-textDeep/40 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/72 p-4 backdrop-blur-md"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -48,7 +48,7 @@ const StartDiagnosingModal = ({
             aria-modal="true"
             aria-labelledby="start-modal-title"
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-xl bg-white rounded-2xl border border-tecdia-border shadow-2xl p-7 max-h-[85vh] overflow-hidden flex flex-col"
+            className="theme-modal-panel relative flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border border-white/12 bg-[#080b0d]/95 p-7 text-white shadow-2xl shadow-black/60"
             initial={{ opacity: 0, y: 16, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.96 }}
@@ -58,23 +58,23 @@ const StartDiagnosingModal = ({
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-tecdia-text/40 hover:text-tecdia-textDeep hover:bg-tecdia-background transition-colors"
+              className="absolute right-5 top-5 rounded-full p-1.5 text-white/42 transition-colors hover:bg-white/10 hover:text-white"
             >
               <X size={16} />
             </button>
 
-            <div className="flex items-center gap-2 mb-3 text-[11px] font-bold uppercase tracking-widest">
-              <span className={step === 'domain' ? 'text-tecdia-accent' : 'text-tecdia-text/40'}>1. Area</span>
-              <ChevronRight size={12} className="text-tecdia-text/30" />
-              <span className={step === 'machine' ? 'text-tecdia-accent' : 'text-tecdia-text/40'}>2. Machine</span>
+            <div className="mb-6 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.24em]">
+              <span className={step === 'domain' ? 'text-[#70dceb]' : 'text-white/32'}>1. Area</span>
+              <ChevronRight size={12} className="text-white/24" />
+              <span className={step === 'machine' ? 'text-[#70dceb]' : 'text-white/32'}>2. Machine</span>
             </div>
 
             {step === 'domain' && (
               <>
-                <h2 id="start-modal-title" className="text-2xl font-bold text-tecdia-textDeep mb-2">
+                <h2 id="start-modal-title" className="mb-3 text-4xl font-black uppercase leading-[0.95] tracking-normal text-white">
                   Which area do you work in?
                 </h2>
-                <p className="text-sm text-tecdia-text/60 leading-relaxed mb-6">
+                <p className="mb-7 max-w-xl text-sm font-medium leading-7 text-white/62">
                   Pick the area closest to your role. We'll show machines for that area next. Your session lasts 12 hours.
                 </p>
 
@@ -87,10 +87,10 @@ const StartDiagnosingModal = ({
                         type="button"
                         disabled={picking}
                         onClick={() => onPickDomain(d)}
-                        className={`text-sm py-3 px-4 rounded-xl border font-medium transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait ${
+                        className={`cursor-pointer rounded-full border px-4 py-3 text-sm font-bold transition-all disabled:cursor-wait disabled:opacity-50 ${
                           selected
-                            ? 'bg-tecdia-accent text-white border-tecdia-accent shadow-sm'
-                            : 'bg-white text-tecdia-text/80 border-tecdia-border hover:border-tecdia-accent/60 hover:bg-tecdia-background hover:shadow-sm'
+                            ? 'border-transparent bg-gradient-to-r from-[#2b8cff] to-[#10b9d2] text-white shadow-lg shadow-[#2b8cff]/20'
+                            : 'border-white/12 bg-white/[0.045] text-white/76 hover:border-[#70dceb]/60 hover:bg-white/[0.08] hover:text-white'
                         }`}
                       >
                         {d}
@@ -105,36 +105,36 @@ const StartDiagnosingModal = ({
               <>
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div>
-                    <h2 id="start-modal-title" className="text-2xl font-bold text-tecdia-textDeep">
+                    <h2 id="start-modal-title" className="text-4xl font-black uppercase leading-[0.95] tracking-normal text-white">
                       Pick a machine
                     </h2>
-                    <p className="text-sm text-tecdia-text/60 leading-relaxed mt-1">
-                      Showing machines in <span className="font-semibold text-tecdia-textDeep">{domain}</span>.
+                    <p className="mt-3 text-sm font-medium leading-7 text-white/62">
+                      Showing machines in <span className="font-bold text-white">{domain}</span>.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={onBackToDomain}
-                    className="flex items-center gap-1.5 text-xs font-semibold text-tecdia-accent hover:underline shrink-0 mt-1.5"
+                    className="mt-1.5 flex shrink-0 items-center gap-1.5 text-xs font-black uppercase tracking-[0.18em] text-[#70dceb] hover:text-white"
                   >
                     <ArrowLeft size={13} /> Change area
                   </button>
                 </div>
 
                 <div className="relative mb-4 mt-4">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-tecdia-text/40" />
+                  <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/36" />
                   <input
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search machines…"
-                    className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border border-tecdia-border bg-white focus:border-tecdia-accent focus:ring-2 focus:ring-tecdia-accent/20 outline-none transition"
+                    className="w-full rounded-full border border-white/12 bg-white/[0.055] py-3 pl-11 pr-4 text-sm font-medium text-white outline-none transition placeholder:text-white/34 focus:border-[#70dceb]/70 focus:ring-2 focus:ring-[#2b8cff]/20"
                   />
                 </div>
 
                 <div className="overflow-y-auto -mx-1 px-1 flex-1 min-h-[100px]">
                   {filteredMachines.length === 0 ? (
-                    <div className="py-10 text-center text-sm text-tecdia-text/50">
+                    <div className="py-10 text-center text-sm text-white/45">
                       {machines.length === 0
                         ? 'Loading machines…'
                         : `No machines found in ${domain}${search ? ` matching "${search}"` : ''}.`}
@@ -146,9 +146,9 @@ const StartDiagnosingModal = ({
                           key={m.id || m.name || i}
                           type="button"
                           onClick={() => onPickMachine(m)}
-                          className="group flex items-center gap-3 p-3 rounded-xl border border-tecdia-border bg-white hover:border-tecdia-accent/60 hover:bg-tecdia-background hover:shadow-sm transition-all text-left cursor-pointer"
+                          className="group flex cursor-pointer items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.045] p-3 text-left transition-all hover:border-[#70dceb]/60 hover:bg-white/[0.08]"
                         >
-                          <div className="w-10 h-10 rounded-lg bg-tecdia-accent/10 border border-tecdia-accent/20 flex items-center justify-center text-tecdia-accent shrink-0 overflow-hidden">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#70dceb]/20 bg-gradient-to-br from-[#2b8cff]/18 to-[#10b9d2]/10 text-[#70dceb]">
                             {m.customIconUrl ? (
                               <img src={m.customIconUrl} alt="" className="w-full h-full object-cover" />
                             ) : (
@@ -156,12 +156,12 @@ const StartDiagnosingModal = ({
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-semibold text-tecdia-textDeep truncate">{m.name}</div>
+                            <div className="truncate text-sm font-bold text-white">{m.name}</div>
                             {m.description && (
-                              <div className="text-xs text-tecdia-text/60 truncate">{m.description}</div>
+                              <div className="truncate text-xs text-white/48">{m.description}</div>
                             )}
                           </div>
-                          <ChevronRight size={16} className="text-tecdia-text/30 group-hover:text-tecdia-accent shrink-0" />
+                          <ChevronRight size={16} className="shrink-0 text-white/28 group-hover:text-[#70dceb]" />
                         </button>
                       ))}
                     </div>

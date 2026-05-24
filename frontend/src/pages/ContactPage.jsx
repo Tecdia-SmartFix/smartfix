@@ -1,61 +1,73 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Mail, Phone, MapPin } from 'lucide-react';
+import { Mail, MapPin, Phone } from 'lucide-react';
 import Footer from '../components/Footer';
+import { PageWrapper, PublicHero, ContentShell } from '../components/TecdiaPage';
 
-const ContactPage = () => {
-  return (
-    <div className="min-h-screen bg-white pt-32 pb-0 flex flex-col justify-between">
-      <div className="max-w-4xl mx-auto px-6 w-full mb-20">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 text-center">
-            Contact Us
-          </h1>
-          <p className="text-lg text-slate-600 mb-12 text-center max-w-2xl mx-auto">
-            Get in touch with our expert technician team for specialized machine diagnostics and technical assistance.
-          </p>
+const CONTACT_ITEMS = [
+  {
+    icon: Mail,
+    label: 'Email Support',
+    value: 'smartfix@tecdia.co.jp',
+    href: 'mailto:smartfix@tecdia.co.jp',
+    body: 'Use for diagnostic support, rollout questions, and production-floor SmartFix access.',
+  },
+  {
+    icon: Phone,
+    label: 'Technician Hotline',
+    value: '+81-3-XXXX-XXXX',
+    href: 'tel:+813XXXXXXXX',
+    body: 'Escalate urgent maintenance issues that need human engineering review.',
+  },
+  {
+    icon: MapPin,
+    label: 'Office',
+    value: 'Tokyo, Japan',
+    body: 'Tecdia precision manufacturing and technical support coordination.',
+  },
+];
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-8 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-14 h-14 rounded-full bg-[#E5E7EB]/20 text-[#E5E7EB] flex items-center justify-center mb-6">
-                <Mail size={24} />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Email Support</h3>
-              <a href="mailto:smartfix@tecdia.co.jp" className="text-slate-600 hover:text-[#E5E7EB] transition-colors">
-                smartfix@tecdia.co.jp
+const ContactPage = () => (
+  <PageWrapper>
+    <div className="min-h-screen">
+      <PublicHero
+        eyebrow="Support"
+        title="Contact"
+        accent="Tecdia"
+        description="Route machine issues, SmartFix questions, and technical escalation requests to the right team."
+      />
+      <ContentShell>
+        <div className="grid gap-5 md:grid-cols-3">
+          {CONTACT_ITEMS.map(({ icon: Icon, label, value, href, body }) => {
+            const content = (
+              <>
+                <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-xl border border-[#2b8cff]/20 bg-gradient-to-br from-[#2b8cff]/16 to-[#10b9d2]/10 text-[#079fba]">
+                  <Icon size={22} />
+                </div>
+                <div className="mb-3 text-xs font-black uppercase tracking-[0.24em] text-black/42">{label}</div>
+                <h2 className="mb-4 break-words text-2xl font-black tracking-normal text-black">{value}</h2>
+                <p className="text-sm leading-7 text-black/58">{body}</p>
+              </>
+            );
+
+            return href ? (
+              <a
+                key={label}
+                href={href}
+                className="rounded-2xl border border-black/10 bg-white p-7 shadow-[0_18px_60px_rgba(0,0,0,0.06)] transition hover:-translate-y-1 hover:border-[#2b8cff]/50"
+              >
+                {content}
               </a>
-            </div>
-
-            <div className="p-8 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-14 h-14 rounded-full bg-[#E5E7EB]/20 text-[#E5E7EB] flex items-center justify-center mb-6">
-                <Phone size={24} />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Technician Hotline</h3>
-              <a href="tel:+813XXXXXXXX" className="text-slate-600 hover:text-[#E5E7EB] transition-colors">
-                +81-3-XXXX-XXXX
-              </a>
-            </div>
-
-            <div className="p-8 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-14 h-14 rounded-full bg-[#E5E7EB]/20 text-[#E5E7EB] flex items-center justify-center mb-6">
-                <MapPin size={24} />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Office</h3>
-              <p className="text-slate-600">
-                1-2-3 Tech District<br />
-                Tokyo, Japan
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      </div>
+            ) : (
+              <article key={label} className="rounded-2xl border border-black/10 bg-white p-7 shadow-[0_18px_60px_rgba(0,0,0,0.06)]">
+                {content}
+              </article>
+            );
+          })}
+        </div>
+      </ContentShell>
       <Footer />
     </div>
-  );
-};
+  </PageWrapper>
+);
 
 export default ContactPage;

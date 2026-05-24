@@ -12,6 +12,7 @@ export const ThemeProvider = ({ children }) => {
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(theme);
+    root.dataset.theme = theme;
     localStorage.setItem('tecdia-theme', theme);
   }, [theme]);
 

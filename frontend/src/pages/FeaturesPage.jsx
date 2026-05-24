@@ -1,29 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import Footer from '../components/Footer';
+import { PageWrapper, PublicHero, ContentShell, revealUp } from '../components/TecdiaPage';
 
 /* ── animation ── */
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 20 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.15 },
-  transition: { duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] },
-});
-
-const PageWrapper = ({ children }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -10 }}
-    transition={{ duration: 0.35, ease: 'easeInOut' }}
-  >
-    {children}
-  </motion.div>
-);
-
 /* ── flow steps ── */
-const THEME_COLOR = '#2b8cff';
-
 const STEPS = [
   {
     number: '1',
@@ -66,41 +47,17 @@ const STEPS = [
 const StepCard = ({ step, index }) => {
   return (
     <motion.div
-      {...fadeUp(index * 0.05)}
-      className="relative flex flex-col md:flex-row items-start gap-6 md:gap-10"
+      {...revealUp(index * 0.04)}
+      className="grid gap-5 border-t border-black/10 py-7 md:grid-cols-[90px_1fr]"
     >
-      {/* Number Column */}
-      <div className="flex-shrink-0 flex flex-col items-center">
-        <div 
-          className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold shadow-sm border-2"
-          style={{ 
-            color: THEME_COLOR, 
-            borderColor: `${THEME_COLOR}40`,
-            background: 'white'
-          }}
-        >
-          {step.number}
-        </div>
-        {index < STEPS.length - 1 && (
-          <div 
-            className="w-0.5 flex-1 my-2"
-            style={{ background: `${THEME_COLOR}20`, minHeight: '40px' }}
-          />
-        )}
+      <div className="text-4xl font-black leading-none text-transparent bg-gradient-to-r from-[#2b8cff] to-[#10b9d2] bg-clip-text">
+        {step.number.padStart(2, '0')}
       </div>
-
-      {/* Content */}
-      <div
-        className="flex-1 rounded-2xl p-6 md:p-8 border border-tecdia-border transition-all duration-300 hover:border-tecdia-accent/30"
-        style={{
-          background: 'rgba(255,255,255,0.5)',
-          backdropFilter: 'blur(8px)',
-        }}
-      >
-        <h3 className="text-xl md:text-2xl font-bold text-tecdia-textDeep mb-2 leading-tight">
+      <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-[0_18px_60px_rgba(0,0,0,0.06)] transition hover:border-[#2b8cff]/50 md:p-8">
+        <h3 className="mb-3 text-2xl font-black leading-tight tracking-normal text-black">
           {step.title}
         </h3>
-        <p className="text-tecdia-text/70 leading-relaxed text-base font-medium">
+        <p className="max-w-4xl text-base font-medium leading-8 text-black/62">
           {step.desc}
         </p>
       </div>
@@ -112,35 +69,19 @@ const StepCard = ({ step, index }) => {
 const FeaturesPage = () => (
   <PageWrapper>
     <div className="relative min-h-screen overflow-hidden">
-
-      {/* Background Blobs */}
-      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full bg-tecdia-accent/5 blur-3xl pointer-events-none" />
-      <div className="absolute top-40 right-10 w-64 h-64 rounded-full bg-[#E5E7EB]/20 blur-2xl pointer-events-none" />
-
-      {/* ── Hero ── */}
-      <section className="relative px-6 pt-36 pb-12 md:pt-48 md:pb-16 text-center">
-        <motion.h1
-          {...fadeUp(0)}
-          className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight text-tecdia-textDeep mb-4"
-        >
-          How <span className="text-tecdia-accent">SmartFix</span> Works
-        </motion.h1>
-        <motion.p
-          {...fadeUp(0.08)}
-          className="text-lg text-tecdia-text/60 max-w-2xl mx-auto leading-relaxed font-medium"
-        >
-          A simple, step-by-step guide to reporting issues and getting fixes.
-        </motion.p>
-      </section>
-
-      {/* ── Flow Steps ── */}
-      <section className="relative px-6 pb-28">
-        <div className="max-w-3xl mx-auto flex flex-col gap-6">
+      <PublicHero
+        eyebrow="Workflow"
+        title="How SmartFix"
+        accent="Works"
+        description="A precise, workstation-aware flow for moving from machine symptoms to verified fixes and escalation."
+      />
+      <ContentShell>
+        <div className="mx-auto max-w-5xl">
           {STEPS.map((step, i) => (
             <StepCard key={step.number} step={step} index={i} />
           ))}
         </div>
-      </section>
+      </ContentShell>
 
       <Footer />
     </div>

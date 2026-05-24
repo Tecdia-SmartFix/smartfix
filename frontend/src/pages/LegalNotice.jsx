@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import Footer from '../components/Footer';
+import { PublicHero } from '../components/TecdiaPage';
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 20 },
@@ -11,15 +12,15 @@ const fadeUp = (delay = 0) => ({
 const CookiePolicy = () => (
   <div className="relative min-h-screen bg-tecdia-background flex flex-col">
     <div className="relative z-10 flex-grow">
-      {/* Header */}
-      <header className="px-6 pt-36 pb-16 text-center max-w-4xl mx-auto">
-        <motion.h1 {...fadeUp(0)} className="text-4xl md:text-5xl font-bold text-black mb-4">
-          Cookie Policy
-        </motion.h1>
-      </header>
+      <PublicHero
+        eyebrow="Legal"
+        title="Cookie"
+        accent="Policy"
+        description="How SmartFix uses local browser storage, cookies, and related technologies for secure machine support sessions."
+      />
 
       {/* Content */}
-      <main className="px-6 pb-32 max-w-4xl mx-auto">
+      <main className="tecdia-legal mx-auto max-w-4xl px-5 py-16 sm:px-8 lg:px-10">
         <motion.div {...fadeUp(0.2)} className="text-black space-y-12">
           
           <section>

@@ -9,7 +9,7 @@ import {
 import { useMachines } from '../context/MachineContext';
 import { useAuth } from '../context/AuthContext';
 import { useWorkstation } from '../hooks/useWorkstation';
-import { ShieldAlert } from 'lucide-react';
+import { PageWrapper, PublicHero, ContentShell } from '../components/TecdiaPage';
 
 
 const ICON_MAP = {
@@ -17,17 +17,6 @@ const ICON_MAP = {
   Factory, Cog, Activity, Flame, Monitor, Layers, Radio, Thermometer,
   HardDrive, Truck, FlaskConical,
 };
-
-const PageWrapper = ({ children }) => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    transition={{ duration: 0.3 }}
-  >
-    {children}
-  </motion.div>
-);
 
 const MachinesPage = () => {
   const { machines } = useMachines();
@@ -62,48 +51,20 @@ const MachinesPage = () => {
 
   return (
     <PageWrapper>
-      <div className="min-h-screen flex flex-col items-center px-6 pb-20 relative overflow-hidden">
+      <div className="min-h-screen relative overflow-hidden">
+        <PublicHero
+          eyebrow={`${machines.length} machines available`}
+          title="Machine"
+          accent="Selection"
+          description="Choose a production asset and start a machine-specific diagnostic session with manual-backed context."
+        />
 
-        {/* ── Hero strip with gradient ── */}
-        <div
-          className="w-full flex flex-col items-center pt-32 pb-16 relative overflow-hidden mb-4"
-          style={{ background: 'linear-gradient(160deg, #E5E7EB 0%, #F2F2F2 60%, #FFFFFF 100%)' }}
-        >
-          <div className="pointer-events-none absolute -top-16 -left-16 w-64 h-64 rounded-full bg-[#2b8cff]/10 blur-[80px]" />
-          <div className="pointer-events-none absolute bottom-0 right-0 w-48 h-48 rounded-full bg-[#E5E7EB]/40 blur-[60px]" />
-
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-            className="text-center relative z-10"
-          >
-            <span className="inline-flex items-center gap-2 bg-white/70 border border-[#E5E7EB] backdrop-blur-sm rounded-full px-4 py-1.5 text-xs font-bold text-[#2b8cff] mb-5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#2b8cff] animate-pulse" />
-              {machines.length} machines available
-            </span>
-            <h1 className="text-6xl md:text-8xl font-bold mb-4">
-              <span className="text-[#111111]">Your </span>
-              <span className="text-[#2b8cff]">Machines</span>
-            </h1>
-            <p className="text-base md:text-lg max-w-md mx-auto text-[#111111]/70">
-              Choose a machine to start AI-powered fault diagnostics
-            </p>
-          </motion.div>
-
-          <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none">
-            <svg viewBox="0 0 1440 40" xmlns="http://www.w3.org/2000/svg" className="w-full h-8" preserveAspectRatio="none">
-              <path d="M0,20 C480,40 960,0 1440,20 L1440,40 L0,40 Z" fill="#F2F2F2" />
-            </svg>
-          </div>
-        </div>
-
-        {/* ── Search Bar ── */}
+        <ContentShell className="pb-24">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full max-w-xl mb-10 relative z-10"
+          className="relative z-10 mx-auto mb-10 w-full max-w-2xl"
         >
           <div className="relative group">
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2b8cff]/60 group-focus-within:text-[#2b8cff] transition-colors duration-300 pointer-events-none" />
@@ -113,8 +74,7 @@ const MachinesPage = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search machines by name, type, or category..."
-              className="w-full pl-11 pr-10 py-4 rounded-2xl text-sm text-[#111111] placeholder:text-[#111111]/40 bg-white border-2 border-[#E5E7EB] focus:border-[#2b8cff] outline-none transition-all duration-300 font-medium shadow-sm"
-              style={{ boxShadow: '0 2px 12px rgba(33, 137, 255,0.08)' }}
+              className="w-full rounded-2xl border border-black/10 bg-white py-4 pl-11 pr-10 text-sm font-medium text-[#111111] shadow-[0_18px_60px_rgba(0,0,0,0.08)] outline-none transition-all duration-300 placeholder:text-[#111111]/40 focus:border-[#2b8cff]"
             />
             {searchQuery && (
               <button
@@ -137,7 +97,7 @@ const MachinesPage = () => {
           initial="hidden"
           animate="show"
           variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}
-          className="w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 relative z-10"
+          className="relative z-10 grid w-full grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
           style={{ gridAutoRows: '1fr' }}
         >
           {filteredMachines.length === 0 && (
@@ -169,14 +129,14 @@ const MachinesPage = () => {
               >
                 <Link
                   to={`/chat?machine=${encodeURIComponent(machine.name)}`}
-                  className="group relative h-full flex flex-col rounded-2xl p-6 overflow-hidden cursor-pointer transition-all duration-300 bg-white border-2 border-[#E5E7EB] hover:border-[#2b8cff]/60 hover:shadow-xl hover:shadow-[#2b8cff]/10 hover:-translate-y-1"
+                  className="group relative flex h-full min-h-[260px] cursor-pointer flex-col overflow-hidden rounded-2xl border border-black/10 bg-white p-6 shadow-[0_18px_60px_rgba(0,0,0,0.06)] transition-all duration-300 hover:-translate-y-1 hover:border-[#2b8cff]/60 hover:shadow-xl hover:shadow-[#2b8cff]/10"
                 >
                   {/* Bottom accent line on hover */}
-                  <div className="absolute bottom-0 left-0 h-[3px] w-full scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left bg-[#2b8cff] rounded-b-2xl" />
+                  <div className="absolute bottom-0 left-0 h-[3px] w-full origin-left scale-x-0 rounded-b-2xl bg-gradient-to-r from-[#2b8cff] to-[#10b9d2] transition-transform duration-300 group-hover:scale-x-100" />
 
                   {/* Icon row */}
                   <div className="flex items-start justify-between mb-5">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-md bg-[#2b8cff]/10 border border-[#2b8cff]/20 flex-shrink-0 overflow-hidden">
+                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#2b8cff]/20 bg-gradient-to-br from-[#2b8cff]/16 to-[#10b9d2]/10 transition-all duration-300 group-hover:scale-110 group-hover:shadow-md">
                       {machine.customIconUrl ? (
                         <img src={machine.customIconUrl} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -187,10 +147,10 @@ const MachinesPage = () => {
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-base font-bold text-[#111111] mb-2">{machine.name}</h3>
+                  <h3 className="mb-2 text-xl font-black leading-tight tracking-normal text-[#111111]">{machine.name}</h3>
 
                   {/* Description — flex-1 makes this grow so badge is always at bottom */}
-                  <p className="text-sm leading-relaxed text-[#111111]/60 flex-1 min-h-[40px]">
+                  <p className="min-h-[40px] flex-1 text-sm leading-7 text-[#111111]/60">
                     {machine.description || 'AI-powered diagnostics for this machine type.'}
                   </p>
 
@@ -210,6 +170,7 @@ const MachinesPage = () => {
             );
           })}
         </motion.div>
+        </ContentShell>
       </div>
     </PageWrapper>
   );
