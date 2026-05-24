@@ -19,7 +19,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, EmailStr, Field
 from sentence_transformers import SentenceTransformer
 
-from . import audit, mailer, workstations
+from . import audit, mailer, store, workstations
 from .db import get_chroma_collection
 from .rag_pipeline import run_query
 
@@ -86,6 +86,52 @@ _machine_metadata: dict[str, dict] = {
             "Chamber is not reaching the set temperature",
             "Nozzle is clogged — how do I clear it?",
             "Filament detect sensor is disconnected",
+        ],
+    },
+}
+
+# Default shift-log parameters seeded into the SQLite store on first boot.
+# After seeding the admin owns these via PUT /admin/machines/{id}/parameters,
+# so editing this dict in code only affects fresh installs.
+_DEFAULT_MACHINE_PARAMS: dict[str, dict] = {
+    "INJECTION_MOLDING_MACHINE": {
+        "numeric_readings": [
+            {"key": "pressure",    "label": "Hydraulic pressure", "unit": "bar", "expected_min": 75,  "expected_max": 80},
+            {"key": "temperature", "label": "Barrel temperature", "unit": "°C",  "expected_min": 220, "expected_max": 240},
+            {"key": "cycle_count", "label": "Cycle count (last hour)", "unit": "", "expected_min": 130, "expected_max": 180},
+        ],
+        "visual_checks": [
+            {"key": "leaks_observed",  "label": "Leaks observed",  "anomaly_when": True},
+            {"key": "unusual_noise",   "label": "Unusual noise",   "anomaly_when": True},
+            {"key": "vibration_normal","label": "Vibration normal","anomaly_when": False},
+        ],
+    },
+    "LASER_CUTTING_MACHINE": {
+        "numeric_readings": [
+            {"key": "tube_temp",       "label": "Laser tube temperature", "unit": "°C",  "expected_min": 18, "expected_max": 25},
+            {"key": "assist_pressure", "label": "Air assist pressure",    "unit": "bar", "expected_min": 1.0,"expected_max": 1.5},
+        ],
+        "visual_checks": [
+            {"key": "optics_clean",   "label": "Optics clean",       "anomaly_when": False},
+            {"key": "exhaust_clear",  "label": "Exhaust path clear", "anomaly_when": False},
+        ],
+    },
+    "HP_500_HYDRAULIC_PRESS": {
+        "numeric_readings": [
+            {"key": "ram_pressure", "label": "Ram pressure",      "unit": "bar", "expected_min": 480, "expected_max": 510},
+            {"key": "oil_temp",     "label": "Hydraulic oil temp","unit": "°C",  "expected_min": 35,  "expected_max": 55},
+        ],
+        "visual_checks": [
+            {"key": "two_hand_ok", "label": "Two-hand control OK", "anomaly_when": False},
+        ],
+    },
+    "FDM_X300_INDUSTRIAL_3D_PRINTER": {
+        "numeric_readings": [
+            {"key": "chamber_temp", "label": "Chamber temperature","unit": "°C", "expected_min": 60, "expected_max": 80},
+            {"key": "nozzle_temp",  "label": "Nozzle temperature", "unit": "°C", "expected_min": 230,"expected_max": 260},
+        ],
+        "visual_checks": [
+            {"key": "filament_loaded", "label": "Filament loaded", "anomaly_when": False},
         ],
     },
 }
@@ -163,6 +209,11 @@ async def lifespan(app: FastAPI):
     # Workstation IP→machine bindings (see src/workstations.py + data/workstations.json).
     # Loaded once at startup; restart uvicorn after editing the bindings file.
     workstations.load_bindings()
+    # SQLite store (machine parameters + shift logs). Idempotent — creates
+    # tables if missing, then seeds default parameters for the demo machines
+    # so the EndShiftModal has something to render on a fresh clone.
+    store.init_store()
+    store.seed_machine_parameters(_DEFAULT_MACHINE_PARAMS)
     print(f"startup complete in {time.time() - start:.2f}s", flush=True)
     yield
     ml_models.clear()
@@ -967,6 +1018,136 @@ async def admin_delete_machine(
     )
 
     return {"ok": True, "deleted_chunks": len(ids)}
+
+
+# ── machine parameters + shift logs ────────────────────────────────────────
+# Three roles touch this surface:
+#   • worker    → GET params (renders EndShiftModal), POST /shifts/log
+#   • admin     → PUT params (parameter editor), GET /admin/shifts
+#   • handoff   → GET /machines/{id}/shifts/latest (feature 3, not built yet)
+#
+# Admin endpoints follow the same pattern as the rest of the file: the
+# `stub_session` cookie is used for *attribution* in audit logs, not as a
+# hard gate. ProtectedAdminRoute on the frontend is the auth boundary today.
+
+
+class NumericReadingSpec(BaseModel):
+    key: str
+    label: str
+    unit: str = ""
+    expected_min: Optional[float] = None
+    expected_max: Optional[float] = None
+
+
+class VisualCheckSpec(BaseModel):
+    key: str
+    label: str
+    # True  → an anomaly is recorded when the worker ticks the box (e.g. "leaks observed")
+    # False → an anomaly is recorded when the worker leaves it unticked (e.g. "vibration normal")
+    anomaly_when: bool = True
+
+
+class MachineParametersPayload(BaseModel):
+    numeric_readings: list[NumericReadingSpec] = Field(default_factory=list)
+    visual_checks:    list[VisualCheckSpec]    = Field(default_factory=list)
+
+
+@app.get("/machines/{machine_id}/parameters")
+async def get_machine_parameters(machine_id: str):
+    """Worker-facing: drives the dynamic form in EndShiftModal."""
+    return store.get_machine_parameters(machine_id)
+
+
+@app.put("/admin/machines/{machine_id}/parameters")
+async def admin_put_machine_parameters(
+    machine_id: str,
+    payload: MachineParametersPayload,
+    request: Request,
+    stub_session: Optional[str] = Cookie(default=None),
+):
+    actor = _resolve_admin_email(stub_session) or "admin@tecdia.local"
+    ip = _caller_ip(request)
+
+    # Reject parameters for machines that don't exist in metadata. Avoids
+    # accumulating orphan rows if the admin sends a typo'd machine_id.
+    if machine_id not in {m["id"] for m in _list_machines_basic()}:
+        raise APIError(404, "Machine not found", "not_found")
+
+    saved = store.upsert_machine_parameters(
+        machine_id,
+        [r.model_dump() for r in payload.numeric_readings],
+        [v.model_dump() for v in payload.visual_checks],
+    )
+
+    audit.append(
+        "machine.parameters_update",
+        actor=actor,
+        target=machine_id,
+        ip=ip,
+        details={
+            "numeric_count": len(payload.numeric_readings),
+            "visual_count":  len(payload.visual_checks),
+        },
+    )
+    return saved
+
+
+class ShiftLogPayload(BaseModel):
+    machine_id:    str
+    readings:      dict       = Field(default_factory=dict)
+    visual_checks: dict       = Field(default_factory=dict)
+    notes:         Optional[str] = None
+    worker_label:  Optional[str] = None
+
+
+@app.post("/shifts/log", status_code=201)
+async def submit_shift_log(payload: ShiftLogPayload, request: Request):
+    parameters = store.get_machine_parameters(payload.machine_id)
+    anomalies, severity = store.compute_anomalies(
+        parameters, payload.readings, payload.visual_checks
+    )
+    return store.insert_shift_log(
+        machine_id=payload.machine_id,
+        readings=payload.readings,
+        visual_checks=payload.visual_checks,
+        notes=payload.notes,
+        worker_label=payload.worker_label,
+        workstation_ip=_caller_ip(request),
+        anomalies=anomalies,
+        severity=severity,
+    )
+
+
+@app.get("/machines/{machine_id}/shifts/recent")
+async def list_recent_shifts(machine_id: str, limit: int = 5):
+    """Worker-facing: most recent N logs for this machine."""
+    limit = max(1, min(limit, 50))
+    return {"logs": store.list_shift_logs(machine_id=machine_id, limit=limit)}
+
+
+@app.get("/admin/shifts")
+async def admin_list_shifts(machine_id: Optional[str] = None, limit: int = 100):
+    """Admin-facing: all logs (optionally filtered by machine), newest first."""
+    limit = max(1, min(limit, 1000))
+    return {"logs": store.list_shift_logs(machine_id=machine_id, limit=limit)}
+
+
+@app.post("/admin/shifts/{log_id}/acknowledge")
+async def admin_acknowledge_shift(
+    log_id: int,
+    request: Request,
+    stub_session: Optional[str] = Cookie(default=None),
+):
+    actor = _resolve_admin_email(stub_session) or "admin@tecdia.local"
+    if not store.acknowledge_shift_log(log_id):
+        raise APIError(404, "Shift log not found", "not_found")
+    audit.append(
+        "shift.acknowledge",
+        actor=actor,
+        target=str(log_id),
+        ip=_caller_ip(request),
+    )
+    return {"ok": True}
 
 
 # ── /admin/alerts ──────────────────────────────────────────────────────────

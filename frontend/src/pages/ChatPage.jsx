@@ -582,7 +582,12 @@ const ChatPage = () => {
           </div>
         </main>
       </div>
-      <EndShiftModal isOpen={isEndShiftModalOpen} onClose={() => setIsEndShiftModalOpen(false)} />
+      <EndShiftModal
+        isOpen={isEndShiftModalOpen}
+        onClose={() => setIsEndShiftModalOpen(false)}
+        machineId={dynamicMachine?.id || machineParam}
+        machineName={machineLabel}
+      />
     </PageWrapper>
   );
 };

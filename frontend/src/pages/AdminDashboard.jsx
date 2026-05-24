@@ -16,6 +16,7 @@ import { fetchApi } from '../api/apiClient';
 import ShiftLogsPanel from '../components/ShiftLogsPanel';
 import bbImg from '../assets/bb.jpg';
 import MachineCard from '../components/MachineCard';
+import MachineDetailModal from '../components/MachineDetailModal';
 
 const ICON_OPTIONS = [
   { label: 'Settings',  value: 'Settings2',   icon: Settings2   },
@@ -1064,6 +1065,11 @@ const AdminDashboard = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Selected machine for the parameter-editor modal (opens from inside the
+  // expanded card via its "Edit shift log parameters" button).
+  const [selectedMachine, setSelectedMachine] = useState(null);
+  // id of the machine card currently expanded inline. null = all collapsed.
+  const [expandedMachineId, setExpandedMachineId] = useState(null);
   const fileInputRef = useRef();
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
@@ -1258,16 +1264,22 @@ const AdminDashboard = () => {
         {/* ══════════════ TAB: Machines ══════════════ */}
         {activeTab === 'machines' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {machines.map((machine) => (
-                <MachineCard
-                  key={machine.id}
-                  machine={machine}
-                  isDefault={isDefault(machine.id)}
-                  onDelete={handleDelete}
-                  confirmingDelete={deleteConfirm === machine.id}
-                />
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-min items-start">
+              {machines.map((machine) => {
+                const isExpanded = expandedMachineId === machine.id;
+                return (
+                  <MachineCard
+                    key={machine.id}
+                    machine={machine}
+                    isDefault={isDefault(machine.id)}
+                    onDelete={handleDelete}
+                    confirmingDelete={deleteConfirm === machine.id}
+                    isExpanded={isExpanded}
+                    onToggleExpand={() => setExpandedMachineId(isExpanded ? null : machine.id)}
+                    onEditParameters={() => setSelectedMachine(machine)}
+                  />
+                );
+              })}
             </div>
           </motion.div>
         )}
@@ -1661,6 +1673,13 @@ const AdminDashboard = () => {
       <AnimatePresence>
         {toast && <Toast message={toast} onClose={() => setToast('')} />}
       </AnimatePresence>
+
+      {/* Per-machine detail + parameter editor (opens on MachineCard click) */}
+      <MachineDetailModal
+        machine={selectedMachine}
+        isOpen={!!selectedMachine}
+        onClose={() => setSelectedMachine(null)}
+      />
     </div>
   );
 };

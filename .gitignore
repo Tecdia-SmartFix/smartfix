@@ -16,3 +16,8 @@ CLAUDE.md
 
 # Runtime audit log
 data/audit.jsonl
+
+# SQLite store (machine parameters + shift logs) — created on first server start
+smartfix.db
+smartfix.db-shm
+smartfix.db-wal
