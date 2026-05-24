@@ -2,6 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { Settings2, Trash2, ChevronDown, FileCog, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchApi } from '../api/apiClient';
+import laserImg from '../assets/laser.png';
+import injectionImg from '../assets/injection.jpeg';
+import printerImg from '../assets/printer.png';
+
+const MACHINE_IMAGES = {
+  INJECTION_MOLDING_MACHINE: injectionImg,
+  LASER_CUTTING_MACHINE: laserImg,
+  FDM_X300_INDUSTRIAL_3D_PRINTER: printerImg,
+};
 
 // Two layouts in one component:
 //   • collapsed — the 400px tile shown in the grid
@@ -66,8 +75,8 @@ const MachineCard = ({
           isExpanded ? 'h-[140px]' : 'h-[180px]'
         }`}
       >
-        {machine.customIconUrl ? (
-          <img src={machine.customIconUrl} alt={machine.name} className="w-full h-full object-cover" />
+        {machine.customIconUrl || MACHINE_IMAGES[machine.id] ? (
+          <img src={machine.customIconUrl || MACHINE_IMAGES[machine.id]} alt={machine.name} className="w-full h-full object-cover" />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-white opacity-35">
             {Icon && <Icon size={isExpanded ? 60 : 80} />}

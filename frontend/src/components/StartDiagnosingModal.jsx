@@ -2,6 +2,15 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronRight, ArrowLeft, Settings2, Search } from 'lucide-react';
 import { EXPERTISE_DOMAINS } from '../context/AuthContext';
+import laserImg from '../assets/laser.png';
+import injectionImg from '../assets/injection.jpeg';
+import printerImg from '../assets/printer.png';
+
+const MACHINE_IMAGES = {
+  INJECTION_MOLDING_MACHINE: injectionImg,
+  LASER_CUTTING_MACHINE: laserImg,
+  FDM_X300_INDUSTRIAL_3D_PRINTER: printerImg,
+};
 
 const StartDiagnosingModal = ({
   open,
@@ -149,8 +158,8 @@ const StartDiagnosingModal = ({
                           className="group flex cursor-pointer items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.045] p-3 text-left transition-all hover:border-[#70dceb]/60 hover:bg-white/[0.08]"
                         >
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#70dceb]/20 bg-gradient-to-br from-[#2b8cff]/18 to-[#10b9d2]/10 text-[#70dceb]">
-                            {m.customIconUrl ? (
-                              <img src={m.customIconUrl} alt="" className="w-full h-full object-cover" />
+                            {m.customIconUrl || MACHINE_IMAGES[m.id] ? (
+                              <img src={m.customIconUrl || MACHINE_IMAGES[m.id]} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <Settings2 size={18} />
                             )}

@@ -10,6 +10,15 @@ import { useMachines } from '../context/MachineContext';
 import { useAuth } from '../context/AuthContext';
 import { useWorkstation } from '../hooks/useWorkstation';
 import { PageWrapper, PublicHero, ContentShell } from '../components/TecdiaPage';
+import laserImg from '../assets/laser.png';
+import injectionImg from '../assets/injection.jpeg';
+import printerImg from '../assets/printer.png';
+
+const MACHINE_IMAGES = {
+  INJECTION_MOLDING_MACHINE: injectionImg,
+  LASER_CUTTING_MACHINE: laserImg,
+  FDM_X300_INDUSTRIAL_3D_PRINTER: printerImg,
+};
 
 
 const ICON_MAP = {
@@ -137,8 +146,8 @@ const MachinesPage = () => {
                   {/* Icon row */}
                   <div className="flex items-start justify-between mb-5">
                     <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#2b8cff]/20 bg-gradient-to-br from-[#2b8cff]/16 to-[#10b9d2]/10 transition-all duration-300 group-hover:scale-110 group-hover:shadow-md">
-                      {machine.customIconUrl ? (
-                        <img src={machine.customIconUrl} alt="" className="w-full h-full object-cover" />
+                      {machine.customIconUrl || MACHINE_IMAGES[machine.id] ? (
+                        <img src={machine.customIconUrl || MACHINE_IMAGES[machine.id]} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <Icon size={22} className="text-[#2b8cff]" />
                       )}
