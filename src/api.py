@@ -390,6 +390,9 @@ async def admin_create_machine(
     significance: int = Form(DEFAULT_SIGNIFICANCE),
     icon: Optional[UploadFile] = File(None),
 ):
+    if not file.filename or not file.filename.lower().endswith('.pdf') or file.content_type != "application/pdf":
+        raise APIError(400, "Only PDF files are allowed", "invalid_file_type")
+        
     if file.size and file.size > 50 * 1024 * 1024:
         raise APIError(413, "File exceeds 50 MB", "file_too_large")
 
