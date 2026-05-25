@@ -14,6 +14,8 @@ export default defineConfig({
       '/admin/analytics':       'http://localhost:8000',
       '/admin/audit':           'http://localhost:8000',
       '/admin/_seed-analytics': 'http://localhost:8000',
+      '/admin/shifts':          'http://localhost:8000',
+      '/shifts':                'http://localhost:8000',
       '/query':                 'http://localhost:8000',
       '/health':                'http://localhost:8000',
       '/workstation':           'http://localhost:8000',

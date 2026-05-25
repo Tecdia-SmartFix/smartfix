@@ -635,16 +635,83 @@ const TopQuestions = ({ questions }) => {
   );
 };
 
+// Sleek native-select wrapper used in the AnalyticsPanel filter row. Keeps
+// the native <select> for accessibility/keyboard nav, but skins it with a
+// custom chevron and the same surface treatment as the rest of the panel.
+const AnalyticsFilter = ({ label, value, onChange, options, width = 160 }) => (
+  <div className="flex flex-col gap-1.5">
+    <label className="text-[10px] font-bold text-tecdia-text/45 uppercase tracking-[0.16em]">
+      {label}
+    </label>
+    <div className="relative">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{ minWidth: width }}
+        className="appearance-none bg-white border border-tecdia-border/80 rounded-lg pl-3.5 pr-9 py-2 text-[13px] font-semibold text-tecdia-textDeep outline-none transition-colors hover:border-tecdia-accent/60 focus:border-tecdia-accent focus:ring-2 focus:ring-tecdia-accent/20 cursor-pointer"
+      >
+        {options.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+      <ChevronDown
+        size={14}
+        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-tecdia-text/50"
+      />
+    </div>
+  </div>
+);
+
+// Native date input styled to match AnalyticsFilter so the row looks uniform.
+// Empty string = "no bound on this side" — backend treats both dates as
+// optional, so leaving either blank just relaxes that end of the window.
+const AnalyticsDateFilter = ({ label, value, onChange }) => (
+  <div className="flex flex-col gap-1.5">
+    <label className="text-[10px] font-bold text-tecdia-text/45 uppercase tracking-[0.16em]">
+      {label}
+    </label>
+    <input
+      type="date"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="bg-white border border-tecdia-border/80 rounded-lg px-3 py-2 text-[13px] font-semibold text-tecdia-textDeep outline-none transition-colors hover:border-tecdia-accent/60 focus:border-tecdia-accent focus:ring-2 focus:ring-tecdia-accent/20"
+    />
+  </div>
+);
+
 const AnalyticsPanel = () => {
+  const { machines } = useMachines();
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
   const [seeding, setSeeding] = useState(false);
+  // Machine + top-N are client-side filters (the backend already returns
+  // per-machine breakdowns we can slice). Everything else refetches the
+  // analytics endpoint with query params so the backend re-aggregates from
+  // a filtered query log.
+  const [machineFilter, setMachineFilter] = useState('all');
+  const [topN, setTopN] = useState(10);
+  const [days, setDays] = useState('all');       // 'all' | '1' | '7' | '30'
+  const [category, setCategory] = useState('all');
+  const [severity, setSeverity] = useState('all'); // 'all' | '1'..'5'
+  const [shift, setShift] = useState('all');       // 'all' | 'Morning' | 'Afternoon' | 'Night'
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      const d = await fetchApi('/admin/analytics');
+      const params = new URLSearchParams();
+      if (days !== 'all')      params.set('days', days);
+      if (category !== 'all')  params.set('category', category);
+      if (severity !== 'all')  params.set('severity', severity);
+      if (shift !== 'all')     params.set('shift', shift);
+      // Date inputs only kick in if `days` is 'all' (backend prefers days
+      // when both are present, but we suppress them here for clarity).
+      if (days === 'all' && dateFrom) params.set('date_from', dateFrom);
+      if (days === 'all' && dateTo)   params.set('date_to', dateTo);
+      const qs = params.toString() ? `?${params}` : '';
+      const d = await fetchApi(`/admin/analytics${qs}`);
       setData(d);
       setError(null);
     } catch (e) {
@@ -652,7 +719,7 @@ const AnalyticsPanel = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [days, category, severity, shift, dateFrom, dateTo]);
 
   const seed = async ({ replace = false } = {}) => {
     setSeeding(true);
@@ -666,10 +733,12 @@ const AnalyticsPanel = () => {
     }
   };
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
-  if (loading) {
+  // Full-page spinner only on first load. Once we have data, the inline
+  // "Loading…" indicator in the filter row takes over so changing a filter
+  // doesn't flash the whole panel.
+  if (loading && !data) {
     return (
       <div className="p-12 text-center text-tecdia-text/50 text-sm">
         Loading analytics…
@@ -690,6 +759,25 @@ const AnalyticsPanel = () => {
     top_questions, failure_likelihood = [], depreciation = [],
   } = data;
   const isEmpty = totals.queries === 0;
+
+  // Apply the machine filter to anything that carries a machine_id, then cap
+  // the list-style widgets at `topN`. Donut + hourly bars are intentionally
+  // left untouched — they're already small and don't carry machine_id rows.
+  const matchesMachine = (item) => {
+    if (machineFilter === 'all') return true;
+    return item.machine_id === machineFilter || item.machine === machineFilter;
+  };
+  const filteredPerMachine = (per_machine || []).filter(matchesMachine);
+  const filteredCodes = (code_frequency || []).filter(matchesMachine).slice(0, topN);
+  const filteredQuestions = (top_questions || []).filter(matchesMachine).slice(0, topN);
+  const filteredFailures = (failure_likelihood || []).filter(matchesMachine);
+  const filteredDeprec = (depreciation || []).filter(matchesMachine);
+  // Build dropdown options from whatever machines actually show up in the
+  // analytics payload — avoids listing stale machines that have no activity.
+  const machineOptions = Array.from(new Set([
+    ...(per_machine || []).map(m => m.machine_id),
+    ...(code_frequency || []).map(c => c.machine).filter(Boolean),
+  ])).sort();
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
@@ -728,6 +816,120 @@ const AnalyticsPanel = () => {
         </div>
       )}
 
+      {/* ── Filters row ─────────────────────────────────────────────── */}
+      {(() => {
+        // Categories are sourced from the machines context so admin-added
+        // machines surface naturally. De-duped + sorted for the dropdown.
+        const categoryOptions = Array.from(
+          new Set((machines || []).map(m => m.category).filter(Boolean))
+        ).sort();
+        const filtersActive =
+          machineFilter !== 'all' || topN !== 10 || days !== 'all'
+          || category !== 'all' || severity !== 'all' || shift !== 'all'
+          || dateFrom !== '' || dateTo !== '';
+        const clearAll = () => {
+          setMachineFilter('all'); setTopN(10); setDays('all');
+          setCategory('all'); setSeverity('all'); setShift('all');
+          setDateFrom(''); setDateTo('');
+        };
+        return (
+          <div className="flex flex-wrap items-end gap-3 mb-6">
+            <AnalyticsFilter
+              label="Machine"
+              value={machineFilter}
+              onChange={setMachineFilter}
+              options={[
+                { value: 'all', label: 'All machines' },
+                ...machineOptions.map(id => ({
+                  value: id,
+                  label: id.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase()),
+                })),
+              ]}
+            />
+            <AnalyticsFilter
+              label="Category"
+              value={category}
+              onChange={setCategory}
+              options={[
+                { value: 'all', label: 'All categories' },
+                ...categoryOptions.map(c => ({ value: c, label: c })),
+              ]}
+              width={170}
+            />
+            <AnalyticsFilter
+              label="Severity"
+              value={severity}
+              onChange={setSeverity}
+              options={[
+                { value: 'all', label: 'All severities' },
+                { value: '1', label: 'Severity 1' },
+                { value: '2', label: 'Severity 2' },
+                { value: '3', label: 'Severity 3' },
+                { value: '4', label: 'Severity 4' },
+                { value: '5', label: 'Severity 5' },
+              ]}
+              width={150}
+            />
+            <AnalyticsFilter
+              label="Shift"
+              value={shift}
+              onChange={setShift}
+              options={[
+                { value: 'all',       label: 'All shifts' },
+                { value: 'Morning',   label: 'Morning' },
+                { value: 'Afternoon', label: 'Afternoon' },
+                { value: 'Night',     label: 'Night' },
+              ]}
+              width={140}
+            />
+            <AnalyticsFilter
+              label="Time range"
+              value={days}
+              onChange={setDays}
+              options={[
+                { value: 'all', label: 'All time' },
+                { value: '1',   label: 'Last 24 hours' },
+                { value: '7',   label: 'Last 7 days' },
+                { value: '30',  label: 'Last 30 days' },
+              ]}
+            />
+            <AnalyticsDateFilter
+              label="From"
+              value={dateFrom}
+              onChange={(v) => { setDateFrom(v); if (v) setDays('all'); }}
+            />
+            <AnalyticsDateFilter
+              label="To"
+              value={dateTo}
+              onChange={(v) => { setDateTo(v); if (v) setDays('all'); }}
+            />
+            <AnalyticsFilter
+              label="Show top"
+              value={String(topN)}
+              onChange={(v) => setTopN(Number(v))}
+              options={[
+                { value: '5',  label: 'Top 5' },
+                { value: '10', label: 'Top 10' },
+                { value: '20', label: 'Top 20' },
+                { value: '999', label: 'Show all' },
+              ]}
+              width={130}
+            />
+            {filtersActive && (
+              <button
+                onClick={clearAll}
+                className="text-[11px] font-bold uppercase tracking-[0.14em] text-tecdia-accent hover:text-tecdia-textDeep transition-colors px-2 py-2 self-end"
+              >
+                Clear filters
+              </button>
+            )}
+            {loading && (
+              <span className="text-[11px] font-medium text-tecdia-text/40 px-2 py-2 self-end">Loading…</span>
+            )}
+          </div>
+        );
+      })()}
+
       {/* ── 1. KPI cards ───────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <KpiCard label="Total Queries"  value={totals.queries.toLocaleString()} />
@@ -741,8 +943,8 @@ const AnalyticsPanel = () => {
         <div className="flex items-center gap-2 mb-4">
           <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Per-machine activity</h3>
         </div>
-        {per_machine.length === 0 ? (
-          <p className="text-sm text-tecdia-text/40 italic">No machines have been queried yet.</p>
+        {filteredPerMachine.length === 0 ? (
+          <p className="text-sm text-tecdia-text/40 italic">No machines match the current filter.</p>
         ) : (
           <div className="overflow-x-auto -mx-6 px-6 custom-scrollbar">
             <table className="w-full text-sm border-separate border-spacing-y-2">
@@ -757,7 +959,7 @@ const AnalyticsPanel = () => {
                 </tr>
               </thead>
               <tbody>
-                {per_machine.map((m, i) => (
+                {filteredPerMachine.map((m, i) => (
                   <tr key={m.machine_id} className="group transition-all duration-200">
                     <td className="px-4 py-3.5 bg-white/30 group-hover:bg-white/60 border-l border-y border-tecdia-border/30 rounded-l-xl">
                       <div className="flex items-center gap-3">
@@ -795,14 +997,14 @@ const AnalyticsPanel = () => {
         {/* ── 3. Code frequency bars ────────────────────────────────── */}
         <div>
           <h3 className="text-lg font-bold text-tecdia-textDeep tracking-tight mb-6">Top Error / Alarm Codes</h3>
-          {code_frequency.length === 0 ? (
-            <p className="text-sm text-tecdia-text/40 italic">No coded queries yet.</p>
+          {filteredCodes.length === 0 ? (
+            <p className="text-sm text-tecdia-text/40 italic">No codes match the current filter.</p>
           ) : (
             // Cap visible bars so this card matches the donut card next to it;
             // overflow scrolls the rest. ~6 rows fit before scroll kicks in.
             <div className="custom-scrollbar space-y-4 max-h-[280px] overflow-y-auto pr-2">
-              {code_frequency.map((c, i) => {
-                const maxCount = code_frequency[0]?.count || 1;
+              {filteredCodes.map((c, i) => {
+                const maxCount = filteredCodes[0]?.count || 1;
                 const pct = (c.count / maxCount) * 100;
                 return (
                   <div key={`${c.code}_${c.machine}_${i}`} className="group">
@@ -848,7 +1050,7 @@ const AnalyticsPanel = () => {
             <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Failure likelihood</h3>
           </div>
           <p className="text-[10px] text-tecdia-text/40 mb-4 ml-6">Poisson estimate from last 7 days of alerts</p>
-          <FailureLikelihoodList rows={failure_likelihood} />
+          <FailureLikelihoodList rows={filteredFailures} />
         </SectionCard>
 
         <SectionCard>
@@ -856,13 +1058,13 @@ const AnalyticsPanel = () => {
             <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Asset depreciation</h3>
           </div>
           <p className="text-[10px] text-tecdia-text/40 mb-4 ml-6">Straight-line, 12-month trailing</p>
-          <DepreciationList rows={depreciation} />
+          <DepreciationList rows={filteredDeprec} />
         </SectionCard>
       </div>
 
       {/* ── Top questions (flat list, machine shown per row) ────────── */}
-      {top_questions.length > 0 && (
-        <TopQuestions questions={top_questions} />
+      {filteredQuestions.length > 0 && (
+        <TopQuestions questions={filteredQuestions} />
       )}
     </motion.div>
   );

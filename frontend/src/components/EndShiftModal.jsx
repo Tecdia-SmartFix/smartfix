@@ -8,7 +8,28 @@ import { fetchApi } from '../api/apiClient';
 // MachineDetailModal. On submit we POST to /shifts/log; the backend computes
 // anomalies + severity from the same parameter spec.
 
-const EndShiftModal = ({ isOpen, onClose, machineId, machineName }) => {
+// `phase='end'` is the original end-of-shift log; `phase='start'` is the
+// pre-shift checklist (same fields, same parameter spec, same backend table —
+// just tagged differently so the admin can tell them apart).
+const PHASE_COPY = {
+  end: {
+    eyebrow: 'End of Shift',
+    heading: 'Log your machine before signing off',
+    readingsHint: 'Take a glance at the machine. Out-of-range values trigger an alert.',
+    skipLabel: 'Skip — nothing notable',
+    submitLabel: 'Submit log',
+  },
+  start: {
+    eyebrow: 'Pre-Shift Check',
+    heading: 'Walk the machine before you start',
+    readingsHint: 'Record the values as you find them. Anything out of range is flagged for the admin.',
+    skipLabel: 'Skip — looks normal',
+    submitLabel: 'Submit checklist',
+  },
+};
+
+const EndShiftModal = ({ isOpen, onClose, machineId, machineName, phase = 'end' }) => {
+  const copy = PHASE_COPY[phase] || PHASE_COPY.end;
   const [parameters, setParameters] = useState({ numeric_readings: [], visual_checks: [] });
   const [readings, setReadings] = useState({});
   const [visualChecks, setVisualChecks] = useState({});
@@ -16,6 +37,31 @@ const EndShiftModal = ({ isOpen, onClose, machineId, machineName }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  // Pre-shift only: the last few end-of-shift readings for context, keyed by
+  // parameter `key`. e.g. { pressure: [78, 79, 76] }. Empty {} for end-shift.
+  const [recentByKey, setRecentByKey] = useState({});
+
+  useEffect(() => {
+    if (!isOpen || !machineId || phase !== 'start') return;
+    // Fetch a small window of end-of-shift logs so the worker can see what
+    // the machine looked like recently. Only relevant on pre-shift; the
+    // end-shift modal doesn't need this context.
+    let cancelled = false;
+    fetchApi(`/machines/${machineId}/shifts/recent?limit=3&phase=end`)
+      .then(data => {
+        if (cancelled) return;
+        const byKey = {};
+        (data.logs || []).forEach(log => {
+          Object.entries(log.readings || {}).forEach(([k, v]) => {
+            if (!byKey[k]) byKey[k] = [];
+            byKey[k].push(v);
+          });
+        });
+        setRecentByKey(byKey);
+      })
+      .catch(() => !cancelled && setRecentByKey({}));
+    return () => { cancelled = true; };
+  }, [isOpen, machineId, phase]);
 
   useEffect(() => {
     if (!isOpen || !machineId) return;
@@ -69,7 +115,10 @@ const EndShiftModal = ({ isOpen, onClose, machineId, machineName }) => {
           readings: numericReadings,
           visual_checks: visualChecks,
           notes: notes.trim() || null,
-          worker_label: 'A. Worker',
+          // worker_label intentionally omitted — the backend derives it from
+          // the session cookie + workstation binding (see _derive_worker_label
+          // in src/api.py). Sending it from the client lets it be spoofed.
+          phase,
         }),
       });
       onClose();
@@ -108,10 +157,10 @@ const EndShiftModal = ({ isOpen, onClose, machineId, machineName }) => {
 
             <div className="mb-6">
               <span className="mb-3 block text-[11px] font-black uppercase tracking-[0.24em] text-[#70dceb]">
-                End of Shift
+                {copy.eyebrow}
               </span>
               <h2 className="mb-3 text-[clamp(2rem,5vw,3.25rem)] font-black uppercase leading-[0.95] tracking-normal text-white">
-                Log your machine before signing off
+                {copy.heading}
               </h2>
               <p className="text-sm font-medium text-white/58">
                 {machineName || machineId || 'Machine'}
@@ -135,13 +184,17 @@ const EndShiftModal = ({ isOpen, onClose, machineId, machineName }) => {
                   <div className="mb-6">
                     <h3 className="mb-1 text-sm font-black uppercase tracking-[0.18em] text-white">Readings</h3>
                     <p className="mb-4 text-[13px] font-medium text-white/48">
-                      Take a glance at the machine. Out-of-range values trigger an alert.
+                      {copy.readingsHint}
                     </p>
                     <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
                       {parameters.numeric_readings.map(r => {
                         const range = (r.expected_min != null || r.expected_max != null)
                           ? `expected ${r.expected_min ?? '—'}${r.expected_max != null ? `–${r.expected_max}` : ''}${r.unit ? ` ${r.unit}` : ''}`
                           : null;
+                        // Pre-shift only: surface the previous few end-of-shift
+                        // values so the worker can eyeball drift before
+                        // entering the current reading.
+                        const recent = phase === 'start' ? (recentByKey[r.key] || []) : [];
                         return (
                           <div key={r.key}>
                             <label className="mb-1.5 block text-[13px] font-bold text-white/84">
@@ -155,6 +208,11 @@ const EndShiftModal = ({ isOpen, onClose, machineId, machineName }) => {
                               className="w-full rounded-xl border border-white/12 bg-white/[0.055] px-4 py-2.5 text-[15px] font-semibold text-white outline-none transition-all focus:border-[#70dceb] focus:ring-1 focus:ring-[#2b8cff]/40"
                             />
                             {range && <p className="mt-1.5 text-[12px] text-white/36">{range}</p>}
+                            {recent.length > 0 && (
+                              <p className="mt-1 text-[11px] text-[#70dceb]/70 font-mono">
+                                last {recent.length}: {recent.join(' · ')}{r.unit ? ` ${r.unit}` : ''}
+                              </p>
+                            )}
                           </div>
                         );
                       })}
@@ -226,7 +284,7 @@ const EndShiftModal = ({ isOpen, onClose, machineId, machineName }) => {
                     onClick={onClose}
                     className="text-[13px] font-bold text-white/46 transition-colors hover:text-white"
                   >
-                    Skip — nothing notable
+                    {copy.skipLabel}
                   </button>
                   <button
                     type="submit"
@@ -234,7 +292,7 @@ const EndShiftModal = ({ isOpen, onClose, machineId, machineName }) => {
                     className="flex items-center gap-2 rounded-full bg-gradient-to-r from-[#2b8cff] to-[#10b9d2] px-7 py-3 text-[14px] font-bold text-white shadow-lg shadow-[#2b8cff]/25 transition-all hover:brightness-110 disabled:opacity-50"
                   >
                     {isSubmitting && <Loader2 size={14} className="animate-spin" />}
-                    {isSubmitting ? 'Submitting…' : <>Submit log <span className="text-lg leading-none">→</span></>}
+                    {isSubmitting ? 'Submitting…' : <>{copy.submitLabel} <span className="text-lg leading-none">→</span></>}
                   </button>
                 </div>
               </form>

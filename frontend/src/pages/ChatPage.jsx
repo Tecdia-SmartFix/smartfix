@@ -17,6 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { useAlerts } from '../context/AlertContext';
 import { fetchApi } from '../api/apiClient';
 import EndShiftModal from '../components/EndShiftModal';
+import HandoffBanner from '../components/HandoffBanner';
 import BrandMark from '../components/BrandMark';
 
 const ICON_MAP = {
@@ -467,6 +468,13 @@ const ChatPage = () => {
           {/* Scrollable content area */}
           <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center w-full">
 
+            {/* Handoff banner — only renders if the prior shift's log flagged
+                anomalies and hasn't been acknowledged. Component self-hides
+                otherwise so it doesn't take up vertical space. */}
+            <div className="w-full flex justify-center pt-4">
+              <HandoffBanner machineId={dynamicMachine?.id || machineKey} />
+            </div>
+
             {/* Empty state OR messages view */}
             {(!currentChat || currentChat.messages.length === 0) ? (
               <div className="flex-1 w-full flex flex-col justify-center max-w-3xl mx-auto px-5 pb-32">
@@ -646,7 +654,7 @@ const ChatPage = () => {
       <EndShiftModal
         isOpen={isEndShiftModalOpen}
         onClose={() => setIsEndShiftModalOpen(false)}
-        machineId={dynamicMachine?.id || machineParam}
+        machineId={dynamicMachine?.id || machineKey}
         machineName={machineLabel}
       />
     </PageWrapper>

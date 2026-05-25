@@ -1,0 +1,49 @@
+# SmartFix edge-deploy compose file.
+# Two services on a private network — frontend (nginx) reverse-proxies API
+# calls to backend (uvicorn). All four stateful directories are mounted as
+# named volumes so container rebuilds don't lose machine data, parameters,
+# shift logs, or the audit trail.
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smartfix-backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Point the SQLite store directly into the mounted volume so the
+      # database file + its WAL/shm sidecars all persist across container
+      # rebuilds. store.py reads STORE_PATH at import time.
+      STORE_PATH: /app/sqlite/smartfix.db
+    volumes:
+      # Vector index — rebuilt only by running `scripts/build_index.py` or
+      # by uploading a new machine PDF through the admin UI.
+      - chroma_db:/app/chroma_db
+      # Uploaded PDFs + append-only audit.jsonl.
+      - data:/app/data
+      # SQLite shift logs + machine parameters.
+      - sqlite_store:/app/sqlite
+    # Backend listens here; only frontend reaches it via the docker network.
+    expose:
+      - "8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smartfix-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      # Exposed on the host. Map to 443 + a TLS terminator in front in real
+      # deployments; for edge boxes on a LAN this plain :80 is usually fine.
+      - "80:80"
+
+volumes:
+  chroma_db:
+  data:
+  sqlite_store:

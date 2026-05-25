@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import Cookie, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import Cookie, Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -330,6 +330,21 @@ def _resolve_admin_email(stub_session: Optional[str]) -> Optional[str]:
         return None
     s = _admin_sessions.get(stub_session)
     return s.get("email") if s else None
+
+
+def require_admin(stub_session: Optional[str] = Cookie(default=None)) -> str:
+    """FastAPI dependency: gate every /admin/* route at the API boundary.
+
+    Returns the authenticated admin's email so the handler can attribute audit
+    log entries without re-reading the cookie. Raises 401 if the cookie is
+    absent, expired, or doesn't map to an admin session. ProtectedAdminRoute
+    on the frontend used to be the only gate — this closes the hole where a
+    direct `curl` against /admin/* would succeed without credentials.
+    """
+    email = _resolve_admin_email(stub_session)
+    if not email:
+        raise APIError(401, "Admin authentication required", "unauthenticated")
+    return email
 
 
 @app.post("/query", response_model=QueryResponse)
@@ -881,9 +896,9 @@ async def admin_create_machine(
     category: str = Form("General"),
     significance: int = Form(DEFAULT_SIGNIFICANCE),
     icon: Optional[str] = Form(None),
-    stub_session: Optional[str] = Cookie(default=None),
+    admin_email: str = Depends(require_admin),
 ):
-    actor = _resolve_admin_email(stub_session) or "admin@tecdia.local"
+    actor = admin_email
     ip = _caller_ip(request)
 
     if file.size and file.size > 50 * 1024 * 1024:
@@ -957,7 +972,7 @@ async def admin_create_machine(
 
 
 @app.get("/admin/jobs/{job_id}")
-async def admin_get_job(job_id: str):
+async def admin_get_job(job_id: str, admin_email: str = Depends(require_admin)):
     job = _jobs.get(job_id)
     if not job:
         raise APIError(404, "Job not found", "not_found")
@@ -975,7 +990,7 @@ async def admin_get_job(job_id: str):
 
 
 @app.get("/admin/machines")
-async def admin_list_machines():
+async def admin_list_machines(admin_email: str = Depends(require_admin)):
     base = _list_machines_basic()
     # Stub: synthesize admin-only metadata fields per the contract.
     for m in base:
@@ -989,9 +1004,9 @@ async def admin_list_machines():
 async def admin_delete_machine(
     machine_id: str,
     request: Request,
-    stub_session: Optional[str] = Cookie(default=None),
+    admin_email: str = Depends(require_admin),
 ):
-    actor = _resolve_admin_email(stub_session) or "admin@tecdia.local"
+    actor = admin_email
     ip = _caller_ip(request)
 
     collection = ml_models["collection"]
@@ -1063,9 +1078,9 @@ async def admin_put_machine_parameters(
     machine_id: str,
     payload: MachineParametersPayload,
     request: Request,
-    stub_session: Optional[str] = Cookie(default=None),
+    admin_email: str = Depends(require_admin),
 ):
-    actor = _resolve_admin_email(stub_session) or "admin@tecdia.local"
+    actor = admin_email
     ip = _caller_ip(request)
 
     # Reject parameters for machines that don't exist in metadata. Avoids
@@ -1098,52 +1113,117 @@ class ShiftLogPayload(BaseModel):
     visual_checks: dict       = Field(default_factory=dict)
     notes:         Optional[str] = None
     worker_label:  Optional[str] = None
+    # 'start' for pre-shift checklist, 'end' for end-of-shift log. Defaults to
+    # 'end' so existing callers keep working without modification.
+    phase:         str         = "end"
+
+
+def _derive_worker_label(
+    payload_label: Optional[str],
+    worker_session: Optional[str],
+    workstation_ip: str,
+) -> str:
+    """Decide what to record as the worker identity for a shift log.
+
+    Precedence (most authoritative first):
+      1. Workstation binding — IP→machine map names the station deterministically.
+      2. Worker session domain — set when the worker picked one at the landing page.
+      3. Payload-provided label — frontend fallback for unauthenticated flows.
+      4. Generic "Worker" — last resort so the column is never empty.
+
+    The payload value is treated as the *least* trusted source because the
+    frontend can send anything; we keep it as a fallback so demos / curl /
+    integration tests still produce a sensible label.
+    """
+    bound_machine = workstations.get_binding(workstation_ip)
+    if bound_machine:
+        return f"Workstation {workstation_ip} ({bound_machine})"
+    if worker_session and worker_session in _worker_sessions:
+        s = _worker_sessions[worker_session]
+        domain = s.get("domain") or "General"
+        return f"Worker · {domain}"
+    if payload_label and payload_label.strip():
+        return payload_label.strip()
+    return "Worker"
 
 
 @app.post("/shifts/log", status_code=201)
-async def submit_shift_log(payload: ShiftLogPayload, request: Request):
+async def submit_shift_log(
+    payload: ShiftLogPayload,
+    request: Request,
+    worker_session: Optional[str] = Cookie(default=None),
+):
     parameters = store.get_machine_parameters(payload.machine_id)
     anomalies, severity = store.compute_anomalies(
         parameters, payload.readings, payload.visual_checks
     )
+    ip = _caller_ip(request)
     return store.insert_shift_log(
         machine_id=payload.machine_id,
         readings=payload.readings,
         visual_checks=payload.visual_checks,
         notes=payload.notes,
-        worker_label=payload.worker_label,
-        workstation_ip=_caller_ip(request),
+        worker_label=_derive_worker_label(payload.worker_label, worker_session, ip),
+        workstation_ip=ip,
         anomalies=anomalies,
         severity=severity,
+        phase=payload.phase,
     )
 
 
 @app.get("/machines/{machine_id}/shifts/recent")
-async def list_recent_shifts(machine_id: str, limit: int = 5):
-    """Worker-facing: most recent N logs for this machine."""
+async def list_recent_shifts(machine_id: str, limit: int = 5, phase: Optional[str] = None):
+    """Worker-facing: most recent N logs for this machine.
+
+    Pass `phase=end` to restrict to end-of-shift logs (used by the handoff
+    banner to avoid surfacing a brand-new start-of-shift log).
+    """
     limit = max(1, min(limit, 50))
-    return {"logs": store.list_shift_logs(machine_id=machine_id, limit=limit)}
+    return {"logs": store.list_shift_logs(machine_id=machine_id, limit=limit, phase=phase)}
 
 
 @app.get("/admin/shifts")
-async def admin_list_shifts(machine_id: Optional[str] = None, limit: int = 100):
-    """Admin-facing: all logs (optionally filtered by machine), newest first."""
+async def admin_list_shifts(
+    machine_id: Optional[str] = None,
+    limit: int = 100,
+    phase: Optional[str] = None,
+    admin_email: str = Depends(require_admin),
+):
+    """Admin-facing: all logs (optionally filtered by machine and/or phase)."""
     limit = max(1, min(limit, 1000))
-    return {"logs": store.list_shift_logs(machine_id=machine_id, limit=limit)}
+    return {"logs": store.list_shift_logs(machine_id=machine_id, limit=limit, phase=phase)}
+
+
+@app.post("/shifts/{log_id}/acknowledge")
+async def worker_acknowledge_shift(log_id: int, request: Request):
+    """Worker-facing: dismiss the handoff banner on the chat page.
+
+    Same backing call as the admin variant — once acknowledged the row stays
+    acknowledged regardless of who clicked. We keep the admin route separate
+    so admin actions remain attributable in the audit log.
+    """
+    if not store.acknowledge_shift_log(log_id):
+        raise APIError(404, "Shift log not found", "not_found")
+    audit.append(
+        "shift.acknowledge",
+        actor="worker",
+        target=str(log_id),
+        ip=_caller_ip(request),
+    )
+    return {"ok": True}
 
 
 @app.post("/admin/shifts/{log_id}/acknowledge")
 async def admin_acknowledge_shift(
     log_id: int,
     request: Request,
-    stub_session: Optional[str] = Cookie(default=None),
+    admin_email: str = Depends(require_admin),
 ):
-    actor = _resolve_admin_email(stub_session) or "admin@tecdia.local"
     if not store.acknowledge_shift_log(log_id):
         raise APIError(404, "Shift log not found", "not_found")
     audit.append(
         "shift.acknowledge",
-        actor=actor,
+        actor=admin_email,
         target=str(log_id),
         ip=_caller_ip(request),
     )
@@ -1154,13 +1234,13 @@ async def admin_acknowledge_shift(
 
 
 @app.get("/admin/alerts")
-async def admin_list_alerts():
+async def admin_list_alerts(admin_email: str = Depends(require_admin)):
     # Newest first — matches the UI rendering order
     return {"alerts": list(reversed(_alerts)), "threshold": ALERT_THRESHOLD}
 
 
 @app.delete("/admin/alerts")
-async def admin_clear_alerts():
+async def admin_clear_alerts(admin_email: str = Depends(require_admin)):
     cleared = len(_alerts)
     _alerts.clear()
     return {"ok": True, "cleared": cleared}
@@ -1230,23 +1310,100 @@ def _compute_failure_likelihood(machine_id: str, now: datetime) -> dict:
 
 
 @app.get("/admin/analytics")
-async def admin_analytics():
-    """Aggregate _query_log into the 5 widgets the dashboard renders.
+async def admin_analytics(
+    days:      Optional[int] = None,
+    date_from: Optional[str] = None,   # YYYY-MM-DD inclusive
+    date_to:   Optional[str] = None,   # YYYY-MM-DD inclusive
+    category:  Optional[str] = None,   # machine category, e.g. "Manufacturing"
+    severity:  Optional[int] = None,   # exact match 1..5
+    shift:     Optional[str] = None,   # 'Morning' | 'Afternoon' | 'Night'
+    admin_email: str = Depends(require_admin),
+):
+    """Aggregate _query_log into the dashboard widgets, with optional filters.
 
-    All work is done on-demand here (vs. continuously maintained counters)
-    because the log is bounded at QUERY_LOG_MAX entries and a single pass
-    is microseconds. Aggregating on read also means the dashboard always
-    reflects the current state without coordination overhead.
+    All filters compose (AND). `days` and `date_from`/`date_to` both narrow
+    the time window — `days` wins if both are supplied (simplest precedence).
+    `category` filters by machine category, looked up via _machine_metadata.
+    `severity` is an exact-match 1..5. `shift` classifies asked_at via
+    `_get_shift`. The 24h hourly bars, failure-likelihood, and depreciation
+    intentionally ignore these — they're either inherently time-bound or
+    per-asset rather than per-query.
     """
     from collections import Counter
 
-    total = len(_query_log)
-    alerts_fired = sum(1 for q in _query_log if q.get("alert_fired"))
+    now = datetime.now(timezone.utc)
+
+    # ── Build the time-window cutoffs once, outside the per-row loop. ──
+    cutoff_start: Optional[datetime] = None
+    cutoff_end:   Optional[datetime] = None
+    if days and days > 0:
+        cutoff_start = now - timedelta(days=days)
+    else:
+        # date_from / date_to are inclusive day boundaries in UTC. Tolerate
+        # bad input by silently ignoring it rather than erroring.
+        if date_from:
+            try:
+                cutoff_start = datetime.fromisoformat(date_from).replace(tzinfo=timezone.utc)
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                # End of the chosen day, so a same-day from/to matches that day.
+                cutoff_end = (
+                    datetime.fromisoformat(date_to).replace(tzinfo=timezone.utc)
+                    + timedelta(days=1)
+                )
+            except ValueError:
+                pass
+
+    sev_target = severity if severity in (1, 2, 3, 4, 5) else None
+    shift_target = shift if shift in ("Morning", "Afternoon", "Night") else None
+    category_target = category.strip() if category else None
+
+    # Filter the source log up front so every aggregate below sees the same
+    # window. Anything unset short-circuits true.
+    def _passes(q: dict) -> bool:
+        if cutoff_start or cutoff_end:
+            try:
+                asked = datetime.fromisoformat(q.get("asked_at", "").replace("Z", "+00:00"))
+            except (AttributeError, ValueError):
+                return False
+            if cutoff_start and asked < cutoff_start:
+                return False
+            if cutoff_end and asked >= cutoff_end:
+                return False
+            if shift_target and _get_shift(asked) != shift_target:
+                return False
+        elif shift_target:
+            # Shift filter still works without a date window — just compute
+            # shift from asked_at when we have it.
+            try:
+                asked = datetime.fromisoformat(q.get("asked_at", "").replace("Z", "+00:00"))
+            except (AttributeError, ValueError):
+                return False
+            if _get_shift(asked) != shift_target:
+                return False
+        if sev_target is not None and q.get("severity", 1) != sev_target:
+            return False
+        if category_target:
+            mid = q.get("machine_id") or ""
+            mcat = (_machine_metadata.get(mid) or {}).get("category")
+            if mcat != category_target:
+                return False
+        return True
+
+    if cutoff_start or cutoff_end or sev_target is not None or shift_target or category_target:
+        log_window = [q for q in _query_log if _passes(q)]
+    else:
+        log_window = _query_log
+
+    total = len(log_window)
+    alerts_fired = sum(1 for q in log_window if q.get("alert_fired"))
     machines_indexed = len({m["id"] for m in _list_machines_basic()})
 
     # ── per-machine breakdown ────────────────────────────────────────────
     per_machine_acc: dict[str, dict] = {}
-    for q in _query_log:
+    for q in log_window:
         mid = q["machine_id"] or "unknown"
         d = per_machine_acc.setdefault(mid, {
             "machine_id": mid,
@@ -1278,7 +1435,7 @@ async def admin_analytics():
 
     # ── global code frequency (top 15 across all machines) ───────────────
     code_acc: dict[tuple[str, str], dict] = {}
-    for q in _query_log:
+    for q in log_window:
         for code in q.get("codes", []):
             key = (code, q["machine_id"] or "unknown")
             d = code_acc.setdefault(key, {"code": code, "machine": key[1], "count": 0, "severity_sum": 0})
@@ -1291,7 +1448,7 @@ async def admin_analytics():
 
     # ── severity distribution (count per severity 1..5) ──────────────────
     sev_dist = {str(i): 0 for i in range(1, 6)}
-    for q in _query_log:
+    for q in log_window:
         sev = str(q.get("severity", 1))
         if sev in sev_dist:
             sev_dist[sev] += 1
@@ -1318,7 +1475,7 @@ async def admin_analytics():
     # ── top 10 most-asked verbatim questions ─────────────────────────────
     qtext = Counter()
     qmachine: dict[str, str] = {}
-    for q in _query_log:
+    for q in log_window:
         text = q.get("question", "").strip().lower()
         if text:
             qtext[text] += 1
@@ -1365,7 +1522,11 @@ async def admin_analytics():
 
 
 @app.get("/admin/audit")
-async def admin_audit(limit: int = 200, action_prefix: Optional[str] = None):
+async def admin_audit(
+    limit: int = 200,
+    action_prefix: Optional[str] = None,
+    admin_email: str = Depends(require_admin),
+):
     """Return the most recent audit entries (newest first).
 
     Filterable by action prefix (e.g. `machine.` or `auth.`) for the UI.
@@ -1411,7 +1572,11 @@ _SEED_QUESTIONS: dict[str, list[tuple[str, int]]] = {
 
 
 @app.post("/admin/_seed-analytics")
-async def admin_seed_analytics(count: int = 80, replace: bool = False):
+async def admin_seed_analytics(
+    count: int = 80,
+    replace: bool = False,
+    admin_email: str = Depends(require_admin),
+):
     """Inject synthetic query-log entries so the analytics page renders.
 
     - count:   total entries to inject (default 80)
@@ -1471,7 +1636,7 @@ async def admin_seed_analytics(count: int = 80, replace: bool = False):
 
 
 @app.post("/admin/alerts/test", status_code=201)
-async def admin_test_alert():
+async def admin_test_alert(admin_email: str = Depends(require_admin)):
     test_alert = {
         "alert_id": f"alert_{uuid.uuid4().hex[:8]}",
         "machine_id": "INJECTION_MOLDING_MACHINE",

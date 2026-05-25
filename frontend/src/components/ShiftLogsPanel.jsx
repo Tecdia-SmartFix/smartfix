@@ -36,6 +36,7 @@ const ShiftLogsPanel = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [machineFilter, setMachineFilter] = useState('');
+  const [phaseFilter, setPhaseFilter] = useState(''); // '' | 'start' | 'end'
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState(null);
 
@@ -43,7 +44,10 @@ const ShiftLogsPanel = () => {
     setIsLoading(true);
     setError('');
     try {
-      const qs = machineFilter ? `?machine_id=${encodeURIComponent(machineFilter)}` : '';
+      const params = new URLSearchParams();
+      if (machineFilter) params.set('machine_id', machineFilter);
+      if (phaseFilter)   params.set('phase', phaseFilter);
+      const qs = params.toString() ? `?${params}` : '';
       const data = await fetchApi(`/admin/shifts${qs}`);
       setLogs(data.logs || []);
     } catch (err) {
@@ -51,7 +55,7 @@ const ShiftLogsPanel = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [machineFilter]);
+  }, [machineFilter, phaseFilter]);
 
   useEffect(() => { loadLogs(); }, [loadLogs]);
 
@@ -143,6 +147,18 @@ const ShiftLogsPanel = () => {
             ))}
           </select>
         </div>
+        <div className="w-44">
+          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Phase</label>
+          <select
+            value={phaseFilter}
+            onChange={(e) => setPhaseFilter(e.target.value)}
+            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-[13px] font-semibold text-gray-700 outline-none"
+          >
+            <option value="">All phases</option>
+            <option value="start">Pre-shift</option>
+            <option value="end">End of shift</option>
+          </select>
+        </div>
         <div className="flex-1 relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
@@ -174,6 +190,7 @@ const ShiftLogsPanel = () => {
             <thead>
               <tr className="border-b border-gray-100">
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Time</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Phase</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Machine</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Worker</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Severity</th>
@@ -182,11 +199,11 @@ const ShiftLogsPanel = () => {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-400">
                   <Loader2 size={18} className="inline-block animate-spin mr-2" /> Loading…
                 </td></tr>
               ) : filteredLogs.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-400 italic">
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-400 italic">
                   No shift logs yet. Workers submit them at end of shift from the chat page.
                 </td></tr>
               ) : filteredLogs.map(log => {
@@ -201,6 +218,15 @@ const ShiftLogsPanel = () => {
                     className={`cursor-pointer transition-colors border-b border-gray-50 last:border-0 ${selectedLog?.id === log.id ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}
                   >
                     <td className="px-6 py-4 text-[13px] font-semibold text-gray-500 whitespace-nowrap">{formatTime(log.created_at)}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                        log.phase === 'start'
+                          ? 'bg-sky-50 border border-sky-200 text-sky-700'
+                          : 'bg-slate-50 border border-slate-200 text-slate-700'
+                      }`}>
+                        {log.phase === 'start' ? 'Pre-shift' : 'End'}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 text-[13px] font-bold text-tecdia-textDeep">{machineNameFor(log.machine_id)}</td>
                     <td className="px-6 py-4 text-[13px] font-semibold text-gray-600">{log.worker_label || '—'}</td>
                     <td className="px-6 py-4">

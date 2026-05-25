@@ -69,6 +69,9 @@ CREATE TABLE IF NOT EXISTS shift_logs (
     anomalies      TEXT NOT NULL DEFAULT '[]',
     severity       INTEGER NOT NULL DEFAULT 1,
     acknowledged   INTEGER NOT NULL DEFAULT 0,
+    -- 'end' for end-of-shift logs (the original feature); 'start' for the
+    -- pre-shift checklist. Default keeps pre-existing rows backward-compatible.
+    phase          TEXT NOT NULL DEFAULT 'end',
     created_at     TEXT NOT NULL
 );
 
@@ -78,10 +81,15 @@ CREATE INDEX IF NOT EXISTS idx_shift_logs_machine_created
 
 
 def init_store() -> None:
-    """Create tables if missing. Idempotent — safe to call on every boot."""
+    """Create tables if missing and apply additive migrations. Idempotent."""
     conn = _conn()
     with conn:
         conn.executescript(_SCHEMA)
+        # Migration: add `phase` to shift_logs if upgrading from a pre-phase
+        # database. SQLite has no ADD COLUMN IF NOT EXISTS, so we introspect.
+        existing_cols = {row[1] for row in conn.execute("PRAGMA table_info(shift_logs)")}
+        if "phase" not in existing_cols:
+            conn.execute("ALTER TABLE shift_logs ADD COLUMN phase TEXT NOT NULL DEFAULT 'end'")
 
 
 # ── machine_parameters ─────────────────────────────────────────────────────
@@ -167,6 +175,12 @@ def seed_machine_parameters(seeds: dict[str, dict]) -> None:
 
 
 def _row_to_log(row: sqlite3.Row) -> dict:
+    # `phase` may be absent in legacy rows that predate the migration; fall
+    # back to 'end' rather than crashing on KeyError.
+    try:
+        phase = row["phase"]
+    except (IndexError, KeyError):
+        phase = "end"
     return {
         "id":             row["id"],
         "machine_id":     row["machine_id"],
@@ -178,6 +192,7 @@ def _row_to_log(row: sqlite3.Row) -> dict:
         "anomalies":      json.loads(row["anomalies"]),
         "severity":       row["severity"],
         "acknowledged":   bool(row["acknowledged"]),
+        "phase":          phase or "end",
         "created_at":     row["created_at"],
     }
 
@@ -243,15 +258,18 @@ def insert_shift_log(
     workstation_ip: str | None,
     anomalies: list[dict],
     severity: int,
+    phase: str = "end",
 ) -> dict:
+    if phase not in ("start", "end"):
+        phase = "end"
     conn = _conn()
     with conn:
         cur = conn.execute(
             """
             INSERT INTO shift_logs
                 (machine_id, worker_label, workstation_ip, readings, visual_checks,
-                 notes, anomalies, severity, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 notes, anomalies, severity, phase, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 machine_id,
@@ -262,6 +280,7 @@ def insert_shift_log(
                 notes,
                 json.dumps(anomalies),
                 severity,
+                phase,
                 _now_iso(),
             ),
         )
@@ -272,13 +291,23 @@ def insert_shift_log(
 def list_shift_logs(
     machine_id: str | None = None,
     limit: int | None = None,
+    phase: str | None = None,
 ) -> list[dict]:
-    """Most-recent-first. Admin omits machine_id; worker passes it + small limit."""
+    """Most-recent-first. Admin omits machine_id; worker passes it + small limit.
+
+    Pass `phase='start'` or `'end'` to restrict to one half of the shift cycle.
+    """
     sql = "SELECT * FROM shift_logs"
+    where: list[str] = []
     args: list = []
     if machine_id:
-        sql += " WHERE machine_id = ?"
+        where.append("machine_id = ?")
         args.append(machine_id)
+    if phase in ("start", "end"):
+        where.append("phase = ?")
+        args.append(phase)
+    if where:
+        sql += " WHERE " + " AND ".join(where)
     # id DESC breaks ties when two logs share a created_at second.
     sql += " ORDER BY created_at DESC, id DESC"
     if limit:
@@ -297,10 +326,16 @@ def acknowledge_shift_log(log_id: int) -> bool:
     return cur.rowcount > 0
 
 
-def latest_shift_log(machine_id: str) -> dict | None:
-    """Used by the handoff banner (feature 3) to find the prior shift's log."""
-    row = _conn().execute(
-        "SELECT * FROM shift_logs WHERE machine_id = ? ORDER BY created_at DESC, id DESC LIMIT 1",
-        (machine_id,),
-    ).fetchone()
+def latest_shift_log(machine_id: str, phase: str | None = "end") -> dict | None:
+    """Latest log for a machine. Defaults to phase='end' since the handoff
+    banner only cares about the prior shift's *end* log (a clean start-of-shift
+    log on the new shift shouldn't bury the previous shift's anomalies).
+    Pass phase=None to get the latest log of any kind."""
+    sql = "SELECT * FROM shift_logs WHERE machine_id = ?"
+    args: list = [machine_id]
+    if phase in ("start", "end"):
+        sql += " AND phase = ?"
+        args.append(phase)
+    sql += " ORDER BY created_at DESC, id DESC LIMIT 1"
+    row = _conn().execute(sql, args).fetchone()
     return _row_to_log(row) if row else None

@@ -12,6 +12,9 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isEndShiftOpen, setIsEndShiftOpen] = useState(false);
+  // 'start' = pre-shift checklist, 'end' = end-of-shift log. Same modal,
+  // different copy + different phase tag in the POST body.
+  const [shiftModalPhase, setShiftModalPhase] = useState('end');
   const [hoveredPath, setHoveredPath] = useState(null);
   const [megaMenuOpen, setMegaMenuOpen] = useState(false);
   let megaMenuTimeout;
@@ -30,6 +33,15 @@ const Navbar = () => {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const showCta = !location.pathname.startsWith('/chat') && !location.pathname.startsWith('/admin');
+
+  // Derive the active machine from the URL so the End-Shift modal opened
+  // from the navbar gets the same machineId as the one inside ChatPage.
+  // Falls through to undefined when no ?machine= is present (e.g. on /admin),
+  // and the modal will show its "no parameters configured" empty state.
+  const navMachineParam = new URLSearchParams(location.search).get('machine');
+  const navMachineId = navMachineParam
+    ? navMachineParam.replace(/[^A-Za-z0-9]+/g, '_').toUpperCase()
+    : undefined;
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 24);
@@ -102,7 +114,19 @@ const Navbar = () => {
           {/* Right Side: Secondary Links */}
           <div className="hidden md:flex items-center gap-7 h-full">
             <button
-              onClick={() => setIsEndShiftOpen(true)}
+              onClick={() => { setShiftModalPhase('start'); setIsEndShiftOpen(true); }}
+              onMouseEnter={() => setHoveredPath('start-shift')}
+              onMouseLeave={() => setHoveredPath(null)}
+              className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-white transition-colors duration-200 hover:text-white h-full"
+            >
+              <ArrowRight size={14} /> Start Shift
+              {hoveredPath === 'start-shift' && (
+                <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
+              )}
+            </button>
+
+            <button
+              onClick={() => { setShiftModalPhase('end'); setIsEndShiftOpen(true); }}
               onMouseEnter={() => setHoveredPath('end-shift')}
               onMouseLeave={() => setHoveredPath(null)}
               className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-white transition-colors duration-200 hover:text-white h-full"
@@ -173,8 +197,14 @@ const Navbar = () => {
               {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
               {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             </button>
-            <button 
-              onClick={() => { setIsMenuOpen(false); setIsEndShiftOpen(true); }} 
+            <button
+              onClick={() => { setIsMenuOpen(false); setShiftModalPhase('start'); setIsEndShiftOpen(true); }}
+              className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors w-full text-left"
+            >
+              <ArrowRight size={14} /> Start Shift
+            </button>
+            <button
+              onClick={() => { setIsMenuOpen(false); setShiftModalPhase('end'); setIsEndShiftOpen(true); }}
               className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors w-full text-left"
             >
               <LogOut size={14} /> End Shift
@@ -195,7 +225,13 @@ const Navbar = () => {
         )}
       </AnimatePresence>
 
-      <EndShiftModal isOpen={isEndShiftOpen} onClose={() => setIsEndShiftOpen(false)} />
+      <EndShiftModal
+        isOpen={isEndShiftOpen}
+        onClose={() => setIsEndShiftOpen(false)}
+        machineId={navMachineId}
+        machineName={navMachineParam || undefined}
+        phase={shiftModalPhase}
+      />
       
       <MegaMenu 
         isHovered={megaMenuOpen} 
