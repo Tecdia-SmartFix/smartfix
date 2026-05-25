@@ -78,12 +78,14 @@ const MachineCard = ({
         }`}
       >
         {machine.customIconUrl || MACHINE_IMAGES[machine.id?.toUpperCase()] ? (
+          // object-cover + object-center so admin-uploaded photos always fill
+          // the image area regardless of source aspect ratio. Wide source
+          // images get cropped on the sides, tall ones get cropped top/bottom
+          // — better than letterboxing with dark gaps inside the card.
           <img
             src={machine.customIconUrl || MACHINE_IMAGES[machine.id?.toUpperCase()]}
             alt={machine.name}
-            className={`w-full h-full ${
-              machine.id?.toUpperCase() === 'HP_500_HYDRAULIC_PRESS' ? 'object-contain py-1' : 'object-cover'
-            }`}
+            className="w-full h-full object-cover object-center"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-white opacity-35">
