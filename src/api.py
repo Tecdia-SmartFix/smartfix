@@ -19,7 +19,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, EmailStr, Field
 from sentence_transformers import SentenceTransformer
 
-from . import audit, mailer, workstations
+from . import audit, mailer, store, workstations
 from .db import get_chroma_collection
 from .rag_pipeline import run_query
 
@@ -28,14 +28,22 @@ load_dotenv()
 # ── lifecycle ──────────────────────────────────────────────────────────────
 
 ml_models: dict = {}
+# In-memory job store for the /admin/jobs stub. Replaced with a real queue
+# (RQ + Redis) when we cloud-deploy.
 _jobs: dict[str, dict] = {}
+
+# Worker domain sessions: cookie value → {domain, created_at}.
+# Replaced with proper session storage when auth is hardened.
 _worker_sessions: dict[str, dict] = {}
 
+# Per-machine metadata captured at admin upload time. Until ingestion is real,
+# this also seeds metadata for the existing indexed machines.
 _machine_metadata: dict[str, dict] = {
     "INJECTION_MOLDING_MACHINE": {
         "description": "Tecdia injection molding line — IMM-750 series.",
         "category": "Manufacturing",
         "significance": 5,
+        # Lucide icon name; frontend resolves via ICON_MAP. Filename strings would also work for future image-based icons.
         "icon": "Factory",
         "suggested_questions": [
             "What does error code E-04 mean?",
@@ -82,6 +90,55 @@ _machine_metadata: dict[str, dict] = {
     },
 }
 
+# Default shift-log parameters seeded into the SQLite store on first boot.
+# After seeding the admin owns these via PUT /admin/machines/{id}/parameters,
+# so editing this dict in code only affects fresh installs.
+_DEFAULT_MACHINE_PARAMS: dict[str, dict] = {
+    "INJECTION_MOLDING_MACHINE": {
+        "numeric_readings": [
+            {"key": "pressure",    "label": "Hydraulic pressure", "unit": "bar", "expected_min": 75,  "expected_max": 80},
+            {"key": "temperature", "label": "Barrel temperature", "unit": "°C",  "expected_min": 220, "expected_max": 240},
+            {"key": "cycle_count", "label": "Cycle count (last hour)", "unit": "", "expected_min": 130, "expected_max": 180},
+        ],
+        "visual_checks": [
+            {"key": "leaks_observed",  "label": "Leaks observed",  "anomaly_when": True},
+            {"key": "unusual_noise",   "label": "Unusual noise",   "anomaly_when": True},
+            {"key": "vibration_normal","label": "Vibration normal","anomaly_when": False},
+        ],
+    },
+    "LASER_CUTTING_MACHINE": {
+        "numeric_readings": [
+            {"key": "tube_temp",       "label": "Laser tube temperature", "unit": "°C",  "expected_min": 18, "expected_max": 25},
+            {"key": "assist_pressure", "label": "Air assist pressure",    "unit": "bar", "expected_min": 1.0,"expected_max": 1.5},
+        ],
+        "visual_checks": [
+            {"key": "optics_clean",   "label": "Optics clean",       "anomaly_when": False},
+            {"key": "exhaust_clear",  "label": "Exhaust path clear", "anomaly_when": False},
+        ],
+    },
+    "HP_500_HYDRAULIC_PRESS": {
+        "numeric_readings": [
+            {"key": "ram_pressure", "label": "Ram pressure",      "unit": "bar", "expected_min": 480, "expected_max": 510},
+            {"key": "oil_temp",     "label": "Hydraulic oil temp","unit": "°C",  "expected_min": 35,  "expected_max": 55},
+        ],
+        "visual_checks": [
+            {"key": "two_hand_ok", "label": "Two-hand control OK", "anomaly_when": False},
+        ],
+    },
+    "FDM_X300_INDUSTRIAL_3D_PRINTER": {
+        "numeric_readings": [
+            {"key": "chamber_temp", "label": "Chamber temperature","unit": "°C", "expected_min": 60, "expected_max": 80},
+            {"key": "nozzle_temp",  "label": "Nozzle temperature", "unit": "°C", "expected_min": 230,"expected_max": 260},
+        ],
+        "visual_checks": [
+            {"key": "filament_loaded", "label": "Filament loaded", "anomaly_when": False},
+        ],
+    },
+}
+
+# Per-machine depreciation parameters. Demo-only synthetic numbers — replace
+# with real asset records once a maintenance system is integrated. Straight-line
+# depreciation: current_value = initial_value * (1 - elapsed_years / useful_life).
 _DEPRECIATION_DEFAULTS: dict[str, dict] = {
     "INJECTION_MOLDING_MACHINE":      {"purchase_date": "2021-03-15", "initial_value": 4_200_000.0, "useful_life_years": 10},
     "LASER_CUTTING_MACHINE":          {"purchase_date": "2022-07-01", "initial_value": 3_100_000.0, "useful_life_years": 10},
@@ -89,30 +146,50 @@ _DEPRECIATION_DEFAULTS: dict[str, dict] = {
     "FDM_X300_INDUSTRIAL_3D_PRINTER": {"purchase_date": "2023-05-10", "initial_value":   950_000.0, "useful_life_years":  8},
 }
 
+# Alert log (in-memory). Each entry matches the shape rendered in the admin UI.
 _alerts: list[dict] = []
+
+# Append-only query log (in-memory). Feeds the analytics endpoint. Capped at
+# QUERY_LOG_MAX entries to keep memory bounded — old entries are dropped FIFO.
+# Persistence is intentionally deferred; for live demo this is sufficient.
 _query_log: list[dict] = []
 QUERY_LOG_MAX = 20_000
 
+# Pre-compiled patterns reused by every /query call to extract diagnostic
+# codes from the question text. Same broad shape the retriever / chunker use.
 _QUERY_CODE_RE = re.compile(r"\b[A-Z]{1,4}-?\d{2,4}\b", re.IGNORECASE)
 
 ALERT_THRESHOLD = int(os.getenv("ALERT_THRESHOLD", "12"))
 DEFAULT_SIGNIFICANCE = 3
 
+# ── Admin auth (magic-link via Resend) ─────────────────────────────────────
+# Email allowlist — only these addresses can request a sign-in link AND
+# receive alert emails. Empty allowlist means no admins, which is the
+# safe-by-default state for a fresh clone with no .env configured.
 ADMIN_EMAILS: set[str] = {
     e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "").split(",") if e.strip()
 }
 
+# APP_BASE_URL is what we put inside magic-link emails. In dev this is the
+# Vite dev server (which proxies /auth/* back to this backend). In prod
+# it's the public frontend URL.
 APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:5173").rstrip("/")
 
+# token → {email, expires_at}. Single-use; popped on verify.
 _magic_tokens: dict[str, dict] = {}
 MAGIC_TOKEN_TTL_MINUTES = 15
 
+# admin session_id → {email, created_at}. Cookie value is the session_id.
 _admin_sessions: dict[str, dict] = {}
 ADMIN_SESSION_DAYS = 30
 
+# Archive location for uploaded PDFs. Each new machine is stored as
+# `{machine_id}.pdf` so it can be re-ingested, audited, or downloaded later.
+# Replaces the previous tempfile-then-delete flow.
 UPLOADS_DIR = Path("./data/uploads")
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
+# Allowed worker domains. "All Access" bypasses the per-machine domain check.
 ALLOWED_DOMAINS = {
     "General",
     "Manufacturing",
@@ -124,28 +201,19 @@ ALLOWED_DOMAINS = {
 }
 
 
-# ── shift helper ───────────────────────────────────────────────────────────
-# Defined before any endpoint that calls it.
-
-def _get_shift(dt: datetime) -> str:
-    """Classify a UTC datetime into a named shift. Adjust hours to your facility."""
-    hour = dt.hour
-    if 6 <= hour < 14:
-        return "Morning"
-    elif 14 <= hour < 22:
-        return "Afternoon"
-    else:
-        return "Night"
-
-
-# ── lifecycle ──────────────────────────────────────────────────────────────
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     start = time.time()
     ml_models["embedder"] = SentenceTransformer("all-MiniLM-L6-v2")
     ml_models["collection"] = get_chroma_collection()
+    # Workstation IP→machine bindings (see src/workstations.py + data/workstations.json).
+    # Loaded once at startup; restart uvicorn after editing the bindings file.
     workstations.load_bindings()
+    # SQLite store (machine parameters + shift logs). Idempotent — creates
+    # tables if missing, then seeds default parameters for the demo machines
+    # so the EndShiftModal has something to render on a fresh clone.
+    store.init_store()
+    store.seed_machine_parameters(_DEFAULT_MACHINE_PARAMS)
     print(f"startup complete in {time.time() - start:.2f}s", flush=True)
     yield
     ml_models.clear()
@@ -153,6 +221,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Machine Troubleshooting RAG API", lifespan=lifespan)
 
+# Permissive for dev (any localhost port). Tighten when deploying.
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"http://localhost(:\d+)?",
@@ -161,8 +230,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # ── error envelope ─────────────────────────────────────────────────────────
+
 
 class APIError(HTTPException):
     def __init__(self, status_code: int, detail: str, code: str):
@@ -198,12 +267,14 @@ async def generic_exception_handler(request: Request, exc: Exception):
 
 # ── /health ────────────────────────────────────────────────────────────────
 
+
 @app.get("/health")
 async def health():
     return {"status": "ok", "version": "0.1.0"}
 
 
 # ── /query ─────────────────────────────────────────────────────────────────
+
 
 class HistoryTurn(BaseModel):
     role: str
@@ -236,11 +307,17 @@ def _domain_allows_machine(domain: str, machine_id: str) -> bool:
         return True
     machine_category = _machine_metadata.get(machine_id, {}).get("category")
     if not machine_category:
-        return True
+        return True  # unknown category — fail open for now, tighten when ingestion is real
     return machine_category == domain
 
 
 def _caller_ip(request: Request) -> str:
+    """Best-effort caller-IP resolution for workstation binding.
+
+    Honors X-Forwarded-For (first hop = originating client) when present, so
+    deployments behind nginx/caddy keep working. Falls back to the immediate
+    socket peer. CORS is dev-permissive today; tighten when deploying.
+    """
     xff = request.headers.get("x-forwarded-for")
     if xff:
         return xff.split(",")[0].strip()
@@ -248,6 +325,7 @@ def _caller_ip(request: Request) -> str:
 
 
 def _resolve_admin_email(stub_session: Optional[str]) -> Optional[str]:
+    """Return the admin email behind a `stub_session` cookie, or None."""
     if not stub_session:
         return None
     s = _admin_sessions.get(stub_session)
@@ -260,6 +338,11 @@ async def query(
     request: Request,
     worker_session: Optional[str] = Cookie(default=None),
 ):
+    # ── Workstation-binding enforcement (authoritative) ────────────────────
+    # If the caller's IP is registered in data/workstations.json, force the
+    # query to filter on the bound machine — even if the frontend sent a
+    # different machine_filter (stale tab, tampered request, etc.). Chunk
+    # isolation in ChromaDB is guaranteed via retriever.py's `where=` clause.
     bound_machine = workstations.get_binding(_caller_ip(request))
     if bound_machine:
         if req.machine_filter and req.machine_filter != bound_machine:
@@ -270,7 +353,9 @@ async def query(
                 flush=True,
             )
         req.machine_filter = bound_machine
+        # Domain check is redundant once IP is authoritative — skip it.
     elif worker_session and worker_session in _worker_sessions and req.machine_filter:
+        # Unbound IP — keep existing worker-session-based domain gate.
         domain = _worker_sessions[worker_session]["domain"]
         if not _domain_allows_machine(domain, req.machine_filter):
             raise APIError(
@@ -311,6 +396,9 @@ async def query(
             "email_notified": False,
             "notified_at": datetime.now(timezone.utc).isoformat(),
         }
+        # Fire-and-forget email to every admin in the allowlist. Failure
+        # never breaks the /query response — we just flip email_notified=False
+        # on the persisted record so the UI can show "not delivered".
         if ADMIN_EMAILS:
             try:
                 mailer.send_alert(list(ADMIN_EMAILS), alert_record)
@@ -320,32 +408,28 @@ async def query(
                 print(f"[alerts] mailer failed for {alert_record['alert_id']}: {exc!r}", flush=True)
         _alerts.append(alert_record)
 
-    # ── Append to the query log for analytics ──────────────────────────────
+    # ── Append to the query log for analytics ──
+    # Captured after the alert path so `alert_fired` reflects the truth.
+    # Fire-and-forget: a failure here must never break the user's response.
     try:
-        now_utc = datetime.now(timezone.utc)
         codes = sorted({m.upper() for m in _QUERY_CODE_RE.findall(req.question)})
         _query_log.append({
-            "query_id":        f"q_{uuid.uuid4().hex[:8]}",
-            "machine_id":      req.machine_filter or "unknown",
-            "question":        req.question,
-            "severity":        severity,
-            "alert_score":     alert_score,
-            "alert_fired":     alert_fired,
-            "codes":           codes,
-            "answer_chars":    len(result.get("answer", "")),
-            "status":          result.get("status", "unknown"),
-            "asked_at":        now_utc.isoformat(),
-            "workstation_ip":  (
+            "query_id":      f"q_{uuid.uuid4().hex[:8]}",
+            "machine_id":    req.machine_filter or "unknown",
+            "question":      req.question,
+            "severity":      severity,
+            "alert_score":   alert_score,
+            "alert_fired":   alert_fired,
+            "codes":         codes,
+            "answer_chars":  len(result.get("answer", "")),
+            "status":        result.get("status", "unknown"),
+            "asked_at":      datetime.now(timezone.utc).isoformat(),
+            "workstation_ip": (
                 _worker_sessions.get(worker_session, {}).get("workstation_ip")
                 if worker_session else None
             ),
-            "domain":          (
-                _worker_sessions.get(worker_session, {}).get("domain", "unknown")
-                if worker_session else "unknown"
-            ),
-            "worker_session_id": worker_session or None,
-            "shift":           _get_shift(now_utc),
         })
+        # FIFO cap so memory stays bounded.
         if len(_query_log) > QUERY_LOG_MAX:
             del _query_log[: len(_query_log) - QUERY_LOG_MAX]
     except Exception as exc:
@@ -361,7 +445,10 @@ async def query(
 
 # ── /machines ──────────────────────────────────────────────────────────────
 
-DISPLAY_NAME_OVERRIDES: dict[str, str] = {}
+DISPLAY_NAME_OVERRIDES: dict[str, str] = {
+    # Add overrides here when the auto-generated name isn't great.
+    # Example: "INJECTION_MOLDING_MACHINE": "Injection Molding Machine (IMM-750)",
+}
 
 
 def _list_machines_basic() -> list[dict]:
@@ -380,16 +467,18 @@ def _list_machines_basic() -> list[dict]:
             machine_id, machine_id.replace("_", " ").title()
         )
         meta = _machine_metadata.get(machine_id, {})
-        machines.append({
-            "id": machine_id,
-            "display_name": display_name,
-            "chunk_count": count,
-            "description": meta.get("description", ""),
-            "category": meta.get("category", "General"),
-            "significance": meta.get("significance", DEFAULT_SIGNIFICANCE),
-            "icon": meta.get("icon"),
-            "suggested_questions": meta.get("suggested_questions", []),
-        })
+        machines.append(
+            {
+                "id": machine_id,
+                "display_name": display_name,
+                "chunk_count": count,
+                "description": meta.get("description", ""),
+                "category": meta.get("category", "General"),
+                "significance": meta.get("significance", DEFAULT_SIGNIFICANCE),
+                "icon": meta.get("icon"),
+                "suggested_questions": meta.get("suggested_questions", []),
+            }
+        )
     return machines
 
 
@@ -400,8 +489,19 @@ async def list_machines():
 
 # ── /workstation ───────────────────────────────────────────────────────────
 
+
 @app.get("/workstation")
 async def get_workstation(request: Request):
+    """Resolve the caller's IP to a bound machine (if any).
+
+    The frontend hits this once on app mount. If `bound: true`, it skips
+    LandingPage + MachinesPage and routes straight into the bound machine's
+    chat. If `bound: false`, the existing domain+machine selector flow runs.
+
+    Side effect on a successful bind: a worker_session cookie is created
+    so the immediate next /query (or /auth/me) has a valid session without
+    requiring an explicit domain pick from the worker.
+    """
     ip = _caller_ip(request)
     machine_id = workstations.get_binding(ip)
     if not machine_id:
@@ -411,6 +511,8 @@ async def get_workstation(request: Request):
         (m for m in _list_machines_basic() if m["id"] == machine_id), None
     )
     if not machine:
+        # Binding points at a machine that isn't indexed — log and fail open
+        # so a typo in workstations.json doesn't brick the workstation.
         print(
             f"workstation: bound machine {machine_id!r} not found in index "
             f"for ip={ip}; treating as unbound",
@@ -420,23 +522,33 @@ async def get_workstation(request: Request):
 
     session_id = f"ws_{uuid.uuid4().hex}"
     _worker_sessions[session_id] = {
+        # Match the bound machine's category so any future domain check passes.
         "domain": machine.get("category") or "General",
         "machine_id": machine_id,
         "workstation_ip": ip,
         "created_at": datetime.now(timezone.utc),
     }
-    response = JSONResponse({"bound": True, "ip": ip, "machine": machine})
+    response = JSONResponse(
+        {"bound": True, "ip": ip, "machine": machine}
+    )
     response.set_cookie(
         "worker_session",
         session_id,
         httponly=True,
         samesite="lax",
-        max_age=60 * 60 * 12,
+        max_age=60 * 60 * 12,  # 12h, matches a working day
     )
     return response
 
 
 # ── /auth ──────────────────────────────────────────────────────────────────
+# Real magic-link admin auth via Resend (see src/mailer.py).
+#   1. POST /auth/request-link {email} → if email is in ADMIN_EMAILS, send a
+#      one-time link to that inbox. Always returns 200 (no enumeration leak).
+#   2. GET  /auth/verify?token=... → pop the token (single-use), check expiry,
+#      create an admin session, set cookie, redirect to /admin.
+#   3. GET  /auth/me reads the cookie back, returns the admin's email/role.
+
 
 class RequestLinkBody(BaseModel):
     email: EmailStr
@@ -444,6 +556,11 @@ class RequestLinkBody(BaseModel):
 
 @app.post("/auth/request-link")
 async def auth_request_link(body: RequestLinkBody):
+    """Email a magic-link to `body.email` if (and only if) it's an allowed admin.
+
+    Always returns `{"ok": true}` regardless of allowlist match — this prevents
+    enumerating valid admin emails through response timing or content.
+    """
     email = body.email.lower()
     if email in ADMIN_EMAILS:
         token = secrets.token_urlsafe(32)
@@ -456,9 +573,14 @@ async def auth_request_link(body: RequestLinkBody):
             mailer.send_magic_link(email, token)
             print(f"[auth] magic-link sent to {email}", flush=True)
         except Exception as exc:
+            # Don't expose mail failures to the caller — log and move on.
+            # The token is still issued; if the admin retries within 15 min
+            # we'll re-send (the dict will hold both tokens, either works).
             print(f"[auth] mailer failed for {email}: {exc!r}", flush=True)
             _magic_tokens.pop(token, None)
     else:
+        # Tiny delay would normally go here to mask timing differences.
+        # Skipping for dev speed; revisit when this leaves stub-territory.
         print(f"[auth] request-link for non-allowlisted {email} — ignored", flush=True)
     return {"ok": True}
 
@@ -505,12 +627,27 @@ _VERIFY_INTERSTITIAL = """\
 
 @app.get("/auth/verify")
 async def auth_verify_landing(token: str):
+    """Render a click-through page. Does NOT consume the token.
+
+    Why: Gmail / Outlook / Slack etc. all prefetch links in incoming emails
+    to scan for phishing. If the GET handler popped the token, the scanner
+    would burn it before the real user could click. Sending the token through
+    a form POST means scanners (which only follow GET / HEAD) can't trigger
+    a session creation — only a deliberate button-click from the real user can.
+    """
+    # Defensive escape: token is alphanumeric (token_urlsafe) but cheap to be safe.
     safe_token = re.sub(r"[^A-Za-z0-9_\-]", "", token)
     return HTMLResponse(_VERIFY_INTERSTITIAL.format(token=safe_token))
 
 
 @app.post("/auth/verify")
 async def auth_verify_confirm(request: Request, token: str = Form(...)):
+    """Consume the magic-link token, create an admin session, redirect to /admin.
+
+    Token is single-use (popped here) and must be within
+    MAGIC_TOKEN_TTL_MINUTES of issue. On failure we redirect to AdminLogin
+    with a `?login_error=...` query param so the page can show the reason.
+    """
     ip = _caller_ip(request)
     entry = _magic_tokens.pop(token, None)
     if not entry:
@@ -533,7 +670,7 @@ async def auth_verify_confirm(request: Request, token: str = Form(...)):
     }
     response = RedirectResponse(url=f"{APP_BASE_URL}/admin", status_code=302)
     response.set_cookie(
-        "stub_session",
+        "stub_session",      # cookie name kept for FE compat (AdminAuthContext)
         session_id,
         httponly=True,
         samesite="lax",
@@ -559,18 +696,20 @@ async def auth_worker_session(body: WorkerSessionBody):
         "domain": body.domain,
         "created_at": datetime.now(timezone.utc),
     }
-    response = JSONResponse({
-        "authenticated": True,
-        "role": "worker",
-        "domain": body.domain,
-        "email": None,
-    })
+    response = JSONResponse(
+        {
+            "authenticated": True,
+            "role": "worker",
+            "domain": body.domain,
+            "email": None,
+        }
+    )
     response.set_cookie(
         "worker_session",
         session_id,
         httponly=True,
         samesite="lax",
-        max_age=60 * 60 * 12,
+        max_age=60 * 60 * 12,  # 12 hours, matches a working day
     )
     return response
 
@@ -580,6 +719,11 @@ async def auth_me(
     worker_session: Optional[str] = Cookie(default=None),
     stub_session: Optional[str] = Cookie(default=None),
 ):
+    # Admin session takes precedence — higher privilege, and the typical
+    # case where both cookies exist is "I tested the workstation flow then
+    # signed in as admin." Without this ordering, a stale worker_session
+    # would mask the admin login and ProtectedAdminRoute would bounce
+    # the user back to /admin/login forever.
     if stub_session and stub_session in _admin_sessions:
         s = _admin_sessions[stub_session]
         return {
@@ -594,6 +738,7 @@ async def auth_me(
             ).isoformat(),
         }
 
+    # Worker (domain-selector or workstation-bound) session
     if worker_session and worker_session in _worker_sessions:
         s = _worker_sessions[worker_session]
         return {
@@ -601,6 +746,8 @@ async def auth_me(
             "role": "worker",
             "domain": s["domain"],
             "email": None,
+            # Populated only for workstation-bound sessions (created via /workstation).
+            # Null for sessions created via /auth/worker-session (domain selector).
             "machine_id": s.get("machine_id"),
             "workstation_ip": s.get("workstation_ip"),
             "session_expires_at": (
@@ -608,6 +755,7 @@ async def auth_me(
             ).isoformat(),
         }
 
+    # No valid session — frontend's AuthContext treats this as guest/redirect.
     raise APIError(401, "Not authenticated", "unauthenticated")
 
 
@@ -630,9 +778,16 @@ async def auth_logout(
     return response
 
 
-# ── /admin/machines ─────────────────────────────────────────────────────────
+# ── /admin (stubs) ─────────────────────────────────────────────────────────
+
 
 def _run_ingestion(job_id: str, machine_id: str, pdf_path: str, filename: str):
+    """
+    Background thread: parse PDF → embed chunks → store in ChromaDB.
+    Updates _jobs[job_id] at each stage so the frontend poll reflects real progress.
+    The PDF at `pdf_path` is archived under UPLOADS_DIR and intentionally kept on disk
+    (success or failure) so admins can re-ingest, audit, or download the original.
+    """
     def _update(status, step, progress, error=None):
         _jobs[job_id].update({
             "status": status,
@@ -643,6 +798,7 @@ def _run_ingestion(job_id: str, machine_id: str, pdf_path: str, filename: str):
         })
 
     try:
+        # ── Stage 1: Parse PDF → chunks ────────────────────────────────────
         _update("parsing", "Parsing PDF", 0.1)
         from .ingestion.parser_chunker import process_and_chunk
         chunks = process_and_chunk(pdf_path, filename, machine_id=machine_id)
@@ -653,17 +809,26 @@ def _run_ingestion(job_id: str, machine_id: str, pdf_path: str, filename: str):
 
         _update("chunking", f"Chunked into {len(chunks)} sections", 0.4)
 
+        # ── Stage 2: Embed ─────────────────────────────────────────────────
         _update("embedding", "Embedding chunks", 0.6)
         embedder = ml_models["embedder"]
         texts = [c["text"] for c in chunks]
         embeddings = embedder.encode(texts, batch_size=32, show_progress_bar=False)
 
+        # ── Stage 3: Index into ChromaDB ───────────────────────────────────
         _update("indexing", "Indexing into database", 0.85)
         collection = ml_models["collection"]
 
         ids, docs, metas, vecs = [], [], [], []
         for i, (chunk, emb) in enumerate(zip(chunks, embeddings)):
             meta = chunk.get("metadata", {})
+            # ChromaDB rejects None values and lists — sanitise.
+            # IMPORTANT: also normalize the parser's verbose key names
+            # (source_file, page_number) into the short ones that the
+            # rag_pipeline emits in /query responses (document, page).
+            # Without this, admin uploads produce chunks whose source chips
+            # render as blank "· p." in the UI. This matches what
+            # scripts/build_index.py does for offline-built JSONs.
             clean_meta = {
                 "machine":  machine_id,
                 "document": (meta.get("source_file") or meta.get("document")
@@ -673,11 +838,11 @@ def _run_ingestion(job_id: str, machine_id: str, pdf_path: str, filename: str):
             }
             for k, v in meta.items():
                 if k in clean_meta:
-                    continue
+                    continue  # keep the normalized values above
                 if isinstance(v, (str, int, float, bool)):
                     clean_meta[k] = v
                 elif isinstance(v, list) and v:
-                    clean_meta[k] = str(v[0])
+                    clean_meta[k] = str(v[0])  # page_numbers list → first page
             ids.append(f"{machine_id}_chunk_{i}")
             docs.append(chunk["text"])
             metas.append(clean_meta)
@@ -703,6 +868,7 @@ def _run_ingestion(job_id: str, machine_id: str, pdf_path: str, filename: str):
             target=machine_id,
             details={"job_id": job_id, "error": str(exc)},
         )
+    # PDF is intentionally NOT deleted — it stays in data/uploads/ for re-ingest/audit.
 
 
 @app.post("/admin/machines", status_code=202)
@@ -733,6 +899,9 @@ async def admin_create_machine(
         audit.append("machine.create", status="failure", actor=actor, target=machine_id, ip=ip, details={"reason": "machine_exists"})
         raise APIError(409, "Machine already exists", "machine_exists")
 
+    # Archive uploaded PDF under data/uploads/{machine_id}.pdf so it can be
+    # re-ingested or audited later. Overwrites if the same machine_id is re-added
+    # after a delete.
     contents = await file.read()
     pdf_path = UPLOADS_DIR / f"{machine_id}.pdf"
     pdf_path.write_bytes(contents)
@@ -742,6 +911,7 @@ async def admin_create_machine(
         "category": category,
         "significance": significance,
         "icon": icon,
+        # Original filename the admin uploaded — useful for display/audit.
         "original_filename": file.filename or f"{machine_id}.pdf",
     }
 
@@ -760,6 +930,7 @@ async def admin_create_machine(
         "pdf_size_bytes": len(contents),
     }
 
+    # Kick off real ingestion in a background thread (non-blocking)
     thread = threading.Thread(
         target=_run_ingestion,
         args=(job_id, machine_id, str(pdf_path), file.filename or f"{machine_id}.pdf"),
@@ -806,6 +977,7 @@ async def admin_get_job(job_id: str):
 @app.get("/admin/machines")
 async def admin_list_machines():
     base = _list_machines_basic()
+    # Stub: synthesize admin-only metadata fields per the contract.
     for m in base:
         m["uploaded_at"] = "2026-04-15T08:21:00Z"
         m["uploaded_by"] = next(iter(ADMIN_EMAILS), "admin@tecdia.local")
@@ -831,6 +1003,9 @@ async def admin_delete_machine(
     collection.delete(ids=ids)
     _machine_metadata.pop(machine_id, None)
 
+    # Remove the archived PDF if we have one for this machine.
+    # Seeded machines (uploaded outside the admin flow) may not have a
+    # `{machine_id}.pdf` on disk — that's fine, missing_ok handles it.
     archived_pdf = UPLOADS_DIR / f"{machine_id}.pdf"
     archived_pdf.unlink(missing_ok=True)
 
@@ -845,10 +1020,142 @@ async def admin_delete_machine(
     return {"ok": True, "deleted_chunks": len(ids)}
 
 
+# ── machine parameters + shift logs ────────────────────────────────────────
+# Three roles touch this surface:
+#   • worker    → GET params (renders EndShiftModal), POST /shifts/log
+#   • admin     → PUT params (parameter editor), GET /admin/shifts
+#   • handoff   → GET /machines/{id}/shifts/latest (feature 3, not built yet)
+#
+# Admin endpoints follow the same pattern as the rest of the file: the
+# `stub_session` cookie is used for *attribution* in audit logs, not as a
+# hard gate. ProtectedAdminRoute on the frontend is the auth boundary today.
+
+
+class NumericReadingSpec(BaseModel):
+    key: str
+    label: str
+    unit: str = ""
+    expected_min: Optional[float] = None
+    expected_max: Optional[float] = None
+
+
+class VisualCheckSpec(BaseModel):
+    key: str
+    label: str
+    # True  → an anomaly is recorded when the worker ticks the box (e.g. "leaks observed")
+    # False → an anomaly is recorded when the worker leaves it unticked (e.g. "vibration normal")
+    anomaly_when: bool = True
+
+
+class MachineParametersPayload(BaseModel):
+    numeric_readings: list[NumericReadingSpec] = Field(default_factory=list)
+    visual_checks:    list[VisualCheckSpec]    = Field(default_factory=list)
+
+
+@app.get("/machines/{machine_id}/parameters")
+async def get_machine_parameters(machine_id: str):
+    """Worker-facing: drives the dynamic form in EndShiftModal."""
+    return store.get_machine_parameters(machine_id)
+
+
+@app.put("/admin/machines/{machine_id}/parameters")
+async def admin_put_machine_parameters(
+    machine_id: str,
+    payload: MachineParametersPayload,
+    request: Request,
+    stub_session: Optional[str] = Cookie(default=None),
+):
+    actor = _resolve_admin_email(stub_session) or "admin@tecdia.local"
+    ip = _caller_ip(request)
+
+    # Reject parameters for machines that don't exist in metadata. Avoids
+    # accumulating orphan rows if the admin sends a typo'd machine_id.
+    if machine_id not in {m["id"] for m in _list_machines_basic()}:
+        raise APIError(404, "Machine not found", "not_found")
+
+    saved = store.upsert_machine_parameters(
+        machine_id,
+        [r.model_dump() for r in payload.numeric_readings],
+        [v.model_dump() for v in payload.visual_checks],
+    )
+
+    audit.append(
+        "machine.parameters_update",
+        actor=actor,
+        target=machine_id,
+        ip=ip,
+        details={
+            "numeric_count": len(payload.numeric_readings),
+            "visual_count":  len(payload.visual_checks),
+        },
+    )
+    return saved
+
+
+class ShiftLogPayload(BaseModel):
+    machine_id:    str
+    readings:      dict       = Field(default_factory=dict)
+    visual_checks: dict       = Field(default_factory=dict)
+    notes:         Optional[str] = None
+    worker_label:  Optional[str] = None
+
+
+@app.post("/shifts/log", status_code=201)
+async def submit_shift_log(payload: ShiftLogPayload, request: Request):
+    parameters = store.get_machine_parameters(payload.machine_id)
+    anomalies, severity = store.compute_anomalies(
+        parameters, payload.readings, payload.visual_checks
+    )
+    return store.insert_shift_log(
+        machine_id=payload.machine_id,
+        readings=payload.readings,
+        visual_checks=payload.visual_checks,
+        notes=payload.notes,
+        worker_label=payload.worker_label,
+        workstation_ip=_caller_ip(request),
+        anomalies=anomalies,
+        severity=severity,
+    )
+
+
+@app.get("/machines/{machine_id}/shifts/recent")
+async def list_recent_shifts(machine_id: str, limit: int = 5):
+    """Worker-facing: most recent N logs for this machine."""
+    limit = max(1, min(limit, 50))
+    return {"logs": store.list_shift_logs(machine_id=machine_id, limit=limit)}
+
+
+@app.get("/admin/shifts")
+async def admin_list_shifts(machine_id: Optional[str] = None, limit: int = 100):
+    """Admin-facing: all logs (optionally filtered by machine), newest first."""
+    limit = max(1, min(limit, 1000))
+    return {"logs": store.list_shift_logs(machine_id=machine_id, limit=limit)}
+
+
+@app.post("/admin/shifts/{log_id}/acknowledge")
+async def admin_acknowledge_shift(
+    log_id: int,
+    request: Request,
+    stub_session: Optional[str] = Cookie(default=None),
+):
+    actor = _resolve_admin_email(stub_session) or "admin@tecdia.local"
+    if not store.acknowledge_shift_log(log_id):
+        raise APIError(404, "Shift log not found", "not_found")
+    audit.append(
+        "shift.acknowledge",
+        actor=actor,
+        target=str(log_id),
+        ip=_caller_ip(request),
+    )
+    return {"ok": True}
+
+
 # ── /admin/alerts ──────────────────────────────────────────────────────────
+
 
 @app.get("/admin/alerts")
 async def admin_list_alerts():
+    # Newest first — matches the UI rendering order
     return {"alerts": list(reversed(_alerts)), "threshold": ALERT_THRESHOLD}
 
 
@@ -861,7 +1168,9 @@ async def admin_clear_alerts():
 
 # ── analytics helpers ──────────────────────────────────────────────────────
 
+
 def _compute_depreciation(machine_id: str, now: datetime) -> Optional[dict]:
+    """Straight-line depreciation snapshot + 12-month trailing series for a machine."""
     params = _DEPRECIATION_DEFAULTS.get(machine_id)
     if not params:
         return None
@@ -890,6 +1199,12 @@ def _compute_depreciation(machine_id: str, now: datetime) -> Optional[dict]:
 
 
 def _compute_failure_likelihood(machine_id: str, now: datetime) -> dict:
+    """Poisson estimate from the last 7d of alert_fired events.
+
+    P(at least one failure in next N days) = 1 - exp(-lambda * N), where
+    lambda is the observed alert rate per day. Conflates "user asked about
+    an error" with "machine actually failed" — fine for demo, not prod.
+    """
     window_start = now - timedelta(days=7)
     count = 0
     for q in _query_log:
@@ -913,60 +1228,25 @@ def _compute_failure_likelihood(machine_id: str, now: datetime) -> dict:
 
 # ── /admin/analytics ───────────────────────────────────────────────────────
 
-@app.get("/admin/analytics")
-async def admin_analytics(
-    machine:   Optional[str] = None,
-    domain:    Optional[str] = None,
-    severity:  Optional[int] = None,
-    shift:     Optional[str] = None,
-    date_from: Optional[str] = None,
-    date_to:   Optional[str] = None,
-):
-    """Aggregate _query_log into dashboard widgets, with optional filters.
 
-    Filters (all optional, combinable):
-      machine   — machine_id slug  e.g. LASER_CUTTING_MACHINE
-      domain    — worker domain    e.g. Manufacturing
-      severity  — int 1-5
-      shift     — Morning | Afternoon | Night
-      date_from — ISO date string  e.g. 2025-01-01
-      date_to   — ISO date string  e.g. 2025-01-31 (inclusive)
+@app.get("/admin/analytics")
+async def admin_analytics():
+    """Aggregate _query_log into the 5 widgets the dashboard renders.
+
+    All work is done on-demand here (vs. continuously maintained counters)
+    because the log is bounded at QUERY_LOG_MAX entries and a single pass
+    is microseconds. Aggregating on read also means the dashboard always
+    reflects the current state without coordination overhead.
     """
     from collections import Counter
 
-    # ── Apply filters ──────────────────────────────────────────────────────
-    log = _query_log
-    if machine:
-        log = [q for q in log if q.get("machine_id") == machine]
-    if domain:
-        log = [q for q in log if q.get("domain") == domain]
-    if severity is not None:
-        log = [q for q in log if q.get("severity") == severity]
-    if shift:
-        log = [q for q in log if q.get("shift") == shift]
-    if date_from:
-        try:
-            df = datetime.fromisoformat(date_from).replace(tzinfo=timezone.utc)
-            log = [q for q in log if datetime.fromisoformat(
-                q["asked_at"].replace("Z", "+00:00")) >= df]
-        except ValueError:
-            pass
-    if date_to:
-        try:
-            dt = datetime.fromisoformat(date_to).replace(tzinfo=timezone.utc) + timedelta(days=1)
-            log = [q for q in log if datetime.fromisoformat(
-                q["asked_at"].replace("Z", "+00:00")) < dt]
-        except ValueError:
-            pass
-
-    # ── Totals ────────────────────────────────────────────────────────────
-    total = len(log)
-    alerts_fired = sum(1 for q in log if q.get("alert_fired"))
+    total = len(_query_log)
+    alerts_fired = sum(1 for q in _query_log if q.get("alert_fired"))
     machines_indexed = len({m["id"] for m in _list_machines_basic()})
 
-    # ── Per-machine breakdown ─────────────────────────────────────────────
+    # ── per-machine breakdown ────────────────────────────────────────────
     per_machine_acc: dict[str, dict] = {}
-    for q in log:
+    for q in _query_log:
         mid = q["machine_id"] or "unknown"
         d = per_machine_acc.setdefault(mid, {
             "machine_id": mid,
@@ -986,19 +1266,19 @@ async def admin_analytics(
     per_machine = []
     for mid, d in per_machine_acc.items():
         per_machine.append({
-            "machine_id":       mid,
-            "display_name":     display_names.get(mid, mid.replace("_", " ").title()),
-            "query_count":      d["query_count"],
-            "alert_count":      d["alert_count"],
-            "alert_rate_pct":   round(100 * d["alert_count"] / d["query_count"], 1) if d["query_count"] else 0.0,
-            "avg_severity":     round(d["severity_sum"] / d["query_count"], 2) if d["query_count"] else 0.0,
+            "machine_id":      mid,
+            "display_name":    display_names.get(mid, mid.replace("_", " ").title()),
+            "query_count":     d["query_count"],
+            "alert_count":     d["alert_count"],
+            "alert_rate_pct":  round(100 * d["alert_count"] / d["query_count"], 1) if d["query_count"] else 0.0,
+            "avg_severity":    round(d["severity_sum"] / d["query_count"], 2) if d["query_count"] else 0.0,
             "most_asked_codes": d["code_counter"].most_common(3),
         })
     per_machine.sort(key=lambda x: x["query_count"], reverse=True)
 
-    # ── Global code frequency ─────────────────────────────────────────────
+    # ── global code frequency (top 15 across all machines) ───────────────
     code_acc: dict[tuple[str, str], dict] = {}
-    for q in log:
+    for q in _query_log:
         for code in q.get("codes", []):
             key = (code, q["machine_id"] or "unknown")
             d = code_acc.setdefault(key, {"code": code, "machine": key[1], "count": 0, "severity_sum": 0})
@@ -1009,21 +1289,21 @@ async def admin_analytics(
         c["avg_severity"] = round(c["severity_sum"] / c["count"], 2) if c["count"] else 0.0
         del c["severity_sum"]
 
-    # ── Severity distribution ─────────────────────────────────────────────
+    # ── severity distribution (count per severity 1..5) ──────────────────
     sev_dist = {str(i): 0 for i in range(1, 6)}
-    for q in log:
+    for q in _query_log:
         sev = str(q.get("severity", 1))
         if sev in sev_dist:
             sev_dist[sev] += 1
 
-    # ── Last-24h activity bucketed per hour ───────────────────────────────
+    # ── last-24h activity, bucketed per hour ─────────────────────────────
     now = datetime.now(timezone.utc)
     buckets: dict[str, int] = {}
     for h in range(23, -1, -1):
         bucket_time = now - timedelta(hours=h)
         buckets[bucket_time.strftime("%H:00")] = 0
     cutoff = now - timedelta(hours=24)
-    for q in log:
+    for q in _query_log:
         try:
             asked = datetime.fromisoformat(q["asked_at"].replace("Z", "+00:00"))
         except (KeyError, ValueError):
@@ -1035,10 +1315,10 @@ async def admin_analytics(
             buckets[key] += 1
     queries_per_hour_24h = [{"hour": h, "count": c} for h, c in buckets.items()]
 
-    # ── Top 10 questions ──────────────────────────────────────────────────
+    # ── top 10 most-asked verbatim questions ─────────────────────────────
     qtext = Counter()
     qmachine: dict[str, str] = {}
-    for q in log:
+    for q in _query_log:
         text = q.get("question", "").strip().lower()
         if text:
             qtext[text] += 1
@@ -1048,7 +1328,7 @@ async def admin_analytics(
         for t, c in qtext.most_common(10)
     ]
 
-    # ── Failure likelihood + depreciation ─────────────────────────────────
+    # ── failure likelihood + depreciation (one entry per indexed machine) ─
     known = _list_machines_basic()
     failure_likelihood = []
     depreciation = []
@@ -1064,42 +1344,43 @@ async def admin_analytics(
         if dep:
             depreciation.append({"machine_id": mid, "display_name": dn, **dep})
 
-    # ── Available filter options (from full unfiltered log) ───────────────
-    filters_meta = {
-        "machines":   sorted({q.get("machine_id", "unknown") for q in _query_log}),
-        "domains":    sorted({q.get("domain", "unknown")     for q in _query_log}),
-        "shifts":     ["Morning", "Afternoon", "Night"],
-        "severities": [1, 2, 3, 4, 5],
-    }
-
     return {
         "totals": {
-            "queries":        total,
-            "alerts":         alerts_fired,
-            "machines":       machines_indexed,
-            "alert_rate_pct": round(100 * alerts_fired / total, 2) if total else 0.0,
+            "queries":         total,
+            "alerts":          alerts_fired,
+            "machines":        machines_indexed,
+            "alert_rate_pct":  round(100 * alerts_fired / total, 2) if total else 0.0,
         },
-        "per_machine":           per_machine,
-        "code_frequency":        code_frequency,
+        "per_machine":          per_machine,
+        "code_frequency":       code_frequency,
         "severity_distribution": sev_dist,
-        "queries_per_hour_24h":  queries_per_hour_24h,
-        "top_questions":         top_questions,
-        "failure_likelihood":    failure_likelihood,
-        "depreciation":          depreciation,
-        "filters":               filters_meta,
+        "queries_per_hour_24h": queries_per_hour_24h,
+        "top_questions":        top_questions,
+        "failure_likelihood":   failure_likelihood,
+        "depreciation":         depreciation,
     }
 
 
 # ── /admin/audit ───────────────────────────────────────────────────────────
 
+
 @app.get("/admin/audit")
 async def admin_audit(limit: int = 200, action_prefix: Optional[str] = None):
+    """Return the most recent audit entries (newest first).
+
+    Filterable by action prefix (e.g. `machine.` or `auth.`) for the UI.
+    Backed by data/audit.jsonl — see src/audit.py.
+    """
     if not 1 <= limit <= 1000:
         raise APIError(422, "limit must be 1–1000", "validation_error")
     return {"entries": audit.read(limit=limit, action_prefix=action_prefix)}
 
 
 # ── /admin/_seed-analytics ─────────────────────────────────────────────────
+# DEMO ONLY — injects synthetic _query_log entries directly (no LLM calls)
+# so the analytics dashboard renders something meaningful out of the box.
+# Spreads asked_at across the last 7 days so the Poisson failure-likelihood
+# math has a non-zero lambda per machine.
 
 _SEED_QUESTIONS: dict[str, list[tuple[str, int]]] = {
     "INJECTION_MOLDING_MACHINE": [
@@ -1128,12 +1409,14 @@ _SEED_QUESTIONS: dict[str, list[tuple[str, int]]] = {
     ],
 }
 
-_SEED_DOMAINS = ["Manufacturing", "Fabrication", "Heavy Machinery", "Additive Manufacturing", "All Access"]
-
 
 @app.post("/admin/_seed-analytics")
 async def admin_seed_analytics(count: int = 80, replace: bool = False):
-    """Inject synthetic query-log entries so the analytics page renders."""
+    """Inject synthetic query-log entries so the analytics page renders.
+
+    - count:   total entries to inject (default 80)
+    - replace: if true, wipe _query_log first; otherwise append
+    """
     if replace:
         _query_log.clear()
 
@@ -1151,6 +1434,7 @@ async def admin_seed_analytics(count: int = 80, replace: bool = False):
         pool = _SEED_QUESTIONS.get(mid) or [("general status check", 1)]
         question, severity = rng.choice(pool)
 
+        # Spread asked_at uniformly across the last 7 days (in seconds).
         offset_sec = rng.uniform(0, 7 * 24 * 3600)
         asked_at = now - timedelta(seconds=offset_sec)
 
@@ -1159,23 +1443,18 @@ async def admin_seed_analytics(count: int = 80, replace: bool = False):
         alert_fired = alert_score >= ALERT_THRESHOLD
 
         codes = sorted({m.upper() for m in _QUERY_CODE_RE.findall(question)})
-        domain = rng.choice(_SEED_DOMAINS)
-
         _query_log.append({
-            "query_id":        f"q_seed_{uuid.uuid4().hex[:8]}",
-            "machine_id":      mid,
-            "question":        question,
-            "severity":        severity,
-            "alert_score":     alert_score,
-            "alert_fired":     alert_fired,
-            "codes":           codes,
-            "answer_chars":    rng.randint(180, 420),
-            "status":          "success",
-            "asked_at":        asked_at.isoformat(),
-            "workstation_ip":  None,
-            "domain":          domain,
-            "worker_session_id": None,
-            "shift":           _get_shift(asked_at),
+            "query_id":       f"q_seed_{uuid.uuid4().hex[:8]}",
+            "machine_id":     mid,
+            "question":       question,
+            "severity":       severity,
+            "alert_score":    alert_score,
+            "alert_fired":    alert_fired,
+            "codes":          codes,
+            "answer_chars":   rng.randint(180, 420),
+            "status":         "success",
+            "asked_at":       asked_at.isoformat(),
+            "workstation_ip": None,
         })
         injected += 1
         if alert_fired:
