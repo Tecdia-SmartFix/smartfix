@@ -19,6 +19,7 @@ import { fetchApi } from '../api/apiClient';
 import EndShiftModal from '../components/EndShiftModal';
 import HandoffBanner from '../components/HandoffBanner';
 import BrandMark from '../components/BrandMark';
+import tecdiaLogoBlack from '../assets/tecdia-logo-black.svg';
 
 const ICON_MAP = {
   Settings2, Gauge, Printer, Scissors, Bot, Wrench, Cpu,
@@ -478,10 +479,21 @@ const ChatPage = () => {
             {/* Empty state OR messages view */}
             {(!currentChat || currentChat.messages.length === 0) ? (
               <div className="flex-1 w-full flex flex-col justify-center max-w-3xl mx-auto px-5 pb-32">
-                <h1 className="text-[34px] font-semibold text-gray-900 leading-tight tracking-tight flex items-center flex-wrap">
-                  <BrandMark showProduct={false} to="" className="mr-3" logoClassName="h-9 w-auto" />
-                  Hi Technician! Describe the<br />machine problem here.
-                </h1>
+                <div className="flex flex-col items-center text-center">
+  
+  <img
+    src={tecdiaLogoBlack}
+    alt="Tecdia"
+    className="h-20 w-auto mb-3"
+  />
+
+  <h1 className="text-[34px] font-semibold text-gray-900 leading-tight tracking-tight">
+    Hi Technician! Describe the
+    <br />
+    machine problem here.
+  </h1>
+
+</div>
               </div>
             ) : (
               <div className="w-full max-w-3xl px-5 pt-6 pb-6 space-y-7">
