@@ -1311,12 +1311,13 @@ def _compute_failure_likelihood(machine_id: str, now: datetime) -> dict:
 
 @app.get("/admin/analytics")
 async def admin_analytics(
-    days:      Optional[int] = None,
-    date_from: Optional[str] = None,   # YYYY-MM-DD inclusive
-    date_to:   Optional[str] = None,   # YYYY-MM-DD inclusive
-    category:  Optional[str] = None,   # machine category, e.g. "Manufacturing"
-    severity:  Optional[int] = None,   # exact match 1..5
-    shift:     Optional[str] = None,   # 'Morning' | 'Afternoon' | 'Night'
+    days:       Optional[int] = None,
+    date_from:  Optional[str] = None,   # YYYY-MM-DD inclusive
+    date_to:    Optional[str] = None,   # YYYY-MM-DD inclusive
+    category:   Optional[str] = None,   # machine category, e.g. "Manufacturing"
+    severity:   Optional[int] = None,   # exact match 1..5
+    shift:      Optional[str] = None,   # 'Morning' | 'Afternoon' | 'Night'
+    machine_id: Optional[str] = None,   # exact machine slug, e.g. "FDM_X300_INDUSTRIAL_3D_PRINTER"
     admin_email: str = Depends(require_admin),
 ):
     """Aggregate _query_log into the dashboard widgets, with optional filters.
@@ -1359,6 +1360,7 @@ async def admin_analytics(
     sev_target = severity if severity in (1, 2, 3, 4, 5) else None
     shift_target = shift if shift in ("Morning", "Afternoon", "Night") else None
     category_target = category.strip() if category else None
+    machine_target = machine_id.strip() if machine_id else None
 
     # Filter the source log up front so every aggregate below sees the same
     # window. Anything unset short-circuits true.
@@ -1390,16 +1392,30 @@ async def admin_analytics(
             mcat = (_machine_metadata.get(mid) or {}).get("category")
             if mcat != category_target:
                 return False
+        if machine_target and (q.get("machine_id") or "") != machine_target:
+            return False
         return True
 
-    if cutoff_start or cutoff_end or sev_target is not None or shift_target or category_target:
+    if (cutoff_start or cutoff_end or sev_target is not None
+            or shift_target or category_target or machine_target):
         log_window = [q for q in _query_log if _passes(q)]
     else:
         log_window = _query_log
 
     total = len(log_window)
     alerts_fired = sum(1 for q in log_window if q.get("alert_fired"))
-    machines_indexed = len({m["id"] for m in _list_machines_basic()})
+    # When the user has narrowed to one machine, the "active machines" KPI
+    # should reflect that scope (1) rather than the global indexed count.
+    # Otherwise count distinct machines that show up in the filtered window.
+    if machine_target:
+        machines_indexed = 1
+    else:
+        machines_indexed = (
+            len({q.get("machine_id") for q in log_window if q.get("machine_id")})
+            if (cutoff_start or cutoff_end or sev_target is not None
+                or shift_target or category_target)
+            else len({m["id"] for m in _list_machines_basic()})
+        )
 
     # ── per-machine breakdown ────────────────────────────────────────────
     per_machine_acc: dict[str, dict] = {}

@@ -702,10 +702,11 @@ const AnalyticsPanel = () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (days !== 'all')      params.set('days', days);
-      if (category !== 'all')  params.set('category', category);
-      if (severity !== 'all')  params.set('severity', severity);
-      if (shift !== 'all')     params.set('shift', shift);
+      if (days !== 'all')          params.set('days', days);
+      if (category !== 'all')      params.set('category', category);
+      if (severity !== 'all')      params.set('severity', severity);
+      if (shift !== 'all')         params.set('shift', shift);
+      if (machineFilter !== 'all') params.set('machine_id', machineFilter);
       // Date inputs only kick in if `days` is 'all' (backend prefers days
       // when both are present, but we suppress them here for clarity).
       if (days === 'all' && dateFrom) params.set('date_from', dateFrom);
@@ -719,7 +720,7 @@ const AnalyticsPanel = () => {
     } finally {
       setLoading(false);
     }
-  }, [days, category, severity, shift, dateFrom, dateTo]);
+  }, [days, category, severity, shift, dateFrom, dateTo, machineFilter]);
 
   const seed = async ({ replace = false } = {}) => {
     setSeeding(true);
