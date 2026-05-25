@@ -901,6 +901,9 @@ async def admin_create_machine(
     actor = admin_email
     ip = _caller_ip(request)
 
+    if not file.filename or not file.filename.lower().endswith('.pdf') or file.content_type != "application/pdf":
+        raise APIError(400, "Only PDF files are allowed", "invalid_file_type")
+
     if file.size and file.size > 50 * 1024 * 1024:
         audit.append("machine.create", status="failure", actor=actor, target=machine_id, ip=ip, details={"reason": "file_too_large", "size": file.size})
         raise APIError(413, "File exceeds 50 MB", "file_too_large")
