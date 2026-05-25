@@ -6,7 +6,6 @@ import EndShiftModal from './EndShiftModal';
 import { useStartDiagnosing } from '../context/StartDiagnosingContext';
 import BrandMark from './BrandMark';
 import { useTheme } from '../context/ThemeContext';
-import MegaMenu from './MegaMenu';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -16,23 +15,14 @@ const Navbar = () => {
   // different copy + different phase tag in the POST body.
   const [shiftModalPhase, setShiftModalPhase] = useState('end');
   const [hoveredPath, setHoveredPath] = useState(null);
-  const [megaMenuOpen, setMegaMenuOpen] = useState(false);
-  let megaMenuTimeout;
-
-  const handleMouseEnterMegaMenu = () => {
-    clearTimeout(megaMenuTimeout);
-    setMegaMenuOpen(true);
-  };
-
-  const handleMouseLeaveMegaMenu = () => {
-    megaMenuTimeout = setTimeout(() => {
-      setMegaMenuOpen(false);
-    }, 150);
-  };
   const { open: openStartDiagnosing } = useStartDiagnosing();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const showCta = !location.pathname.startsWith('/chat') && !location.pathname.startsWith('/admin');
+  // Shift logging only makes sense from a machine chat — those URLs carry the
+  // ?machine= param the modal needs to render the right form. Hide both
+  // buttons on landing / admin / everywhere else so the navbar stays clean.
+  const showShiftButtons = location.pathname.startsWith('/chat');
 
   // Derive the active machine from the URL so the End-Shift modal opened
   // from the navbar gets the same machineId as the one inside ChatPage.
@@ -68,36 +58,40 @@ const Navbar = () => {
             <BrandMark className="text-white" logoClassName="h-10 w-auto shrink-0" />
             
             <div className="hidden md:flex items-center gap-8 h-full">
-              <div 
-                onMouseEnter={() => { setHoveredPath('/products'); handleMouseEnterMegaMenu(); }}
-                onMouseLeave={() => { setHoveredPath(null); handleMouseLeaveMegaMenu(); }}
-                className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors duration-200 text-white hover:text-white h-full cursor-pointer"
+              {/* Real routes only — the Products / Support / Technologies
+                  placeholders inherited from the Tecdia corporate template
+                  pointed nowhere, so they were removed and replaced with the
+                  actual SPA destinations that ship in this app. */}
+              <Link to="/features"
+                onMouseEnter={() => setHoveredPath('/features')}
+                onMouseLeave={() => setHoveredPath(null)}
+                className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors duration-200 text-white hover:text-white h-full"
               >
-                Products
-                {hoveredPath === '/products' && (
+                Features
+                {hoveredPath === '/features' && (
                   <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
                 )}
-              </div>
-              <div 
-                onMouseEnter={() => { setHoveredPath('/support'); handleMouseEnterMegaMenu(); }}
-                onMouseLeave={() => { setHoveredPath(null); handleMouseLeaveMegaMenu(); }}
-                className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors duration-200 text-white hover:text-white h-full cursor-pointer"
+              </Link>
+              <Link to="/machines"
+                onMouseEnter={() => setHoveredPath('/machines')}
+                onMouseLeave={() => setHoveredPath(null)}
+                className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors duration-200 text-white hover:text-white h-full"
               >
-                Support
-                {hoveredPath === '/support' && (
+                Machines
+                {hoveredPath === '/machines' && (
                   <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
                 )}
-              </div>
-              <div 
-                onMouseEnter={() => { setHoveredPath('/technologies'); handleMouseEnterMegaMenu(); }}
-                onMouseLeave={() => { setHoveredPath(null); handleMouseLeaveMegaMenu(); }}
-                className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors duration-200 text-white hover:text-white h-full cursor-pointer"
+              </Link>
+              <Link to="/integrations"
+                onMouseEnter={() => setHoveredPath('/integrations')}
+                onMouseLeave={() => setHoveredPath(null)}
+                className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors duration-200 text-white hover:text-white h-full"
               >
-                Technologies
-                {hoveredPath === '/technologies' && (
+                Integrations
+                {hoveredPath === '/integrations' && (
                   <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
                 )}
-              </div>
+              </Link>
               <Link to="/admin/login"
                 onMouseEnter={() => setHoveredPath('/admin/login')}
                 onMouseLeave={() => setHoveredPath(null)}
@@ -113,31 +107,35 @@ const Navbar = () => {
   
           {/* Right Side: Secondary Links */}
           <div className="hidden md:flex items-center gap-7 h-full">
-            <button
-              onClick={() => { setShiftModalPhase('start'); setIsEndShiftOpen(true); }}
-              onMouseEnter={() => setHoveredPath('start-shift')}
-              onMouseLeave={() => setHoveredPath(null)}
-              className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-white transition-colors duration-200 hover:text-white h-full"
-            >
-              <ArrowRight size={14} /> Start Shift
-              {hoveredPath === 'start-shift' && (
-                <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
-              )}
-            </button>
+            {showShiftButtons && (
+              <>
+                <button
+                  onClick={() => { setShiftModalPhase('start'); setIsEndShiftOpen(true); }}
+                  onMouseEnter={() => setHoveredPath('start-shift')}
+                  onMouseLeave={() => setHoveredPath(null)}
+                  className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-white transition-colors duration-200 hover:text-white h-full"
+                >
+                  <ArrowRight size={14} /> Start Shift
+                  {hoveredPath === 'start-shift' && (
+                    <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
+                  )}
+                </button>
 
-            <button
-              onClick={() => { setShiftModalPhase('end'); setIsEndShiftOpen(true); }}
-              onMouseEnter={() => setHoveredPath('end-shift')}
-              onMouseLeave={() => setHoveredPath(null)}
-              className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-white transition-colors duration-200 hover:text-white h-full"
-            >
-              <LogOut size={14} /> End Shift
-              {hoveredPath === 'end-shift' && (
-                <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
-              )}
-            </button>
-  
-            <div className="h-4 w-px bg-white/20" />
+                <button
+                  onClick={() => { setShiftModalPhase('end'); setIsEndShiftOpen(true); }}
+                  onMouseEnter={() => setHoveredPath('end-shift')}
+                  onMouseLeave={() => setHoveredPath(null)}
+                  className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-white transition-colors duration-200 hover:text-white h-full"
+                >
+                  <LogOut size={14} /> End Shift
+                  {hoveredPath === 'end-shift' && (
+                    <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
+                  )}
+                </button>
+
+                <div className="h-4 w-px bg-white/20" />
+              </>
+            )}
 
             <button
               type="button"
@@ -197,18 +195,22 @@ const Navbar = () => {
               {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
               {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             </button>
-            <button
-              onClick={() => { setIsMenuOpen(false); setShiftModalPhase('start'); setIsEndShiftOpen(true); }}
-              className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors w-full text-left"
-            >
-              <ArrowRight size={14} /> Start Shift
-            </button>
-            <button
-              onClick={() => { setIsMenuOpen(false); setShiftModalPhase('end'); setIsEndShiftOpen(true); }}
-              className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors w-full text-left"
-            >
-              <LogOut size={14} /> End Shift
-            </button>
+            {showShiftButtons && (
+              <>
+                <button
+                  onClick={() => { setIsMenuOpen(false); setShiftModalPhase('start'); setIsEndShiftOpen(true); }}
+                  className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors w-full text-left"
+                >
+                  <ArrowRight size={14} /> Start Shift
+                </button>
+                <button
+                  onClick={() => { setIsMenuOpen(false); setShiftModalPhase('end'); setIsEndShiftOpen(true); }}
+                  className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors w-full text-left"
+                >
+                  <LogOut size={14} /> End Shift
+                </button>
+              </>
+            )}
             <Link to="/admin/login" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors">
               <User size={14} /> Admin Login
             </Link>
@@ -231,12 +233,6 @@ const Navbar = () => {
         machineId={navMachineId}
         machineName={navMachineParam || undefined}
         phase={shiftModalPhase}
-      />
-      
-      <MegaMenu 
-        isHovered={megaMenuOpen} 
-        onMouseEnter={handleMouseEnterMegaMenu} 
-        onMouseLeave={handleMouseLeaveMegaMenu} 
       />
     </nav>
   );
