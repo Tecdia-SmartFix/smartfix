@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, Mail, ArrowRight, MailCheck } from 'lucide-react';
 import { useAdminAuth } from '../context/AdminAuthContext';
-import tecdiaLogo from '../assets/tecdia-logo-clean.svg';
+import { TecdiaWordmark } from '../components/BrandMark';
 
 // Split-card sign-in page. Left half is the dark Tecdia/SmartFix brand
 // panel; right half is the form. Same shell renders both flow steps —
@@ -67,7 +67,7 @@ const AdminLogin = () => {
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.06] via-transparent to-white/[0.02]" />
 
           <div className="relative">
-            <img src={tecdiaLogo} alt="Tecdia" className="h-12 w-auto" />
+            <TecdiaWordmark className="h-12 w-auto text-white" />
             <div className="mt-3 text-[40px] font-black uppercase tracking-tight leading-none">
               SmartFix
             </div>

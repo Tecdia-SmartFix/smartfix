@@ -54,6 +54,22 @@ export const fetchApi = async (endpoint, options = {}) => {
     throw new ApiError(`HTTP Error: ${response.status}`, 'http_error', response.status);
   }
 
+  // Fail loud when a "successful" response carries no JSON. This usually
+  // means the Vite dev proxy didn't catch the path and the SPA fallback
+  // returned index.html — historically the failure mode whenever a new
+  // /admin/<route> endpoint was added without updating vite.config.js.
+  // Surfacing it as an explicit error beats letting downstream
+  // `data.field` access crash with a confusing "cannot read properties
+  // of undefined".
+  if (data === undefined) {
+    throw new ApiError(
+      `Expected JSON from ${endpoint}; got ${contentType || 'no content-type'}. ` +
+      'Likely a Vite proxy miss falling through to index.html — check vite.config.js.',
+      'non_json_response',
+      response.status,
+    );
+  }
+
   return data;
 };
 
