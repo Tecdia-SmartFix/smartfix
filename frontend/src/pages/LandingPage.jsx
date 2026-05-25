@@ -1,12 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import {
   ArrowRight,
   BellRing,
   BookOpen,
   CheckCircle,
-  ChevronLeft,
   ChevronRight,
   Gauge,
   MessageSquare,
@@ -125,33 +124,27 @@ const LandingPage = () => {
   const { open: openStartDiagnosing } = useStartDiagnosing();
   const [machines, setMachines] = useState([]);
   const [activeHero, setActiveHero] = useState(0);
-  const sliderRef = useRef(null);
-
-  const scrollSlider = (direction) => {
-    if (sliderRef.current) {
-      // Step matches the lg card width (440px) + gap (24px) so each click
-      // lands on the next card edge cleanly.
-      const scrollAmount = direction === 'left' ? -464 : 464;
-      sliderRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-    }
-  };
-
-  // Vertical wheel → horizontal scroll. Without this the strip only moves
-  // via the chevron buttons or touch swipe; mouse-wheel users can't interact
-  // with it at all. We only redirect when the wheel is primarily vertical,
-  // so trackpad horizontal gestures keep working as-is.
-  useEffect(() => {
-    const el = sliderRef.current;
-    if (!el) return;
-    const onWheel = (e) => {
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-        e.preventDefault();
-        el.scrollBy({ left: e.deltaY, behavior: 'auto' });
-      }
-    };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
-  }, []);
+  // Scroll-hijack carousel: as the user scrolls past the machines section,
+  // the section pins (sticky inside an oversized parent) and the card strip
+  // slides horizontally based on scrollYProgress. See the JSX block below
+  // for the actual mount.
+  // Offset is locked to ["start start", "end end"] so progress starts at 0
+  // only when the section's top reaches the viewport's top (the same moment
+  // the sticky pin engages). Without this, the default offset starts
+  // progress as soon as the section *enters* the viewport from the bottom
+  // — meaning the cards would start translating while the user was still
+  // mid-hero, which feels broken.
+  const carouselRef = useRef(null);
+  const { scrollYProgress: carouselProgress } = useScroll({
+    target: carouselRef,
+    offset: ['start start', 'end end'],
+  });
+  // Translate range tuned for ~4–6 cards at lg widths. The strip moves from
+  // 1% (slight inset so the first card edge isn't flush) to roughly -65%
+  // of its own width, which on a 1680px container scrolls past the last
+  // card. Bump the second value if more machines are added and the last
+  // card never reaches the left edge.
+  const carouselX = useTransform(carouselProgress, [0, 1], ['1%', '-65%']);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -278,57 +271,61 @@ const LandingPage = () => {
 
 
         {machines.length > 0 && (
-          <section className="theme-light-band overflow-hidden bg-white px-5 py-20 text-black sm:px-8 lg:px-10">
-            <div className="mx-auto max-w-[1680px]">
-              <div className="mb-10 flex items-end justify-between gap-6">
-                <div>
-                  <div className="mb-4 text-xs font-bold uppercase tracking-[0.28em] text-black/40">
-                    Connected equipment
-                  </div>
-                  <h2 className="text-[clamp(3rem,7vw,7rem)] font-black uppercase leading-[0.86] tracking-normal text-black">
-                    Machines
-                  </h2>
+          // Scroll-hijack carousel. The outer ref'd section is taller than
+          // the viewport so scroll progress can advance from 0→1 while the
+          // inner sticky child is pinned at top:0. The heading lives INSIDE
+          // the pinned child so the user sees the title and the cards
+          // together — no whitespace strip between them — and the cards
+          // sit in the remaining vertical space (flex-1) rather than
+          // floating in the middle of an empty h-screen.
+          // Height ~250vh gives ~150vh of pinned scroll travel (250 − 100).
+          // Bump it if you add many more machines.
+          <section
+            ref={carouselRef}
+            // Match the next section's page bg (theme-page) so any
+            // post-unstick scroll between the cards and the next heading
+            // reads as ambient page color instead of a stark white block.
+            className="theme-light-band relative h-[160vh] bg-[var(--theme-page)]"
+          >
+            {/* Sticky child sized to its content (heading + cards) with a
+                little bottom breathing room — not h-screen — so there's no
+                tall empty bottom dragging through the viewport when the
+                sticky child unsticks and scrolls up. */}
+            <div className="sticky top-0 flex flex-col overflow-hidden pt-10 pb-8">
+              {/* ── Heading (stays pinned with the cards) ── */}
+              <div className="mx-auto w-full max-w-[1680px] px-5 sm:px-8 lg:px-10">
+                <div className="mb-3 text-xs font-bold uppercase tracking-[0.28em] text-black/40">
+                  Connected equipment
                 </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => scrollSlider('left')}
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-black/20 text-black transition hover:bg-black/5"
-                    aria-label="Scroll machines left"
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => scrollSlider('right')}
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-black/20 text-black transition hover:bg-black/5"
-                    aria-label="Scroll machines right"
-                  >
-                    <ChevronRight size={20} />
-                  </button>
-                </div>
+                <h2 className="text-[clamp(2.4rem,5.5vw,5rem)] font-black uppercase leading-[0.9] tracking-normal text-black">
+                  Machines
+                </h2>
+                <p className="mt-3 text-[12px] font-bold uppercase tracking-[0.22em] text-black/35">
+                  Scroll to browse →
+                </p>
               </div>
 
-              <div
-                ref={sliderRef}
-                // Card widths bumped from 380→440 on md+ so 4 cards (the
-                // current demo set) always overflow the 1680px container.
-                // Without overflow the carousel has nothing to scroll to and
-                // both the buttons and the wheel handler appear broken.
-                className="scrollbar-hide flex snap-x snap-mandatory gap-6 overflow-x-auto pb-8 cursor-grab active:cursor-grabbing"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {machines.map((machine) => (
-                  <div key={machine.id} className="w-[285px] shrink-0 snap-start sm:w-[360px] md:w-[420px] lg:w-[440px]">
-                    <MachineCard machine={machine} />
-                  </div>
-                ))}
+              {/* Cards sit directly below the heading (mt-8 gap, no flex-1
+                  centering). On a tall viewport, the empty space ends up
+                  below the cards instead of between them and the heading
+                  — much less visually jarring. */}
+              <div className="mt-8 overflow-hidden">
+                <motion.div style={{ x: carouselX }} className="flex gap-6 pl-5 sm:pl-8 lg:pl-10">
+                  {machines.map((machine) => (
+                    <div
+                      key={machine.id}
+                      className="w-[320px] shrink-0 sm:w-[380px] md:w-[440px] lg:w-[480px]"
+                    >
+                      <MachineCard machine={machine} />
+                    </div>
+                  ))}
+                </motion.div>
               </div>
             </div>
           </section>
         )}
 
-        <section className="theme-content px-5 py-20 sm:px-8 lg:px-10">
+        <section className="theme-content px-5 pt-4 pb-20 sm:px-8 lg:px-10">
           <div className="mx-auto max-w-[1680px]">
             <div className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
               <h2 className="max-w-4xl text-[clamp(3rem,7vw,7.5rem)] font-black uppercase leading-[0.86] tracking-normal text-black">
