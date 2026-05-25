@@ -72,11 +72,26 @@ CREATE TABLE IF NOT EXISTS shift_logs (
     -- 'end' for end-of-shift logs (the original feature); 'start' for the
     -- pre-shift checklist. Default keeps pre-existing rows backward-compatible.
     phase          TEXT NOT NULL DEFAULT 'end',
+    -- Voiding lets an admin mark a log as a mistake without deleting it
+    -- (preserves the audit trail). When void_at is set, downstream
+    -- consumers (handoff banner, anomaly aggregation) should skip the row.
+    void_at        TEXT,
+    void_reason    TEXT,
+    voided_by      TEXT,
     created_at     TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_shift_logs_machine_created
     ON shift_logs(machine_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS app_config (
+    -- Free-form k/v store for admin-tunable runtime settings (alert
+    -- threshold, dedup window, etc). Anything more structured than a
+    -- scalar should be JSON-encoded; consumers decode at read time.
+    key        TEXT PRIMARY KEY,
+    value      TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
 """
 
 
@@ -85,11 +100,16 @@ def init_store() -> None:
     conn = _conn()
     with conn:
         conn.executescript(_SCHEMA)
-        # Migration: add `phase` to shift_logs if upgrading from a pre-phase
-        # database. SQLite has no ADD COLUMN IF NOT EXISTS, so we introspect.
+        # SQLite has no ADD COLUMN IF NOT EXISTS, so introspect and migrate.
         existing_cols = {row[1] for row in conn.execute("PRAGMA table_info(shift_logs)")}
         if "phase" not in existing_cols:
             conn.execute("ALTER TABLE shift_logs ADD COLUMN phase TEXT NOT NULL DEFAULT 'end'")
+        if "void_at" not in existing_cols:
+            conn.execute("ALTER TABLE shift_logs ADD COLUMN void_at TEXT")
+        if "void_reason" not in existing_cols:
+            conn.execute("ALTER TABLE shift_logs ADD COLUMN void_reason TEXT")
+        if "voided_by" not in existing_cols:
+            conn.execute("ALTER TABLE shift_logs ADD COLUMN voided_by TEXT")
 
 
 # ── machine_parameters ─────────────────────────────────────────────────────
@@ -176,11 +196,14 @@ def seed_machine_parameters(seeds: dict[str, dict]) -> None:
 
 def _row_to_log(row: sqlite3.Row) -> dict:
     # `phase` may be absent in legacy rows that predate the migration; fall
-    # back to 'end' rather than crashing on KeyError.
-    try:
-        phase = row["phase"]
-    except (IndexError, KeyError):
-        phase = "end"
+    # back to 'end' rather than crashing on KeyError. Same defensive read
+    # for the void columns.
+    def safe_get(col, default=None):
+        try:
+            return row[col]
+        except (IndexError, KeyError):
+            return default
+    phase = safe_get("phase") or "end"
     return {
         "id":             row["id"],
         "machine_id":     row["machine_id"],
@@ -192,7 +215,10 @@ def _row_to_log(row: sqlite3.Row) -> dict:
         "anomalies":      json.loads(row["anomalies"]),
         "severity":       row["severity"],
         "acknowledged":   bool(row["acknowledged"]),
-        "phase":          phase or "end",
+        "phase":          phase,
+        "void_at":        safe_get("void_at"),
+        "void_reason":    safe_get("void_reason"),
+        "voided_by":      safe_get("voided_by"),
         "created_at":     row["created_at"],
     }
 
@@ -336,12 +362,57 @@ def acknowledge_shift_log(log_id: int) -> bool:
     return cur.rowcount > 0
 
 
+def void_shift_log(log_id: int, reason: str, voided_by: str) -> bool:
+    """Soft-delete a shift log. Row stays in the table for audit purposes
+    but is excluded from `latest_shift_log` (so the handoff banner doesn't
+    surface mistakes) and rendered with a VOID badge in the admin panel.
+    """
+    conn = _conn()
+    with conn:
+        cur = conn.execute(
+            """
+            UPDATE shift_logs
+               SET void_at     = ?,
+                   void_reason = ?,
+                   voided_by   = ?
+             WHERE id = ?
+            """,
+            (_now_iso(), reason, voided_by, log_id),
+        )
+    return cur.rowcount > 0
+
+
+# ── app_config ─────────────────────────────────────────────────────────────
+
+
+def get_app_config() -> dict[str, str]:
+    """Return the whole config table as a {key: value} dict. Values are raw
+    strings — callers cast as needed (int / json / etc)."""
+    rows = _conn().execute("SELECT key, value FROM app_config").fetchall()
+    return {r["key"]: r["value"] for r in rows}
+
+
+def set_app_config(key: str, value: str) -> None:
+    conn = _conn()
+    with conn:
+        conn.execute(
+            """
+            INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, ?)
+            ON CONFLICT(key) DO UPDATE SET
+                value = excluded.value,
+                updated_at = excluded.updated_at
+            """,
+            (key, value, _now_iso()),
+        )
+
+
 def latest_shift_log(machine_id: str, phase: str | None = "end") -> dict | None:
     """Latest log for a machine. Defaults to phase='end' since the handoff
     banner only cares about the prior shift's *end* log (a clean start-of-shift
     log on the new shift shouldn't bury the previous shift's anomalies).
-    Pass phase=None to get the latest log of any kind."""
-    sql = "SELECT * FROM shift_logs WHERE machine_id = ?"
+    Pass phase=None to get the latest log of any kind. Voided logs are
+    always excluded — they were marked as mistakes by an admin."""
+    sql = "SELECT * FROM shift_logs WHERE machine_id = ? AND void_at IS NULL"
     args: list = [machine_id]
     if phase in ("start", "end"):
         sql += " AND phase = ?"

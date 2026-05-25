@@ -148,6 +148,14 @@ _DEPRECIATION_DEFAULTS: dict[str, dict] = {
 
 # Alert log (in-memory). Each entry matches the shape rendered in the admin UI.
 _alerts: list[dict] = []
+# machine_id → ISO timestamp after which alerts for that machine can fire
+# again. Admin sets this from the alert panel via /admin/alerts/snooze.
+# In-memory only — same caveat as `_alerts` (lost on restart). P1 work.
+_alert_snoozes: dict[str, str] = {}
+# Dedup window: how long (seconds) to suppress a repeat alert for the same
+# (machine_id, dominant_code) pair. Env-tunable for ops who want longer
+# quiet periods. Default 300s = 5 min.
+ALERT_DEDUP_SECONDS = int(os.getenv("ALERT_DEDUP_SECONDS", "300"))
 
 # Append-only query log (in-memory). Feeds the analytics endpoint. Capped at
 # QUERY_LOG_MAX entries to keep memory bounded — old entries are dropped FIFO.
@@ -160,6 +168,25 @@ QUERY_LOG_MAX = 20_000
 _QUERY_CODE_RE = re.compile(r"\b[A-Z]{1,4}-?\d{2,4}\b", re.IGNORECASE)
 
 ALERT_THRESHOLD = int(os.getenv("ALERT_THRESHOLD", "12"))
+
+
+def _load_runtime_config() -> None:
+    """Pull admin-tuned overrides out of the app_config table into the
+    module globals that the request handlers consult. Called once in the
+    lifespan and again after every PATCH /admin/config write.
+    """
+    global ALERT_THRESHOLD, ALERT_DEDUP_SECONDS
+    cfg = store.get_app_config()
+    if "alert_threshold" in cfg:
+        try:
+            ALERT_THRESHOLD = int(cfg["alert_threshold"])
+        except ValueError:
+            pass
+    if "alert_dedup_seconds" in cfg:
+        try:
+            ALERT_DEDUP_SECONDS = int(cfg["alert_dedup_seconds"])
+        except ValueError:
+            pass
 DEFAULT_SIGNIFICANCE = 3
 
 # ── Admin auth (magic-link via Resend) ─────────────────────────────────────
@@ -214,6 +241,10 @@ async def lifespan(app: FastAPI):
     # so the EndShiftModal has something to render on a fresh clone.
     store.init_store()
     store.seed_machine_parameters(_DEFAULT_MACHINE_PARAMS)
+    # Apply admin-tuned runtime config (alert threshold + dedup window).
+    # Persisted across restarts via the app_config SQLite table — env vars
+    # remain the defaults, the DB row wins when present.
+    _load_runtime_config()
     print(f"startup complete in {time.time() - start:.2f}s", flush=True)
     yield
     ml_models.clear()
@@ -399,29 +430,77 @@ async def query(
     alert_fired = False
 
     if alert_score >= ALERT_THRESHOLD and result.get("status") == "success":
-        alert_fired = True
-        alert_record = {
-            "alert_id": f"alert_{uuid.uuid4().hex[:8]}",
-            "machine_id": req.machine_filter or "unknown",
-            "score": alert_score,
-            "severity_level": severity,
-            "machine_significance": machine_sig,
-            "question": req.question,
-            "answer_excerpt": result["answer"][:280],
-            "email_notified": False,
-            "notified_at": datetime.now(timezone.utc).isoformat(),
-        }
-        # Fire-and-forget email to every admin in the allowlist. Failure
-        # never breaks the /query response — we just flip email_notified=False
-        # on the persisted record so the UI can show "not delivered".
-        if ADMIN_EMAILS:
+        # Dedup + snooze gate — both bypass the email and the persisted
+        # record, but the query still gets logged for analytics. The
+        # caller's /query response carries `alert_fired: False` when
+        # suppressed so the chat UI doesn't show an alert badge that
+        # doesn't correspond to an actual outbound notification.
+        mid = req.machine_filter or "unknown"
+        now = datetime.now(timezone.utc)
+        codes = sorted({m.upper() for m in _QUERY_CODE_RE.findall(req.question)})
+        dominant_code = codes[0] if codes else "_uncoded"
+
+        # 1. Snooze: is this machine currently in a quiet window?
+        snooze_until_iso = _alert_snoozes.get(mid)
+        snoozed = False
+        if snooze_until_iso:
             try:
-                mailer.send_alert(list(ADMIN_EMAILS), alert_record)
-                alert_record["email_notified"] = True
-                print(f"[alerts] notified {ADMIN_EMAILS} of {alert_record['alert_id']}", flush=True)
-            except Exception as exc:
-                print(f"[alerts] mailer failed for {alert_record['alert_id']}: {exc!r}", flush=True)
-        _alerts.append(alert_record)
+                if datetime.fromisoformat(snooze_until_iso) > now:
+                    snoozed = True
+                else:
+                    _alert_snoozes.pop(mid, None)  # expired, clean up
+            except ValueError:
+                _alert_snoozes.pop(mid, None)
+
+        # 2. Dedup: same (machine, code) fired within ALERT_DEDUP_SECONDS?
+        deduped = False
+        if not snoozed and ALERT_DEDUP_SECONDS > 0:
+            cutoff = now - timedelta(seconds=ALERT_DEDUP_SECONDS)
+            for prior in reversed(_alerts):
+                if prior.get("machine_id") != mid:
+                    continue
+                prior_codes = sorted({m.upper() for m in _QUERY_CODE_RE.findall(prior.get("question", ""))})
+                prior_dom = prior_codes[0] if prior_codes else "_uncoded"
+                if prior_dom != dominant_code:
+                    continue
+                try:
+                    if datetime.fromisoformat(prior["notified_at"]) >= cutoff:
+                        deduped = True
+                except (KeyError, ValueError):
+                    pass
+                break  # only look at the most recent matching alert
+
+        if snoozed or deduped:
+            print(
+                f"[alerts] suppressed for {mid} (code={dominant_code}): "
+                f"{'snoozed' if snoozed else 'dedup'}",
+                flush=True,
+            )
+        else:
+            alert_fired = True
+            alert_record = {
+                "alert_id": f"alert_{uuid.uuid4().hex[:8]}",
+                "machine_id": mid,
+                "score": alert_score,
+                "severity_level": severity,
+                "machine_significance": machine_sig,
+                "question": req.question,
+                "answer_excerpt": result["answer"][:280],
+                "email_notified": False,
+                "acknowledged_at": None,
+                "notified_at": now.isoformat(),
+            }
+            # Fire-and-forget email to every admin in the allowlist. Failure
+            # never breaks the /query response — we just leave email_notified=False
+            # on the persisted record so the UI can show "not delivered".
+            if ADMIN_EMAILS:
+                try:
+                    mailer.send_alert(list(ADMIN_EMAILS), alert_record)
+                    alert_record["email_notified"] = True
+                    print(f"[alerts] notified {ADMIN_EMAILS} of {alert_record['alert_id']}", flush=True)
+                except Exception as exc:
+                    print(f"[alerts] mailer failed for {alert_record['alert_id']}: {exc!r}", flush=True)
+            _alerts.append(alert_record)
 
     # ── Append to the query log for analytics ──
     # Captured after the alert path so `alert_fired` reflects the truth.
@@ -478,10 +557,13 @@ def _list_machines_basic() -> list[dict]:
 
     machines = []
     for machine_id, count in sorted(counts.items()):
-        display_name = DISPLAY_NAME_OVERRIDES.get(
-            machine_id, machine_id.replace("_", " ").title()
-        )
         meta = _machine_metadata.get(machine_id, {})
+        # display_name precedence: admin-edited (PATCH) > hardcoded override > derived from slug.
+        display_name = (
+            meta.get("display_name")
+            or DISPLAY_NAME_OVERRIDES.get(machine_id)
+            or machine_id.replace("_", " ").title()
+        )
         machines.append(
             {
                 "id": machine_id,
@@ -1038,6 +1120,138 @@ async def admin_delete_machine(
     return {"ok": True, "deleted_chunks": len(ids)}
 
 
+class MachinePatchPayload(BaseModel):
+    """Subset of `_machine_metadata` an admin can edit after creation.
+
+    All fields are optional — only the ones present in the request are
+    overwritten. The indexed PDF chunks in Chroma are untouched, so this
+    is fully non-destructive (renaming "INJECTION_MOLDING_MACHINE" → a
+    nicer display name doesn't blow away any shift logs or alerts).
+    """
+    display_name:        Optional[str] = None
+    description:         Optional[str] = None
+    category:            Optional[str] = None
+    significance:        Optional[int] = None
+    icon:                Optional[str] = None
+    suggested_questions: Optional[list[str]] = None
+
+
+@app.patch("/admin/machines/{machine_id}")
+async def admin_patch_machine(
+    machine_id: str,
+    payload: MachinePatchPayload,
+    request: Request,
+    admin_email: str = Depends(require_admin),
+):
+    ip = _caller_ip(request)
+    existing_ids = {m["id"] for m in _list_machines_basic()}
+    if machine_id not in existing_ids:
+        raise APIError(404, "Machine not found", "not_found")
+
+    if payload.significance is not None and not 1 <= payload.significance <= 5:
+        raise APIError(422, "significance must be 1–5", "validation_error")
+    if payload.category and payload.category not in ALLOWED_DOMAINS:
+        # Soft-reject — we intentionally don't error here because the admin
+        # may have invented a new category we haven't whitelisted yet. Log
+        # it so it shows up in the audit trail and let the write through.
+        audit.append(
+            "machine.patch",
+            status="warning",
+            actor=admin_email,
+            target=machine_id,
+            ip=ip,
+            details={"unknown_category": payload.category},
+        )
+
+    meta = _machine_metadata.setdefault(machine_id, {})
+    changes = payload.model_dump(exclude_unset=True)
+    # `display_name` doesn't live in `_machine_metadata` directly — it's
+    # synthesized from the machine_id by `_list_machines_basic`. We store
+    # it here under the same key the list endpoint reads from.
+    for key, value in changes.items():
+        meta[key] = value
+
+    audit.append(
+        "machine.patch",
+        actor=admin_email,
+        target=machine_id,
+        ip=ip,
+        details={"fields": list(changes.keys())},
+    )
+
+    # Return the freshly-merged record so the frontend can update without
+    # a second round-trip.
+    base = next((m for m in _list_machines_basic() if m["id"] == machine_id), None)
+    return base or {"id": machine_id, **meta}
+
+
+@app.post("/admin/machines/{machine_id}/reingest", status_code=202)
+async def admin_reingest_machine(
+    machine_id: str,
+    request: Request,
+    admin_email: str = Depends(require_admin),
+):
+    """Re-run ingestion against the PDF already archived for this machine.
+
+    Use case: the admin replaced data/uploads/{id}.pdf with an updated
+    manual (or fixed an OCR issue) and wants new chunks indexed without
+    losing the machine record, parameters, or shift logs. Old chunks are
+    deleted first so we don't get duplicates.
+    """
+    ip = _caller_ip(request)
+
+    if machine_id not in {m["id"] for m in _list_machines_basic()}:
+        raise APIError(404, "Machine not found", "not_found")
+
+    pdf_path = UPLOADS_DIR / f"{machine_id}.pdf"
+    if not pdf_path.exists():
+        raise APIError(
+            404,
+            f"No archived PDF found at {pdf_path}. Upload the machine again instead.",
+            "pdf_missing",
+        )
+
+    # Drop existing chunks for this machine so ingestion doesn't duplicate.
+    # Machine parameters + shift logs live in SQLite and are NOT touched.
+    collection = ml_models["collection"]
+    existing = collection.get(where={"machine": machine_id}, include=[])
+    old_ids = existing.get("ids", []) if existing else []
+    if old_ids:
+        collection.delete(ids=old_ids)
+
+    job_id = f"job_{uuid.uuid4().hex[:8]}"
+    _jobs[job_id] = {
+        "job_id": job_id,
+        "machine_id": machine_id,
+        "display_name": (_machine_metadata.get(machine_id) or {}).get("display_name", machine_id),
+        "status": "queued",
+        "step": "Queued for re-ingest",
+        "progress": 0.0,
+        "started_at": datetime.now(timezone.utc),
+        "finished_at": None,
+        "error": None,
+        "uploaded_by": admin_email,
+        "pdf_size_bytes": pdf_path.stat().st_size,
+    }
+
+    thread = threading.Thread(
+        target=_run_ingestion,
+        args=(job_id, machine_id, str(pdf_path), pdf_path.name),
+        daemon=True,
+    )
+    thread.start()
+
+    audit.append(
+        "machine.reingest",
+        actor=admin_email,
+        target=machine_id,
+        ip=ip,
+        details={"job_id": job_id, "deleted_chunks": len(old_ids)},
+    )
+
+    return {"job_id": job_id, "status": "queued", "deleted_chunks": len(old_ids)}
+
+
 # ── machine parameters + shift logs ────────────────────────────────────────
 # Three roles touch this surface:
 #   • worker    → GET params (renders EndShiftModal), POST /shifts/log
@@ -1233,13 +1447,49 @@ async def admin_acknowledge_shift(
     return {"ok": True}
 
 
+class VoidShiftPayload(BaseModel):
+    reason: str = Field(..., min_length=1, max_length=500)
+
+
+@app.post("/admin/shifts/{log_id}/void")
+async def admin_void_shift(
+    log_id: int,
+    payload: VoidShiftPayload,
+    request: Request,
+    admin_email: str = Depends(require_admin),
+):
+    """Soft-delete a shift log (admin correcting a mistaken submission).
+
+    The row stays in the table — voided logs are hidden from the handoff
+    banner and shown dimmed with a VOID badge in the admin panel. The
+    reason is required so the audit trail captures why.
+    """
+    if not store.void_shift_log(log_id, payload.reason.strip(), admin_email):
+        raise APIError(404, "Shift log not found", "not_found")
+    audit.append(
+        "shift.void",
+        actor=admin_email,
+        target=str(log_id),
+        ip=_caller_ip(request),
+        details={"reason": payload.reason.strip()},
+    )
+    return {"ok": True}
+
+
 # ── /admin/alerts ──────────────────────────────────────────────────────────
 
 
 @app.get("/admin/alerts")
 async def admin_list_alerts(admin_email: str = Depends(require_admin)):
-    # Newest first — matches the UI rendering order
-    return {"alerts": list(reversed(_alerts)), "threshold": ALERT_THRESHOLD}
+    # Newest first — matches the UI rendering order. Also includes the
+    # current snooze map so the panel can show "this machine is muted
+    # until X" without a second roundtrip.
+    return {
+        "alerts": list(reversed(_alerts)),
+        "threshold": ALERT_THRESHOLD,
+        "snoozes": dict(_alert_snoozes),
+        "dedup_seconds": ALERT_DEDUP_SECONDS,
+    }
 
 
 @app.delete("/admin/alerts")
@@ -1247,6 +1497,114 @@ async def admin_clear_alerts(admin_email: str = Depends(require_admin)):
     cleared = len(_alerts)
     _alerts.clear()
     return {"ok": True, "cleared": cleared}
+
+
+@app.post("/admin/alerts/{alert_id}/acknowledge")
+async def admin_acknowledge_alert(
+    alert_id: str,
+    request: Request,
+    admin_email: str = Depends(require_admin),
+):
+    """Mark a single alert as acknowledged. Keeps the row in history
+    (unlike DELETE /admin/alerts which nukes everything) but flags it so
+    the UI can dim it and surface a "handled" indicator.
+    """
+    for alert in _alerts:
+        if alert.get("alert_id") == alert_id:
+            alert["acknowledged_at"] = datetime.now(timezone.utc).isoformat()
+            alert["acknowledged_by"] = admin_email
+            audit.append(
+                "alert.acknowledge",
+                actor=admin_email,
+                target=alert_id,
+                ip=_caller_ip(request),
+            )
+            return {"ok": True}
+    raise APIError(404, "Alert not found", "not_found")
+
+
+class AlertSnoozePayload(BaseModel):
+    machine_id: str
+    # Snooze duration in minutes. Pass 0 to clear an existing snooze.
+    minutes:    int = Field(..., ge=0, le=60 * 24)
+
+
+@app.post("/admin/alerts/snooze")
+async def admin_snooze_alerts(
+    payload: AlertSnoozePayload,
+    request: Request,
+    admin_email: str = Depends(require_admin),
+):
+    """Suppress alerts for a machine for N minutes. minutes=0 lifts an
+    existing snooze immediately. Stored in-memory (P1 work to persist)."""
+    if payload.minutes == 0:
+        existing = _alert_snoozes.pop(payload.machine_id, None)
+        if existing:
+            audit.append(
+                "alert.snooze_clear",
+                actor=admin_email,
+                target=payload.machine_id,
+                ip=_caller_ip(request),
+            )
+        return {"ok": True, "snoozed_until": None}
+
+    until = datetime.now(timezone.utc) + timedelta(minutes=payload.minutes)
+    _alert_snoozes[payload.machine_id] = until.isoformat()
+    audit.append(
+        "alert.snooze_set",
+        actor=admin_email,
+        target=payload.machine_id,
+        ip=_caller_ip(request),
+        details={"minutes": payload.minutes, "until": until.isoformat()},
+    )
+    return {"ok": True, "snoozed_until": until.isoformat()}
+
+
+# ── /admin/config ──────────────────────────────────────────────────────────
+# Live-tunable runtime settings persisted in the app_config SQLite table.
+# Today: alert threshold + dedup window. Designed so adding new knobs is a
+# matter of extending the payload model and the load helper above.
+
+
+class AppConfigPayload(BaseModel):
+    alert_threshold:     Optional[int] = Field(None, ge=1, le=25)
+    alert_dedup_seconds: Optional[int] = Field(None, ge=0, le=60 * 60 * 24)
+
+
+@app.get("/admin/config")
+async def admin_get_config(admin_email: str = Depends(require_admin)):
+    """Return the values currently in effect (after env defaults + DB
+    overrides have been merged). The frontend uses this to populate the
+    Settings form without a second roundtrip."""
+    return {
+        "alert_threshold":     ALERT_THRESHOLD,
+        "alert_dedup_seconds": ALERT_DEDUP_SECONDS,
+        # Surface a couple of read-only environment-driven values so the
+        # admin can sanity-check what's loaded without shelling onto the box.
+        "admin_emails":        sorted(ADMIN_EMAILS),
+        "allowed_domains":     sorted(ALLOWED_DOMAINS),
+    }
+
+
+@app.patch("/admin/config")
+async def admin_patch_config(
+    payload: AppConfigPayload,
+    request: Request,
+    admin_email: str = Depends(require_admin),
+):
+    """Write the supplied fields to app_config and reload module state so
+    the change takes effect immediately. Survives restart."""
+    changes = payload.model_dump(exclude_unset=True)
+    for key, value in changes.items():
+        store.set_app_config(key, str(value))
+    _load_runtime_config()
+    audit.append(
+        "config.patch",
+        actor=admin_email,
+        ip=_caller_ip(request),
+        details=changes,
+    )
+    return await admin_get_config(admin_email=admin_email)
 
 
 # ── analytics helpers ──────────────────────────────────────────────────────

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Trash2, Loader2 } from 'lucide-react';
+import { X, Plus, Trash2, Loader2, Pencil } from 'lucide-react';
 import { fetchApi } from '../api/apiClient';
+import { useMachines } from '../context/MachineContext';
 
 // Admin-facing modal opened by clicking a MachineCard in AdminDashboard.
 // Two sections:
@@ -28,6 +29,7 @@ const slugify = (label, existing) => {
 };
 
 const MachineDetailModal = ({ machine, isOpen, onClose }) => {
+  const { refreshMachines } = useMachines();
   const [numericReadings, setNumericReadings] = useState([]);
   const [visualChecks, setVisualChecks] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,6 +37,80 @@ const MachineDetailModal = ({ machine, isOpen, onClose }) => {
   const [toast, setToast] = useState('');
   // Track original spec so we can detect dirty state and reset on cancel.
   const originalRef = useRef({ numericReadings: [], visualChecks: [] });
+
+  // ── Edit-info state ─────────────────────────────────────────────────
+  // Read-mode is the default; clicking the pencil flips to a form for
+  // display_name / category / significance / description. Saves PATCH the
+  // backend in place (no chunk re-ingest needed) so existing shift logs
+  // and parameters survive a rename. See _list_machines_basic in api.py.
+  const [editingInfo, setEditingInfo] = useState(false);
+  const [infoDraft, setInfoDraft] = useState({});
+  const [isSavingInfo, setIsSavingInfo] = useState(false);
+
+  // Re-ingest is destructive (drops existing Chroma chunks for the machine
+  // and re-parses the archived PDF). Two-step confirm: first click sets
+  // `confirmingReingest`, second click actually POSTs. Auto-resets after 4s.
+  const [confirmingReingest, setConfirmingReingest] = useState(false);
+  const [reingestJobId, setReingestJobId] = useState(null);
+  const [isReingesting, setIsReingesting] = useState(false);
+
+  const handleReingest = async () => {
+    if (!confirmingReingest) {
+      setConfirmingReingest(true);
+      setTimeout(() => setConfirmingReingest(false), 4000);
+      return;
+    }
+    setConfirmingReingest(false);
+    setIsReingesting(true);
+    try {
+      const res = await fetchApi(`/admin/machines/${machine.id}/reingest`, { method: 'POST' });
+      setReingestJobId(res.job_id);
+      setToast(`Re-ingest queued (job ${res.job_id}, ${res.deleted_chunks} old chunks dropped).`);
+      setTimeout(() => { setToast(''); setReingestJobId(null); }, 6000);
+    } catch (err) {
+      setToast(`Re-ingest failed: ${err.message}`);
+    } finally {
+      setIsReingesting(false);
+    }
+  };
+
+  // Reset the edit-info form whenever a different machine is opened, or
+  // the same machine is reopened — discards any unsaved draft.
+  useEffect(() => {
+    if (!isOpen || !machine?.id) return;
+    setEditingInfo(false);
+    setInfoDraft({
+      display_name: machine.display_name || machine.name || '',
+      category:     machine.category || '',
+      significance: machine.significance ?? 3,
+      description:  machine.description || '',
+    });
+  }, [isOpen, machine?.id, machine?.display_name, machine?.category, machine?.significance, machine?.description, machine?.name]);
+
+  const handleSaveInfo = async () => {
+    setIsSavingInfo(true);
+    setToast('');
+    try {
+      const payload = {
+        display_name: infoDraft.display_name.trim() || undefined,
+        category:     infoDraft.category.trim() || undefined,
+        significance: Number(infoDraft.significance),
+        description:  infoDraft.description.trim(),
+      };
+      await fetchApi(`/admin/machines/${machine.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+      await refreshMachines();
+      setEditingInfo(false);
+      setToast('Machine info saved.');
+      setTimeout(() => setToast(''), 2500);
+    } catch (err) {
+      setToast(`Error: ${err.message}`);
+    } finally {
+      setIsSavingInfo(false);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen || !machine?.id) return;
@@ -167,19 +243,97 @@ const MachineDetailModal = ({ machine, isOpen, onClose }) => {
 
             {/* ── Machine info ───────────────────────────────────────── */}
             <div className="mb-7 border-b border-white/10 pb-6">
-              <span className="mb-2 block text-[11px] font-black uppercase tracking-[0.24em] text-[#70dceb]">
-                Machine
-              </span>
-              <h2 className="mb-2 text-[clamp(1.5rem,4vw,2.4rem)] font-black uppercase leading-[0.95] tracking-normal text-white">
-                {machine.name}
-              </h2>
-              <p className="text-sm font-medium text-white/58">
-                <span className="font-mono">{machine.id}</span>
-                {machine.category && <> · {machine.category}</>}
-                {typeof machine.significance === 'number' && <> · Significance {machine.significance}/5</>}
-              </p>
-              {machine.description && (
-                <p className="mt-3 text-[14px] text-white/70">{machine.description}</p>
+              <div className="flex items-start justify-between gap-4">
+                <span className="block text-[11px] font-black uppercase tracking-[0.24em] text-[#70dceb]">
+                  Machine
+                </span>
+                {!editingInfo ? (
+                  <button
+                    onClick={() => setEditingInfo(true)}
+                    className="flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/70 transition-colors hover:border-[#70dceb] hover:text-[#70dceb]"
+                  >
+                    <Pencil size={11} /> Edit info
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setEditingInfo(false)}
+                      disabled={isSavingInfo}
+                      className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/45 transition-colors hover:text-white disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveInfo}
+                      disabled={isSavingInfo}
+                      className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#1a1a1a] to-[#0a0d11] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white shadow-md shadow-black/30 transition-all hover:brightness-125 disabled:opacity-50"
+                    >
+                      {isSavingInfo && <Loader2 size={11} className="animate-spin" />}
+                      {isSavingInfo ? 'Saving…' : 'Save'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {!editingInfo ? (
+                /* Read mode */
+                <div className="mt-2">
+                  <h2 className="mb-2 text-[clamp(1.5rem,4vw,2.4rem)] font-black uppercase leading-[0.95] tracking-normal text-white">
+                    {machine.display_name || machine.name}
+                  </h2>
+                  <p className="text-sm font-medium text-white/58">
+                    <span className="font-mono">{machine.id}</span>
+                    {machine.category && <> · {machine.category}</>}
+                    {typeof machine.significance === 'number' && <> · Significance {machine.significance}/5</>}
+                  </p>
+                  {machine.description && (
+                    <p className="mt-3 text-[14px] text-white/70">{machine.description}</p>
+                  )}
+                </div>
+              ) : (
+                /* Edit mode — same fields, inputs instead of text */
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr]">
+                  <div>
+                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">Display name</label>
+                    <input
+                      type="text"
+                      value={infoDraft.display_name}
+                      onChange={(e) => setInfoDraft(d => ({ ...d, display_name: e.target.value }))}
+                      className="w-full rounded-lg border border-white/12 bg-white/[0.04] px-3 py-2 text-[14px] font-bold text-white outline-none focus:border-[#70dceb]"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">Significance (1–5)</label>
+                    <input
+                      type="number" min={1} max={5}
+                      value={infoDraft.significance}
+                      onChange={(e) => setInfoDraft(d => ({ ...d, significance: e.target.value }))}
+                      className="w-full rounded-lg border border-white/12 bg-white/[0.04] px-3 py-2 text-[14px] font-bold text-white outline-none focus:border-[#70dceb]"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">Category</label>
+                    <input
+                      type="text"
+                      value={infoDraft.category}
+                      onChange={(e) => setInfoDraft(d => ({ ...d, category: e.target.value }))}
+                      placeholder="e.g. Manufacturing, Fabrication, Heavy Machinery"
+                      className="w-full rounded-lg border border-white/12 bg-white/[0.04] px-3 py-2 text-[13px] text-white outline-none focus:border-[#70dceb]"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">Description</label>
+                    <textarea
+                      rows={2}
+                      value={infoDraft.description}
+                      onChange={(e) => setInfoDraft(d => ({ ...d, description: e.target.value }))}
+                      className="w-full resize-none rounded-lg border border-white/12 bg-white/[0.04] px-3 py-2 text-[13px] text-white outline-none focus:border-[#70dceb]"
+                    />
+                  </div>
+                  <p className="sm:col-span-2 text-[11px] text-white/40">
+                    Machine ID <span className="font-mono">{machine.id}</span> is permanent — to rename the slug, delete and re-ingest.
+                  </p>
+                </div>
               )}
             </div>
 
@@ -330,6 +484,33 @@ const MachineDetailModal = ({ machine, isOpen, onClose }) => {
                   {isSaving ? 'Saving…' : 'Save parameters'}
                 </button>
               </div>
+            </div>
+
+            {/* ── Advanced (destructive) ─────────────────────────────── */}
+            {/* Re-ingest re-parses data/uploads/{id}.pdf and replaces all
+                existing chunks. Use when admin has updated the manual.
+                Two-step confirm to prevent accidental clicks; the action
+                preserves machine metadata, parameters, and shift logs. */}
+            <div className="mt-5 flex items-center justify-between border-t border-white/5 pt-4 text-[11px]">
+              <span className="text-white/30 uppercase tracking-[0.16em] font-bold">Advanced</span>
+              <button
+                onClick={handleReingest}
+                disabled={isReingesting}
+                title="Re-parse the archived PDF and rebuild this machine's vector index"
+                className={`font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 ${
+                  confirmingReingest
+                    ? 'text-orange-400 hover:text-orange-300'
+                    : 'text-white/45 hover:text-white/80'
+                }`}
+              >
+                {isReingesting
+                  ? 'Queuing…'
+                  : reingestJobId
+                    ? `Queued — job ${reingestJobId}`
+                    : confirmingReingest
+                      ? 'Click again to confirm — drops old chunks'
+                      : 'Re-ingest archived PDF'}
+              </button>
             </div>
           </motion.div>
         </div>

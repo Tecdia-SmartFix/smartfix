@@ -7,11 +7,16 @@ const AlertContext = createContext();
 export const AlertProvider = ({ children }) => {
   const [alerts, setAlerts] = useState([]);
   const [alertThreshold, setAlertThreshold] = useState(12);
+  // Per-machine snooze map { machine_id: ISO timestamp } — alerts for those
+  // machines are suppressed until that time. Pulled in by /admin/alerts so
+  // the UI can show muted-state badges next to machine names.
+  const [snoozes, setSnoozes] = useState({});
+  const [dedupSeconds, setDedupSeconds] = useState(300);
   const { user } = useAuth();
 
   /**
-   * GET /admin/alerts — fetches all alerts, newest first.
-   * Only runs when the user is an admin.
+   * GET /admin/alerts — fetches all alerts, newest first, plus the current
+   * snooze map and dedup window. Only runs when the user is an admin.
    */
   const fetchAlerts = async () => {
     if (user.role !== 'admin') return;
@@ -22,6 +27,8 @@ export const AlertProvider = ({ children }) => {
         if (data.threshold !== undefined) {
           setAlertThreshold(data.threshold);
         }
+        if (data.snoozes) setSnoozes(data.snoozes);
+        if (data.dedup_seconds !== undefined) setDedupSeconds(data.dedup_seconds);
       }
     } catch (err) {
       console.error('Failed to fetch alerts:', err);
@@ -59,12 +66,49 @@ export const AlertProvider = ({ children }) => {
     }
   };
 
+  /**
+   * POST /admin/alerts/{id}/acknowledge — mark a single alert as handled.
+   * Keeps the row in history (unlike clearAlerts which wipes all).
+   */
+  const acknowledgeAlert = async (alertId) => {
+    try {
+      await fetchApi(`/admin/alerts/${alertId}/acknowledge`, { method: 'POST' });
+      await fetchAlerts();
+      return { success: true };
+    } catch (err) {
+      console.error('Failed to acknowledge alert:', err);
+      return { success: false, error: err.detail || err.message };
+    }
+  };
+
+  /**
+   * POST /admin/alerts/snooze — suppress alerts for a machine for N minutes.
+   * minutes=0 lifts an existing snooze.
+   */
+  const snoozeMachine = async (machineId, minutes) => {
+    try {
+      await fetchApi('/admin/alerts/snooze', {
+        method: 'POST',
+        body: JSON.stringify({ machine_id: machineId, minutes }),
+      });
+      await fetchAlerts();
+      return { success: true };
+    } catch (err) {
+      console.error('Failed to snooze machine alerts:', err);
+      return { success: false, error: err.detail || err.message };
+    }
+  };
+
   return (
     <AlertContext.Provider value={{
       alerts,
       alertThreshold,
+      snoozes,
+      dedupSeconds,
       clearAlerts,
       testAlert,
+      acknowledgeAlert,
+      snoozeMachine,
       refreshAlerts: fetchAlerts,
     }}>
       {children}

@@ -105,6 +105,28 @@ const ShiftLogsPanel = () => {
     }
   };
 
+  // Inline reason input — populated when the admin clicks "Void", cleared
+  // after submit/cancel. Storing it as a separate piece of state keeps the
+  // side panel render simple (no nested form component needed).
+  const [voidingLogId, setVoidingLogId] = useState(null);
+  const [voidReason, setVoidReason] = useState('');
+
+  const handleVoid = async (logId) => {
+    const reason = voidReason.trim();
+    if (!reason) return;
+    try {
+      await fetchApi(`/admin/shifts/${logId}/void`, {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      });
+      setVoidingLogId(null);
+      setVoidReason('');
+      loadLogs();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="w-full relative">
       <div className="mb-6">
@@ -211,21 +233,36 @@ const ShiftLogsPanel = () => {
                 const anomalyText = log.anomalies?.length
                   ? log.anomalies.map(a => a.title).join(', ')
                   : '—';
+                const isVoid = !!log.void_at;
                 return (
                   <tr
                     key={log.id}
                     onClick={() => setSelectedId(log.id)}
-                    className={`cursor-pointer transition-colors border-b border-gray-50 last:border-0 ${selectedLog?.id === log.id ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}
+                    // Voided rows are still listed (audit trail visible) but
+                    // visually de-emphasized so they don't compete with live
+                    // logs. Hovering still works to inspect them.
+                    className={`cursor-pointer transition-colors border-b border-gray-50 last:border-0 ${
+                      isVoid ? 'opacity-50 line-through' : ''
+                    } ${selectedLog?.id === log.id ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}
                   >
                     <td className="px-6 py-4 text-[13px] font-semibold text-gray-500 whitespace-nowrap">{formatTime(log.created_at)}</td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                        log.phase === 'start'
-                          ? 'bg-sky-50 border border-sky-200 text-sky-700'
-                          : 'bg-slate-50 border border-slate-200 text-slate-700'
-                      }`}>
-                        {log.phase === 'start' ? 'Pre-shift' : 'End'}
-                      </span>
+                      {isVoid ? (
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-gray-100 border border-gray-300 text-gray-500"
+                          title={log.void_reason || ''}
+                        >
+                          Void
+                        </span>
+                      ) : (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                          log.phase === 'start'
+                            ? 'bg-sky-50 border border-sky-200 text-sky-700'
+                            : 'bg-slate-50 border border-slate-200 text-slate-700'
+                        }`}>
+                          {log.phase === 'start' ? 'Pre-shift' : 'End'}
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-[13px] font-bold text-tecdia-textDeep">{machineNameFor(log.machine_id)}</td>
                     <td className="px-6 py-4 text-[13px] font-semibold text-gray-600">{log.worker_label || '—'}</td>
@@ -314,15 +351,67 @@ const ShiftLogsPanel = () => {
                 </div>
               )}
 
-              <div className="flex items-center gap-3 mt-8">
-                <button
-                  onClick={() => handleAcknowledge(selectedLog.id)}
-                  disabled={selectedLog.acknowledged}
-                  className="flex-1 bg-white border border-gray-300 text-gray-700 font-bold text-[13px] py-2.5 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
-                >
-                  {selectedLog.acknowledged ? 'Acknowledged' : 'Acknowledge'}
-                </button>
-              </div>
+              {selectedLog.void_at && (
+                <div className="mb-5 rounded-xl border border-gray-300 bg-gray-50 p-3 text-[12px]">
+                  <p className="font-bold uppercase tracking-wider text-gray-500 mb-1">Voided</p>
+                  <p className="text-gray-700">{selectedLog.void_reason || '(no reason given)'}</p>
+                  {selectedLog.voided_by && (
+                    <p className="mt-1 text-gray-500 text-[11px]">by {selectedLog.voided_by}</p>
+                  )}
+                </div>
+              )}
+
+              {voidingLogId === selectedLog.id ? (
+                /* Inline reason capture — shown after the admin clicks Void.
+                   Submit POSTs to /admin/shifts/{id}/void with the reason. */
+                <div className="mt-8 space-y-2">
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    Reason for voiding
+                  </label>
+                  <input
+                    type="text"
+                    autoFocus
+                    value={voidReason}
+                    onChange={(e) => setVoidReason(e.target.value)}
+                    placeholder="e.g. submitted by mistake"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-[13px] text-gray-800 outline-none focus:border-gray-700"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setVoidingLogId(null); setVoidReason(''); }}
+                      className="flex-1 text-[12px] font-bold uppercase tracking-[0.14em] text-gray-500 hover:text-gray-800 py-2 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleVoid(selectedLog.id)}
+                      disabled={!voidReason.trim()}
+                      className="flex-1 rounded-xl bg-[#0a0d11] text-white font-bold text-[12px] py-2 uppercase tracking-[0.14em] transition-all hover:brightness-125 disabled:opacity-40"
+                    >
+                      Confirm void
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 mt-8">
+                  <button
+                    onClick={() => handleAcknowledge(selectedLog.id)}
+                    disabled={selectedLog.acknowledged || !!selectedLog.void_at}
+                    className="flex-1 bg-white border border-gray-300 text-gray-700 font-bold text-[13px] py-2.5 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
+                    {selectedLog.acknowledged ? 'Acknowledged' : 'Acknowledge'}
+                  </button>
+                  {!selectedLog.void_at && (
+                    <button
+                      onClick={() => { setVoidingLogId(selectedLog.id); setVoidReason(''); }}
+                      className="bg-white border border-gray-300 text-gray-500 font-bold text-[13px] px-4 py-2.5 rounded-xl hover:bg-gray-50 hover:text-gray-800 transition-colors"
+                      title="Mark this log as a mistake — kept for audit, hidden from the handoff banner"
+                    >
+                      Void
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           );
         })()}

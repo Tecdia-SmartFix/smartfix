@@ -310,6 +310,174 @@ const AUDIT_ACTION_COLORS = {
   'machine.ingest_failed':  { className: 'bg-transparent text-tecdia-textDeep border border-tecdia-textDeep/30', label: 'Ingest Failed' },
 };
 
+// Admin-tunable runtime settings. Currently exposes the two values the
+// /admin/config endpoint accepts (alert threshold + dedup window) plus a
+// read-only view of env-driven settings (admin emails, allowed domains)
+// so the admin can sanity-check what's loaded without shelling onto the
+// box. ADMIN_EMAILS editing isn't included on purpose — too easy to
+// lock yourself out by mistake; do that in .env with eyes open.
+const SettingsPanel = () => {
+  const [config, setConfig] = useState(null);
+  const [draft, setDraft] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState('');
+  const [error, setError] = useState(null);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const data = await fetchApi('/admin/config');
+      setConfig(data);
+      setDraft({
+        alert_threshold: data.alert_threshold,
+        alert_dedup_seconds: data.alert_dedup_seconds,
+      });
+      setError(null);
+    } catch (e) {
+      setError(e.detail || e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setToast('');
+    try {
+      const saved = await fetchApi('/admin/config', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          alert_threshold:     Number(draft.alert_threshold),
+          alert_dedup_seconds: Number(draft.alert_dedup_seconds),
+        }),
+      });
+      setConfig(saved);
+      setDraft({
+        alert_threshold:     saved.alert_threshold,
+        alert_dedup_seconds: saved.alert_dedup_seconds,
+      });
+      setToast('Settings saved. Live across all admin sessions.');
+      setTimeout(() => setToast(''), 3000);
+    } catch (e) {
+      setError(e.detail || e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="p-12 text-center text-tecdia-text/50 text-sm">Loading settings…</div>;
+  if (error)   return <div className="p-8 rounded-2xl bg-red-50 border border-red-200 text-red-700">{error}</div>;
+  if (!config) return null;
+
+  const dirty = (
+    Number(draft.alert_threshold) !== config.alert_threshold
+    || Number(draft.alert_dedup_seconds) !== config.alert_dedup_seconds
+  );
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+      <div className="mb-8">
+        <h2 className="text-3xl md:text-4xl font-bold text-tecdia-textDeep tracking-tight">
+          Settings
+        </h2>
+        <p className="text-[12px] font-medium text-tecdia-text/45 uppercase tracking-widest mt-1">
+          Runtime overrides — survive restart, take effect immediately
+        </p>
+      </div>
+
+      {/* ── Editable knobs ─────────────────────────────────────────── */}
+      <div className="bg-white border border-tecdia-border rounded-2xl p-6 shadow-sm mb-6 max-w-2xl">
+        <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider mb-5">
+          Alerts
+        </h3>
+
+        <div className="space-y-5">
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-[0.16em] text-tecdia-text/55 mb-1.5">
+              Alert threshold
+            </label>
+            <p className="text-[12px] text-tecdia-text/50 mb-2">
+              Alerts fire when (severity × machine significance) ≥ this value. Higher = quieter.
+            </p>
+            <input
+              type="number" min={1} max={25}
+              value={draft.alert_threshold ?? ''}
+              onChange={(e) => setDraft(d => ({ ...d, alert_threshold: e.target.value }))}
+              className="w-32 rounded-lg border border-tecdia-border bg-white px-3 py-2 text-[14px] font-semibold text-tecdia-textDeep outline-none focus:border-tecdia-accent focus:ring-2 focus:ring-tecdia-accent/20"
+            />
+            <span className="ml-2 text-[12px] text-tecdia-text/40">/ 25 max possible</span>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-[0.16em] text-tecdia-text/55 mb-1.5">
+              Dedup window (seconds)
+            </label>
+            <p className="text-[12px] text-tecdia-text/50 mb-2">
+              Suppress repeat alerts for the same (machine + error code) within this window. 0 disables dedup.
+            </p>
+            <input
+              type="number" min={0} max={60 * 60 * 24}
+              value={draft.alert_dedup_seconds ?? ''}
+              onChange={(e) => setDraft(d => ({ ...d, alert_dedup_seconds: e.target.value }))}
+              className="w-32 rounded-lg border border-tecdia-border bg-white px-3 py-2 text-[14px] font-semibold text-tecdia-textDeep outline-none focus:border-tecdia-accent focus:ring-2 focus:ring-tecdia-accent/20"
+            />
+            <span className="ml-2 text-[12px] text-tecdia-text/40">
+              {Math.round((Number(draft.alert_dedup_seconds) || 0) / 60)} min
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-6 flex items-center gap-4 pt-5 border-t border-tecdia-border">
+          <button
+            onClick={handleSave}
+            disabled={!dirty || saving}
+            className="rounded-xl bg-gradient-to-r from-[#1a1a1a] to-[#0a0d11] text-white px-6 py-2.5 text-[13px] font-bold uppercase tracking-[0.14em] shadow-md shadow-black/20 transition-all hover:brightness-125 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {saving ? 'Saving…' : 'Save changes'}
+          </button>
+          {toast && <span className="text-[12px] font-bold text-emerald-700">{toast}</span>}
+        </div>
+      </div>
+
+      {/* ── Read-only env-driven values ───────────────────────────── */}
+      <div className="bg-white border border-tecdia-border rounded-2xl p-6 shadow-sm max-w-2xl">
+        <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider mb-1">
+          Environment
+        </h3>
+        <p className="text-[12px] text-tecdia-text/45 mb-5">
+          Loaded from <span className="font-mono">.env</span> at startup. Edit on the server to change.
+        </p>
+
+        <div className="space-y-4 text-[13px]">
+          <div>
+            <p className="text-[10px] font-bold text-tecdia-text/40 uppercase tracking-widest mb-1">Admin emails</p>
+            <div className="flex flex-wrap gap-2">
+              {(config.admin_emails || []).length === 0 ? (
+                <span className="text-tecdia-text/40 italic">none — magic-link login disabled</span>
+              ) : config.admin_emails.map(e => (
+                <span key={e} className="rounded-full bg-tecdia-border/40 px-3 py-1 text-[12px] font-mono text-tecdia-textDeep">{e}</span>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[10px] font-bold text-tecdia-text/40 uppercase tracking-widest mb-1">Worker expertise domains</p>
+            <div className="flex flex-wrap gap-2">
+              {config.allowed_domains.map(d => (
+                <span key={d} className="rounded-full bg-tecdia-border/40 px-3 py-1 text-[12px] text-tecdia-textDeep">{d}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+
 const AuditPanel = () => {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1296,7 +1464,10 @@ const ActivityBars = ({ buckets }) => {
 const AdminDashboard = () => {
   const { adminLogout } = useAdminAuth();
   const { machines, addMachine, deleteMachine, activeJob, clearActiveJob, retryUpload, canRetryUpload } = useMachines();
-  const { alerts, alertThreshold, clearAlerts, testAlert } = useAlerts();
+  const {
+    alerts, alertThreshold, snoozes, dedupSeconds,
+    clearAlerts, testAlert, acknowledgeAlert, snoozeMachine,
+  } = useAlerts();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -1440,6 +1611,7 @@ const AdminDashboard = () => {
               { id: 'analytics', label: 'Analytics' },
               { id: 'shift_logs',label: 'Shift Logs', isNew: true },
               { id: 'audit',     label: 'Audit Log' },
+              { id: 'settings',  label: 'Settings' },
             ].map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                 className="relative flex items-center gap-1.5 text-xs font-medium transition-colors duration-200 text-white h-full"
@@ -1846,7 +2018,33 @@ const AdminDashboard = () => {
         {/* ══════════════ TAB: Alerts ══════════════ */}
         {activeTab === 'alerts' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-            {alertThreshold && <p className="text-sm font-inter text-landing-text/60 mb-4">Alerts fire when score ≥ {alertThreshold} of 25</p>}
+            {alertThreshold && (
+              <p className="text-sm font-inter text-landing-text/60 mb-4">
+                Alerts fire when score ≥ {alertThreshold} of 25.
+                {dedupSeconds > 0 && (
+                  <> Repeats for the same machine + code within {Math.round(dedupSeconds / 60)} min are auto-deduped.</>
+                )}
+              </p>
+            )}
+
+            {Object.keys(snoozes).length > 0 && (
+              <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+                <span className="font-bold uppercase tracking-wider text-[11px]">Snoozed:</span>
+                {Object.entries(snoozes).map(([mid, until]) => (
+                  <span key={mid} className="inline-flex items-center gap-2 rounded-full bg-white border border-amber-200 px-3 py-1 font-semibold">
+                    {mid.replaceAll('_', ' ')}
+                    <span className="text-amber-700/70 text-[11px]">until {new Date(until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <button
+                      onClick={() => snoozeMachine(mid, 0)}
+                      className="text-amber-700 hover:text-amber-900 underline text-[11px]"
+                    >
+                      lift
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
             <div className="flex items-center justify-between mb-10">
               <h2 className="text-3xl md:text-4xl font-bold font-sora text-slate-800 tracking-tight flex items-center gap-3">
                 <BellRing size={32} className="text-slate-400" />
@@ -1875,12 +2073,14 @@ const AdminDashboard = () => {
             ) : (
               <div className="space-y-4">
                 {alerts.map((alert) => (
-                  <motion.div 
-                    key={alert.alert_id} 
-                    layout 
-                    initial={{ opacity: 0, y: 12 }} 
+                  <motion.div
+                    key={alert.alert_id}
+                    layout
+                    initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="group relative border-b border-slate-200 pb-5 mb-5 last:border-b-0 last:mb-0 transition-all duration-300"
+                    className={`group relative border-b border-slate-200 pb-5 mb-5 last:border-b-0 last:mb-0 transition-all duration-300 ${
+                      alert.acknowledged_at ? 'opacity-50' : ''
+                    }`}
                   >
                     
                     <div>
@@ -1941,6 +2141,36 @@ const AdminDashboard = () => {
                           </div>
                         </div>
                       </div>
+
+                      {/* Action row — ack + per-machine snooze. Hides the
+                          snooze button if the machine is already snoozed
+                          (the global banner at the top of the panel
+                          already shows the state + a "lift" link). */}
+                      <div className="mt-4 flex items-center gap-3">
+                        {alert.acknowledged_at ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold font-sora text-slate-500">
+                            <CheckCircle size={13} />
+                            Acknowledged
+                            {alert.acknowledged_by && <span className="text-slate-400 font-medium">· {alert.acknowledged_by}</span>}
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => acknowledgeAlert(alert.alert_id)}
+                            className="rounded-full bg-slate-900 text-white text-xs font-bold uppercase tracking-[0.14em] px-4 py-1.5 hover:brightness-125 transition-all"
+                          >
+                            Acknowledge
+                          </button>
+                        )}
+                        {!snoozes[alert.machine_id] && (
+                          <button
+                            onClick={() => snoozeMachine(alert.machine_id, 60)}
+                            className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500 hover:text-slate-800 transition-colors"
+                            title="Mute alerts for this machine for 1 hour"
+                          >
+                            Snooze 1h
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </motion.div>
                 ))}
@@ -1957,6 +2187,9 @@ const AdminDashboard = () => {
 
         {/* ══════════════ TAB: Audit Log ══════════════ */}
         {activeTab === 'audit' && <AuditPanel />}
+
+        {/* ══════════════ TAB: Settings ══════════════ */}
+        {activeTab === 'settings' && <SettingsPanel />}
       </div>
 
       {/* Toast */}
