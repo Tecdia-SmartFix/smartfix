@@ -219,18 +219,28 @@ def compute_anomalies(
             value = float(raw)
         except (TypeError, ValueError):
             continue
-        lo, hi = spec.get("expected_min"), spec.get("expected_max")
-        out_of_range = (
-            (lo is not None and value < float(lo))
-            or (hi is not None and value > float(hi))
-        )
-        if out_of_range:
-            unit = spec.get("unit") or ""
-            label = spec.get("label") or key
+        lo = spec.get("expected_min")
+        hi = spec.get("expected_max")
+        unit = spec.get("unit") or ""
+        label = spec.get("label") or key
+        # Spell out the direction of the breach so the admin sees at a glance
+        # whether a parameter is trending high or low — "out of range" alone
+        # forced them to cross-reference the expected range every time.
+        below = lo is not None and value < float(lo)
+        above = hi is not None and value > float(hi)
+        if below:
             anomalies.append({
-                "title": f"{label} out of range",
-                "detail": f"Reading {value}{unit} (expected {lo}–{hi}{unit})",
-                "key": key,
+                "title":  f"{label} below minimum",
+                "detail": f"Reading {value}{unit} is lower than expected minimum of {lo}{unit}",
+                "key":    key,
+                "direction": "below",
+            })
+        elif above:
+            anomalies.append({
+                "title":  f"{label} above maximum",
+                "detail": f"Reading {value}{unit} is higher than expected maximum of {hi}{unit}",
+                "key":    key,
+                "direction": "above",
             })
 
     for spec in parameters.get("visual_checks", []):
