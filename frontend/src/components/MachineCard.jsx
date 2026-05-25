@@ -5,11 +5,13 @@ import { fetchApi } from '../api/apiClient';
 import laserImg from '../assets/laser.png';
 import injectionImg from '../assets/injection.jpeg';
 import printerImg from '../assets/printer.png';
+import hyImg from '../assets/hy.png';
 
 const MACHINE_IMAGES = {
   INJECTION_MOLDING_MACHINE: injectionImg,
   LASER_CUTTING_MACHINE: laserImg,
   FDM_X300_INDUSTRIAL_3D_PRINTER: printerImg,
+  HP_500_HYDRAULIC_PRESS: hyImg,
 };
 
 // Two layouts in one component:
@@ -63,20 +65,26 @@ const MachineCard = ({
       transition={{ layout: { duration: 0.28, ease: [0.2, 0.8, 0.2, 1] } }}
       className={`theme-machine-card group relative flex w-full cursor-pointer flex-col overflow-hidden rounded-2xl border bg-[#111] transition-colors duration-200 ${
         isExpanded
-          ? 'border-[#70dceb]/40 shadow-2xl shadow-[#2b8cff]/20'
+          ? 'border-[#007aff]/40 shadow-2xl shadow-[#007aff]/20'
           : 'border-white/10 hover:-translate-y-1'
       }`}
-      style={{ minHeight: isExpanded ? 'auto' : 400 }}
+      style={{ minHeight: 'auto' }}
     >
       {/* ── Top image area (shared between layouts) ── */}
       <motion.div
         layout
-        className={`relative w-full overflow-hidden bg-gradient-to-br from-[#2b8cff]/20 to-[#10b9d2]/10 ${
+        className={`relative w-full overflow-hidden bg-gradient-to-br from-[#007aff]/20 to-[#007aff]/10 ${
           isExpanded ? 'h-[140px]' : 'h-[180px]'
         }`}
       >
-        {machine.customIconUrl || MACHINE_IMAGES[machine.id] ? (
-          <img src={machine.customIconUrl || MACHINE_IMAGES[machine.id]} alt={machine.name} className="w-full h-full object-cover" />
+        {machine.customIconUrl || MACHINE_IMAGES[machine.id?.toUpperCase()] ? (
+          <img
+            src={machine.customIconUrl || MACHINE_IMAGES[machine.id?.toUpperCase()]}
+            alt={machine.name}
+            className={`w-full h-full ${
+              machine.id?.toUpperCase() === 'HP_500_HYDRAULIC_PRESS' ? 'object-contain py-1' : 'object-cover'
+            }`}
+          />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-white opacity-35">
             {Icon && <Icon size={isExpanded ? 60 : 80} />}
@@ -107,18 +115,18 @@ const MachineCard = ({
 
       {/* ── Body ── */}
       <motion.div layout className="relative flex flex-grow flex-col p-6">
-        <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#66d8e9]">
+        <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#007aff]">
           ID: {machine.id}
         </div>
 
-        <h3 className={`mb-4 text-[21px] font-black leading-tight tracking-normal text-white ${
+        <h3 className={`mb-2 text-[21px] font-black leading-tight tracking-normal text-white ${
           isExpanded ? '' : 'line-clamp-3'
         }`}>
           {machine.name}
         </h3>
 
         {!isExpanded && (
-          <div className="mt-auto pt-4 flex flex-col">
+          <div className="mt-3 flex flex-col">
             <span className="mb-0.5 text-[11px] font-bold uppercase tracking-[0.18em] text-white">
               {machine.category || 'General Equipment'}
             </span>
@@ -175,8 +183,8 @@ const MachineCard = ({
               )}
 
               {/* ── Parameter preview ── */}
-              <div className="mt-5 rounded-xl border border-[#70dceb]/20 bg-[#70dceb]/[0.05] p-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#70dceb] mb-2">Shift log parameters</p>
+              <div className="mt-5 rounded-xl border border-[#007aff]/20 bg-[#007aff]/[0.05] p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#007aff] mb-2">Shift log parameters</p>
                 {previewLoading ? (
                   <div className="flex items-center gap-2 text-[13px] text-white/50">
                     <Loader2 size={14} className="animate-spin" /> Loading…
@@ -199,7 +207,7 @@ const MachineCard = ({
               {/* ── Action button ── */}
               <button
                 onClick={onEditParameters}
-                className="mt-5 flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#2b8cff] to-[#10b9d2] px-6 py-3 text-[13px] font-bold text-white shadow-lg shadow-[#2b8cff]/25 transition-all hover:brightness-110"
+                className="mt-5 flex items-center justify-center gap-2 rounded-full bg-[#007aff] px-6 py-3 text-[13px] font-bold text-white shadow-lg shadow-[#007aff]/25 transition-all hover:brightness-110"
               >
                 <FileCog size={15} />
                 {paramPreview && (paramPreview.numericCount || paramPreview.visualCount)

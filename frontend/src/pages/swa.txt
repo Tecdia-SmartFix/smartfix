@@ -1281,7 +1281,13 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className={`mx-auto max-w-[1680px] px-5 sm:px-8 lg:px-10 ${activeTab === 'add' ? 'py-0' : 'py-10'}`}>
+      <div className="mx-auto max-w-[1680px] px-5 py-10 sm:px-8 lg:px-10">
+
+        {/* ── Global ingestion progress bar ──
+            Rendered OUTSIDE the tab content blocks so it remains visible
+            after handleAddMachine() switches the active tab to 'machines'.
+            Without this, the bar mounted inside the Add tab and was
+            immediately unmounted on tab switch — user never saw it. */}
 
         {/* ── Global ingestion progress bar ── */}
         <AnimatePresence>
@@ -1325,33 +1331,32 @@ const AdminDashboard = () => {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
-            className="relative"
-            style={{ background: '#ffffff' }}
+            className="relative -mt-10"
+            style={{ background: '#0a1628' }}
           >
             <div className="flex w-full min-h-[calc(100vh-60px)]">
 
               {/* ── LEFT: image collage ── */}
               <div
                 className="hidden md:block w-1/2 sticky top-[60px] overflow-hidden"
-                style={{ height: 'calc(100vh - 60px)', background: '#ffffff' }}
+                style={{ height: 'calc(100vh - 60px)', background: '#0a1628' }}
               >
-                <div className="grid grid-cols-2 w-full h-full" style={{ gridTemplateRows: '50% 50%' }}>
-                  
-                  {/* branding strip (overlaid) */}
-                  <div className="absolute top-0 left-0 right-0 z-20 pt-6 pl-8" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 100%)', paddingBottom: '40px' }}>
-                    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.3em', color: '#0f172a', textTransform: 'uppercase' }}>
+                <div className="grid grid-cols-2 w-full h-full" style={{ gridTemplateRows: '10% 42% 48%' }}>
+                  {/* branding strip */}
+                  <div className="col-span-2 flex items-end pb-3 pl-5" style={{ background: '#0a1628' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.3em', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase' }}>
                       Smartfix · Machine Registry
                     </span>
                   </div>
 
-                  {/* laser cutter */}
+                  {/* factory floor */}
                   <div className="relative overflow-hidden">
                     <img
-                      src={laserImg}
-                      alt="Laser Cutter"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(1.05) saturate(1.1)' }}
+                      src="https://images.unsplash.com/photo-1565514020179-026b92b84bb6?w=600&q=80"
+                      alt="Factory floor"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.7) saturate(0.8)' }}
                     />
-                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.1))' }} />
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(10,22,40,.2),rgba(10,22,40,.5))' }} />
                   </div>
 
                   {/* welding sparks */}
@@ -1359,9 +1364,9 @@ const AdminDashboard = () => {
                     <img
                       src="https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=600&q=80"
                       alt="Welding"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(1.05) saturate(1.1)' }}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.65) saturate(0.85)' }}
                     />
-                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.1))' }} />
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(10,22,40,.1),rgba(10,22,40,.55))' }} />
                   </div>
 
                   {/* circuit board */}
@@ -1369,9 +1374,9 @@ const AdminDashboard = () => {
                     <img
                       src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80"
                       alt="Circuit board"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(1.05) saturate(1.1)' }}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.6) saturate(0.7) hue-rotate(10deg)' }}
                     />
-                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.1))' }} />
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(10,22,40,.3),rgba(10,22,40,.65))' }} />
                   </div>
 
                   {/* CNC machine */}
@@ -1379,35 +1384,35 @@ const AdminDashboard = () => {
                     <img
                       src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&q=80"
                       alt="CNC machine"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(1.05) saturate(1.1)' }}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.6) saturate(0.75)' }}
                     />
-                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg,rgba(255,255,255,0.02),rgba(255,255,255,0.1))' }} />
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg,rgba(10,22,40,.55),rgba(10,22,40,.2))' }} />
                   </div>
                 </div>
 
                 {/* bottom caption */}
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 24px', background: 'linear-gradient(0deg,rgba(255,255,255,0.95),transparent)' }}>
-                  <p style={{ color: 'rgba(0,0,0,0.6)', fontSize: 11, lineHeight: 1.6, fontWeight: 500 }}>
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 24px', background: 'linear-gradient(0deg,rgba(10,22,40,.95),transparent)' }}>
+                  <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, lineHeight: 1.6 }}>
                     Upload a new machine to begin indexing diagnostic data and enable AI-powered fault analysis.
                   </p>
                 </div>
               </div>
 
-              {/* ── RIGHT: light form ── */}
+              {/* ── RIGHT: dark form ── */}
               <div
                 className="w-full md:w-1/2 px-10 py-6 relative z-10 overflow-y-auto"
-                style={{ background: '#f8fafc', borderLeft: '1px solid #e2e8f0', minHeight: 'calc(100vh - 60px)' }}
+                style={{ background: '#0d1b2e', minHeight: 'calc(100vh - 60px)' }}
               >
                 <form onSubmit={handleAddMachine} style={{ width: '100%' }}>
 
                   {/* ── Machine Details ── */}
                   <div style={{ marginBottom: 24 }}>
-                    <p style={{ color: '#0f172a', fontWeight: 700, fontSize: 14, marginBottom: 16 }}>Machine Details</p>
+                    <p style={{ color: 'white', fontWeight: 700, fontSize: 14, marginBottom: 16 }}>Machine Details</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
                       {/* Machine Name */}
                       <div>
-                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Machine Name *</label>
+                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Machine Name *</label>
                         <input
                           type="text" required
                           placeholder="e.g. Laser Cutter X300"
@@ -1416,73 +1421,73 @@ const AdminDashboard = () => {
                             const name = e.target.value;
                             setForm(f => ({ ...f, name, machine_id: f._slugEdited ? f.machine_id : toSlug(name) }));
                           }}
-                          style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, padding: '12px 16px', color: '#0f172a', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                          style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '12px 16px', color: 'white', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
                           onFocus={e => { e.target.style.borderColor = '#3b82f6'; e.target.style.boxShadow = '0 0 0 2px rgba(59,130,246,0.15)'; }}
-                          onBlur={e => { e.target.style.borderColor = '#cbd5e1'; e.target.style.boxShadow = 'none'; }}
+                          onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none'; }}
                         />
                       </div>
 
                       {/* Machine ID */}
                       <div>
-                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Machine ID *</label>
+                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Machine ID *</label>
                         <input
                           type="text" required
                           placeholder="AUTO_GENERATED_SLUG"
                           value={form.machine_id}
                           onChange={e => setForm(f => ({ ...f, machine_id: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''), _slugEdited: true }))}
-                          style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, padding: '12px 16px', color: '#0f172a', fontSize: 13, fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }}
+                          style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '12px 16px', color: 'white', fontSize: 13, fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }}
                           onFocus={e => { e.target.style.borderColor = '#3b82f6'; e.target.style.boxShadow = '0 0 0 2px rgba(59,130,246,0.15)'; }}
-                          onBlur={e => { e.target.style.borderColor = '#cbd5e1'; e.target.style.boxShadow = 'none'; }}
+                          onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none'; }}
                         />
                       </div>
 
                       {/* Description */}
                       <div>
-                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Description</label>
+                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Description</label>
                         <textarea
                           rows={4}
                           placeholder="Brief description of this machine's diagnostic capabilities..."
                           value={form.description}
                           onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                          style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, padding: '12px 16px', color: '#0f172a', fontSize: 14, outline: 'none', resize: 'none', boxSizing: 'border-box' }}
+                          style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '12px 16px', color: 'white', fontSize: 14, outline: 'none', resize: 'none', boxSizing: 'border-box' }}
                           onFocus={e => { e.target.style.borderColor = '#3b82f6'; e.target.style.boxShadow = '0 0 0 2px rgba(59,130,246,0.15)'; }}
-                          onBlur={e => { e.target.style.borderColor = '#cbd5e1'; e.target.style.boxShadow = 'none'; }}
+                          onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none'; }}
                         />
                       </div>
 
                       {/* Category */}
                       <div>
-                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Category</label>
+                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Category</label>
                         <div style={{ position: 'relative' }}>
                           <select
                             value={form.category}
                             onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                            style={{ width: '100%', appearance: 'none', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, padding: '12px 40px 12px 16px', color: form.category ? '#0f172a' : '#94a3b8', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                            style={{ width: '100%', appearance: 'none', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '12px 40px 12px 16px', color: form.category ? 'white' : 'rgba(255,255,255,0.3)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
                           >
-                            <option value="" style={{ background: '#ffffff', color: '#94a3b8' }}>Select a category…</option>
+                            <option value="" style={{ background: '#0d1b2e', color: 'rgba(255,255,255,0.4)' }}>Select a category…</option>
                             {CATEGORY_OPTIONS.map(c => (
-                              <option key={c} value={c} style={{ background: '#ffffff', color: '#0f172a' }}>{c}</option>
+                              <option key={c} value={c} style={{ background: '#0d1b2e', color: 'white' }}>{c}</option>
                             ))}
                           </select>
-                          <ChevronDown size={16} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
+                          <ChevronDown size={16} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }} />
                         </div>
                       </div>
 
                       {/* Significance slider */}
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                          <label style={{ fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Machine Significance</label>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: '#2563eb' }}>Level {form.significance}</span>
+                          <label style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Machine Significance</label>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#60a5fa' }}>Level {form.significance}</span>
                         </div>
                         <input
                           type="range" min="1" max="5" step="1"
                           value={form.significance}
                           onChange={e => setForm(f => ({ ...f, significance: parseInt(e.target.value) }))}
-                          style={{ width: '100%', height: 6, borderRadius: 4, background: '#e2e8f0', accentColor: '#3b82f6', cursor: 'pointer' }}
+                          style={{ width: '100%', height: 6, borderRadius: 4, background: 'rgba(255,255,255,0.1)', accentColor: '#3b82f6', cursor: 'pointer' }}
                         />
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                          <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Low Impact</span>
-                          <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Mission Critical</span>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Low Impact</span>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Mission Critical</span>
                         </div>
                       </div>
                     </div>
@@ -1490,10 +1495,10 @@ const AdminDashboard = () => {
 
                   {/* ── Appearance ── */}
                   <div style={{ marginBottom: 24 }}>
-                    <p style={{ color: '#0f172a', fontWeight: 700, fontSize: 14, marginBottom: 16 }}>Appearance</p>
+                    <p style={{ color: 'white', fontWeight: 700, fontSize: 14, marginBottom: 16 }}>Appearance</p>
 
                     {/* Icon upload */}
-                    <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Icon</label>
+                    <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Icon</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <input type="file" accept="image/*" id="custom-icon-upload" className="hidden"
                         onChange={e => {
@@ -1502,14 +1507,14 @@ const AdminDashboard = () => {
                         }}
                       />
                       <label htmlFor="custom-icon-upload"
-                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 12, background: '#ffffff', border: '1px solid #cbd5e1', color: '#64748b', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
                         <Image size={13} /> Upload Custom Icon
                       </label>
                       {form.customIconUrl && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <img src={form.customIconUrl} alt="custom icon" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover', border: '1px solid #cbd5e1' }} />
+                          <img src={form.customIconUrl} alt="custom icon" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} />
                           <button type="button" onClick={() => setForm(f => ({ ...f, customIconUrl: null }))}
-                            style={{ width: 24, height: 24, borderRadius: '50%', background: '#f1f5f9', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', cursor: 'pointer' }}>
+                            style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}>
                             <X size={11} />
                           </button>
                         </div>
@@ -1518,11 +1523,11 @@ const AdminDashboard = () => {
 
                     {/* Preview */}
                     <div style={{ marginTop: 16 }}>
-                      <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Preview</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, padding: '12px 16px' }}>
+                      <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Preview</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px 16px' }}>
                         <div>
-                          <span style={{ fontWeight: 600, color: '#0f172a', fontSize: 14, display: 'block' }}>{form.name || 'Machine Name'}</span>
-                          {form.category && <span style={{ fontSize: 10, color: '#64748b' }}>{form.category}</span>}
+                          <span style={{ fontWeight: 600, color: 'white', fontSize: 14, display: 'block' }}>{form.name || 'Machine Name'}</span>
+                          {form.category && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{form.category}</span>}
                         </div>
                       </div>
                     </div>
@@ -1531,9 +1536,9 @@ const AdminDashboard = () => {
                   {/* ── Files & Media ── */}
                   <div style={{ marginBottom: 24 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                      <p style={{ color: '#0f172a', fontWeight: 700, fontSize: 14 }}>Files & Media</p>
+                      <p style={{ color: 'white', fontWeight: 700, fontSize: 14 }}>Files & Media</p>
                       {form.files.length > 0 && (
-                        <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 999, background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', fontWeight: 600 }}>
+                        <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 999, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: '#60a5fa', fontWeight: 600 }}>
                           {form.files.length} file{form.files.length !== 1 ? 's' : ''}
                         </span>
                       )}
@@ -1558,36 +1563,36 @@ const AdminDashboard = () => {
                       style={{
                         width: '100%', borderRadius: 14, padding: '48px 24px',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
-                        border: `1px dashed ${isDragging ? '#3b82f6' : '#cbd5e1'}`,
-                        background: isDragging ? '#eff6ff' : '#ffffff',
+                        border: `1px dashed ${isDragging ? '#3b82f6' : 'rgba(255,255,255,0.12)'}`,
+                        background: isDragging ? 'rgba(59,130,246,0.06)' : 'rgba(255,255,255,0.02)',
                         transition: 'all 0.2s', transform: isDragging ? 'scale(1.01)' : 'scale(1)',
                         boxSizing: 'border-box',
                       }}
                     >
-                      <div style={{ width: 72, height: 72, borderRadius: '50%', background: isDragging ? '#dbeafe' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-                        <FileText size={32} style={{ color: '#3b82f6' }} />
+                      <div style={{ width: 72, height: 72, borderRadius: '50%', background: isDragging ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+                        <FileText size={32} style={{ color: '#60a5fa' }} />
                       </div>
-                      <p style={{ fontSize: 15, color: isDragging ? '#2563eb' : '#64748b', marginBottom: 10, fontWeight: 500 }}>
+                      <p style={{ fontSize: 15, color: isDragging ? '#60a5fa' : 'rgba(255,255,255,0.55)', marginBottom: 10 }}>
                         {isDragging ? 'Drop your file here' : 'Drag and drop your file'}
                       </p>
                       {!isDragging && (
                         <>
-                          <p style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 10, fontWeight: 600 }}>or</p>
+                          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: 10 }}>or</p>
                           <div
                             onClick={() => fileInputRef.current.click()}
-                            style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', fontSize: 13, fontWeight: 600, padding: '8px 24px', borderRadius: 8, cursor: 'pointer', marginBottom: 16 }}>
+                            style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: '#60a5fa', fontSize: 13, fontWeight: 500, padding: '8px 24px', borderRadius: 8, cursor: 'pointer', marginBottom: 16 }}>
                             Browse
                           </div>
                         </>
                       )}
-                      <p style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500 }}>PDF, JPG, PNG, WebP &nbsp;|&nbsp; Max 10 MB</p>
+                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>PDF, JPG, PNG, WebP &nbsp;|&nbsp; Max 10 MB</p>
                     </div>
 
                     {/* Errors */}
                     <AnimatePresence>
                       {fileErrors.map((err, i) => (
                         <motion.div key={i} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                          style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 10, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, color: '#ef4444', fontSize: 12, fontWeight: 500 }}>
+                          style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 10, padding: '10px 14px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, color: '#f87171', fontSize: 12 }}>
                           <AlertCircle size={13} style={{ flexShrink: 0, marginTop: 2 }} />
                           {err}
                         </motion.div>
@@ -1597,18 +1602,18 @@ const AdminDashboard = () => {
                     {/* File list */}
                     {form.files.length > 0 && (
                       <div style={{ marginTop: 20 }}>
-                        <p style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 10 }}>Uploaded</p>
+                        <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 10 }}>Uploaded</p>
                         {form.files.map((file, idx) => file.type === 'pdf' && (
                           <div key={idx} className="group/pdf"
-                            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10 }}>
-                            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                              <FileText size={14} style={{ color: '#3b82f6' }} />
+                            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 10 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <FileText size={14} style={{ color: '#60a5fa' }} />
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</p>
-                              <p style={{ fontSize: 10, color: '#64748b', fontWeight: 500 }}>{(file.size / 1024).toFixed(0)} KB · PDF</p>
+                              <p style={{ fontSize: 13, fontWeight: 500, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</p>
+                              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{(file.size / 1024).toFixed(0)} KB · PDF</p>
                             </div>
-                            <button type="button" onClick={() => removeFile(idx)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}>
+                            <button type="button" onClick={() => removeFile(idx)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: 0 }}>
                               <X size={14} />
                             </button>
                           </div>
@@ -1623,8 +1628,8 @@ const AdminDashboard = () => {
                     disabled={!form.name.trim() || !form.machine_id.trim() || !form.pdfFile || isSubmitting}
                     style={
                       form.name.trim() && form.machine_id.trim() && form.pdfFile && !isSubmitting
-                        ? { width: '100%', padding: '14px', borderRadius: 16, fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, border: 'none', background: '#3b82f6', color: 'white', boxShadow: '0 4px 12px rgba(59,130,246,0.25)', cursor: 'pointer', transition: 'all 0.2s' }
-                        : { width: '100%', padding: '14px', borderRadius: 16, fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, border: '1px solid #e2e8f0', background: '#f1f5f9', color: '#94a3b8', cursor: 'not-allowed' }
+                        ? { width: '100%', padding: '14px', borderRadius: 16, fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, border: 'none', background: '#3b82f6', color: 'white', boxShadow: '0 0 28px rgba(59,130,246,0.35)', cursor: 'pointer', transition: 'all 0.2s' }
+                        : { width: '100%', padding: '14px', borderRadius: 16, fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.2)', cursor: 'not-allowed' }
                     }
                   >
                     {isSubmitting
