@@ -199,12 +199,21 @@
     text-shadow: none !important;
   }
 
-  .light .theme-landing-hero .text-white,
-  .light .theme-landing-hero .text-white\/70,
-  .light .theme-landing-hero .text-white\/76,
-  .light .theme-landing-hero .text-white\/62,
-  .light .theme-public-hero .text-white {
+  /* Use attribute-contains so we catch every text-white/N variant the hero
+     uses (eg. /55 for the SmartFix ghost text, /76 for the body paragraph,
+     /62 for kickers). Earlier explicit list only covered /70 /76 /62 and
+     left /55 invisible on light bg. */
+  .light .theme-landing-hero [class*="text-white"],
+  .light .theme-public-hero [class*="text-white"] {
     color: #061217 !important;
+  }
+
+  /* Same trick for the white-tinted hairlines that draw the section divider
+     and the outlined "View Equipment" button. border-white/15 and /25 used
+     to disappear against the light hero. */
+  .light .theme-landing-hero [class*="border-white"],
+  .light .theme-public-hero [class*="border-white"] {
+    border-color: rgba(6,18,23,0.18) !important;
   }
 
   .light .theme-dark-band {
@@ -220,41 +229,31 @@
     color: #061217 !important;
   }
 
-  .light .theme-card,
-  .light .theme-capability-card,
-  .light .theme-machine-card {
+  /* .theme-card is a generic light surface (not currently used by any
+     component, kept for future plain-white cards). */
+  .light .theme-card {
     background: #ffffff !important;
     border-color: rgba(7,159,186,0.18) !important;
     box-shadow: 0 24px 90px rgba(7,159,186,0.12) !important;
   }
 
-  .light .theme-machine-card {
-    color: #061217 !important;
-  }
-
-  .light .theme-machine-card h3,
-  .light .theme-machine-card span,
-  .light .theme-machine-card div {
-    color: #061217 !important;
-  }
-
-  .light .theme-machine-card [class*="text-[#66d8e9]"] {
-    color: #079fba !important;
-  }
-
-  .light .theme-capability-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(105deg, rgba(255,255,255,0.94) 0%, rgba(255,255,255,0.78) 42%, rgba(255,255,255,0.2) 100%);
-    pointer-events: none;
-  }
-
-  .light .theme-capability-card > div:not(.absolute),
-  .light .theme-capability-card article,
-  .light .theme-capability-card h3,
-  .light .theme-capability-card p {
-    color: #061217 !important;
+  /* MachineCard + LandingPage capability cards were designed dark-first
+     (white text on near-black surface, subtle dark borders, branded image
+     gradients). Previous light-mode overrides forced a white background,
+     which:
+       • washed the blue image gradient into a pale blob,
+       • only re-colored <h3>/<span>/<div> text — every <p> kept text-white
+         and turned invisible,
+       • added a 105deg white wash on capability cards that hid content.
+     Keep them dark on a light page (premium-tile pattern). A cyan-tinted
+     soft drop shadow + tighter border gives separation against the bright
+     page background without any color flip. */
+  .light .theme-machine-card,
+  .light .theme-capability-card {
+    border-color: rgba(7,159,186,0.22) !important;
+    box-shadow:
+      0 20px 60px rgba(7,159,186,0.14),
+      0 2px 8px rgba(0,0,0,0.05) !important;
   }
 
   .light .theme-modal-panel {
