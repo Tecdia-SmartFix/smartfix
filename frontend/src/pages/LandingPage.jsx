@@ -129,10 +129,29 @@ const LandingPage = () => {
 
   const scrollSlider = (direction) => {
     if (sliderRef.current) {
-      const scrollAmount = direction === 'left' ? -380 : 380;
+      // Step matches the lg card width (440px) + gap (24px) so each click
+      // lands on the next card edge cleanly.
+      const scrollAmount = direction === 'left' ? -464 : 464;
       sliderRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
+
+  // Vertical wheel → horizontal scroll. Without this the strip only moves
+  // via the chevron buttons or touch swipe; mouse-wheel users can't interact
+  // with it at all. We only redirect when the wheel is primarily vertical,
+  // so trackpad horizontal gestures keep working as-is.
+  useEffect(() => {
+    const el = sliderRef.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        el.scrollBy({ left: e.deltaY, behavior: 'auto' });
+      }
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -292,11 +311,15 @@ const LandingPage = () => {
 
               <div
                 ref={sliderRef}
-                className="scrollbar-hide flex snap-x snap-mandatory gap-6 overflow-x-auto pb-8"
+                // Card widths bumped from 380→440 on md+ so 4 cards (the
+                // current demo set) always overflow the 1680px container.
+                // Without overflow the carousel has nothing to scroll to and
+                // both the buttons and the wheel handler appear broken.
+                className="scrollbar-hide flex snap-x snap-mandatory gap-6 overflow-x-auto pb-8 cursor-grab active:cursor-grabbing"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
                 {machines.map((machine) => (
-                  <div key={machine.id} className="w-[285px] shrink-0 snap-start sm:w-[340px] md:w-[380px]">
+                  <div key={machine.id} className="w-[285px] shrink-0 snap-start sm:w-[360px] md:w-[420px] lg:w-[440px]">
                     <MachineCard machine={machine} />
                   </div>
                 ))}
