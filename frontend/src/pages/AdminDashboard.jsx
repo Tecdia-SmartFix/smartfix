@@ -7,7 +7,7 @@ import {
   CheckCircle, X, LayoutDashboard, Package, Database, Shield, AlertCircle,
   Factory, Cog, Activity, Flame, Monitor, Layers, Radio, Thermometer,
   HardDrive, Truck, FlaskConical, Pipette, BellRing, BarChart3, TrendingUp,
-  AlertTriangle, RotateCw,
+  AlertTriangle, RotateCw, Filter, Calendar,
 } from 'lucide-react';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useMachines } from '../context/MachineContext';
@@ -640,19 +640,40 @@ const AnalyticsPanel = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
   const [seeding, setSeeding] = useState(false);
+  const [analyticsFilters, setAnalyticsFilters] = useState({
+  machine: '',
+  worker: '',
+  domain: '',
+  severity: '',
+  shift: '',
+  start_date: '',
+  end_date: '',
+});
 
   const load = async () => {
-    setLoading(true);
-    try {
-      const d = await fetchApi('/admin/analytics');
-      setData(d);
-      setError(null);
-    } catch (e) {
-      setError(e.detail || e.message || 'Failed to load analytics');
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+
+  try {
+    const params = new URLSearchParams();
+
+    Object.entries(analyticsFilters).forEach(([key, value]) => {
+      if (value) {
+        params.append(key, value);
+      }
+    });
+
+    const d = await fetchApi(
+      `/admin/analytics?${params.toString()}`
+    );
+
+    setData(d);
+    setError(null);
+  } catch (e) {
+    setError(e.detail || e.message || 'Failed to load analytics');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const seed = async ({ replace = false } = {}) => {
     setSeeding(true);
@@ -727,6 +748,114 @@ const AnalyticsPanel = () => {
           </div>
         </div>
       )}
+
+      {/* ── Analytics Filters ───────────────────────────────────────── */}
+      <SectionCard className="mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <Filter size={16} className="text-tecdia-text/60" />
+          <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Filter Analytics</h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <InputField
+            label="Machine"
+            placeholder="Filter by machine"
+            value={analyticsFilters.machine}
+            onChange={(e) => setAnalyticsFilters(prev => ({
+              ...prev,
+              machine: e.target.value,
+            }))}
+          />
+          <InputField
+            label="Worker"
+            placeholder="Filter by worker"
+            value={analyticsFilters.worker}
+            onChange={(e) => setAnalyticsFilters(prev => ({
+              ...prev,
+              worker: e.target.value,
+            }))}
+          />
+          <InputField
+            label="Domain"
+            placeholder="Filter by domain"
+            value={analyticsFilters.domain}
+            onChange={(e) => setAnalyticsFilters(prev => ({
+              ...prev,
+              domain: e.target.value,
+            }))}
+          />
+          <InputField
+            label="Severity"
+            placeholder="Filter by severity"
+            type="number"
+            value={analyticsFilters.severity}
+            onChange={(e) => setAnalyticsFilters(prev => ({
+              ...prev,
+              severity: e.target.value,
+            }))}
+          />
+          <InputField
+            label="Shift"
+            placeholder="Morning, Evening, or Night"
+            value={analyticsFilters.shift}
+            onChange={(e) => setAnalyticsFilters(prev => ({
+              ...prev,
+              shift: e.target.value,
+            }))}
+          />
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <InputField
+                label="Start Date"
+                placeholder="YYYY-MM-DD"
+                type="datetime-local"
+                value={analyticsFilters.start_date}
+                onChange={(e) => setAnalyticsFilters(prev => ({
+                  ...prev,
+                  start_date: e.target.value,
+                }))}
+              />
+            </div>
+          </div>
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <InputField
+                label="End Date"
+                placeholder="YYYY-MM-DD"
+                type="datetime-local"
+                value={analyticsFilters.end_date}
+                onChange={(e) => setAnalyticsFilters(prev => ({
+                  ...prev,
+                  end_date: e.target.value,
+                }))}
+              />
+            </div>
+          </div>
+          <button
+            onClick={load}
+            disabled={loading}
+            className="btn-secondary text-xs px-4 py-2 flex items-center gap-2 disabled:opacity-50 h-fit"
+          >
+            {loading ? 'Loading...' : 'Apply Filters'}
+          </button>
+          <button
+            onClick={() => {
+              setAnalyticsFilters({
+                machine: '',
+                worker: '',
+                domain: '',
+                severity: '',
+                shift: '',
+                start_date: '',
+                end_date: '',
+              });
+              load();
+            }}
+            className="btn-secondary text-xs px-4 py-2 flex items-center gap-2 h-fit"
+          >
+            Clear Filters
+          </button>
+        </div>
+      </SectionCard>
 
       {/* ── 1. KPI cards ───────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -1096,6 +1225,17 @@ const AdminDashboard = () => {
   const { alerts, alertThreshold, clearAlerts, testAlert } = useAlerts();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsFilters, setAnalyticsFilters] = useState({
+  machine: '',
+  worker: '',
+  domain: '',
+  severity: '',
+  shift: '',
+  start_date: '',
+  end_date: '',
+  });
 
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'add' ? 'add' : 'machines');
   const [form, setForm] = useState(EMPTY_FORM);
@@ -1203,7 +1343,32 @@ const AdminDashboard = () => {
   const PreviewIcon = ICON_MAP[form.icon] || Settings2;
   // Default seeded machines — match backend `_machine_metadata` slugs in src/api.py.
   const isDefault = (id) => ['INJECTION_MOLDING_MACHINE', 'LASER_CUTTING_MACHINE'].includes(id?.toUpperCase());
+  const fetchAnalytics = useCallback(async () => {
+  try {
+    setAnalyticsLoading(true);
 
+    const params = new URLSearchParams();
+
+    Object.entries(analyticsFilters).forEach(([key, value]) => {
+      if (value) {
+        params.append(key, value);
+      }
+    });
+
+    const response = await fetchApi(
+      `/admin/analytics?${params.toString()}`
+    );
+
+    setAnalytics(response);
+  } catch (error) {
+    console.error('Failed to fetch analytics', error);
+  } finally {
+    setAnalyticsLoading(false);
+  }
+}, [analyticsFilters]);
+useEffect(() => {
+  fetchAnalytics();
+}, [fetchAnalytics]);
   return (
     <div className="relative z-0 min-h-screen bg-[#eef1ef] pt-0 text-tecdia-text transition-all duration-500">
 
