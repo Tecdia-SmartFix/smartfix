@@ -54,37 +54,79 @@ def _app_base_url() -> str:
 _MAGIC_LINK_HTML = """\
 <!DOCTYPE html>
 <html>
-<body style="margin:0;padding:0;background:#f4f8fc;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;color:#1a1a2e;">
-  <div style="max-width:560px;margin:32px auto;background:#ffffff;border-radius:18px;border:1px solid #d6e8f5;overflow:hidden;">
-    <div style="background:linear-gradient(135deg,#89CFF3 0%,#A0E9FF 50%,#89CFF3 100%);padding:36px 32px;">
-      <div style="font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0a3a5e;opacity:0.7;">Tecdia SmartFix</div>
-      <div style="font-size:28px;font-weight:800;color:#0a3a5e;margin-top:6px;line-height:1.2;">Your admin sign-in link</div>
-    </div>
-    <div style="padding:32px;">
-      <p style="margin:0 0 18px;font-size:15px;line-height:1.55;color:#1a1a2e;">
-        Click the button below to sign in to the SmartFix admin dashboard.
-      </p>
-      <p style="margin:24px 0;">
-        <a href="{url}"
-           style="display:inline-block;background:#00A9FF;color:#ffffff;font-weight:700;
-                  text-decoration:none;padding:14px 28px;border-radius:12px;font-size:15px;
-                  box-shadow:0 4px 14px rgba(0,169,255,0.35);">
-          Sign in to SmartFix
-        </a>
-      </p>
-      <p style="margin:0 0 6px;font-size:12px;color:#1a1a2e;opacity:0.6;line-height:1.55;">
-        Or paste this link into your browser:
-      </p>
-      <p style="margin:0 0 24px;font-size:12px;color:#0066aa;word-break:break-all;line-height:1.55;">
-        {url}
-      </p>
-      <div style="border-top:1px solid #e8eef3;padding-top:18px;margin-top:18px;
-                  font-size:12px;color:#1a1a2e;opacity:0.55;line-height:1.6;">
-        This link expires in <strong>15 minutes</strong> and can only be used once.<br>
-        If you didn't request this, you can safely ignore this email.
-      </div>
-    </div>
-  </div>
+<body style="margin:0;padding:0;background:#eef1ef;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;color:#0a0d11;">
+  <!-- Outer wrapper: use a table because most email clients (Gmail iOS,
+       Outlook, etc.) drop flexbox + media queries silently. The "split
+       card" look is approximated with two stacked panels — dark brand
+       block, then a light form block — which visually mirrors the
+       SplitLoginCard layout on the web. -->
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+         style="background:#eef1ef;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0"
+               style="max-width:560px;width:100%;background:#ffffff;border-radius:18px;
+                      border:1px solid #d6e8f5;overflow:hidden;
+                      box-shadow:0 24px 60px rgba(15,23,42,0.10);">
+
+          <!-- Dark brand panel (mirrors the left half of SplitLoginCard) -->
+          <tr>
+            <td style="background:#0a0d11;padding:32px 36px;color:#ffffff;
+                       background-image:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 100%);">
+              <div style="font-size:12px;font-weight:800;letter-spacing:3px;
+                          text-transform:uppercase;color:rgba(255,255,255,0.55);">Tecdia</div>
+              <div style="font-size:32px;font-weight:900;letter-spacing:-0.5px;
+                          text-transform:uppercase;color:#ffffff;margin-top:4px;
+                          line-height:1;">SmartFix</div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:2.5px;
+                          text-transform:uppercase;color:rgba(255,255,255,0.55);margin-top:14px;">
+                Admin Console
+              </div>
+            </td>
+          </tr>
+
+          <!-- Light form panel (mirrors the right half) -->
+          <tr>
+            <td style="padding:32px 36px;">
+              <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#0a0d11;">
+                Your admin sign-in link
+              </h2>
+              <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#0a0d11;opacity:0.65;">
+                Click the button below to sign in to the SmartFix admin dashboard.
+              </p>
+
+              <p style="margin:0 0 28px;">
+                <a href="{url}"
+                   style="display:inline-block;background:#0a0d11;
+                          background-image:linear-gradient(90deg,#1a1a1a,#0a0d11);
+                          color:#ffffff;font-weight:700;text-decoration:none;
+                          padding:14px 30px;border-radius:12px;font-size:14px;
+                          box-shadow:0 8px 22px rgba(10,13,17,0.32);">
+                  Sign in to SmartFix
+                </a>
+              </p>
+
+              <p style="margin:0 0 6px;font-size:11px;color:#0a0d11;opacity:0.5;
+                        letter-spacing:1.5px;text-transform:uppercase;font-weight:700;">
+                Or paste this link
+              </p>
+              <p style="margin:0 0 24px;font-size:12px;color:#0a0d11;
+                        word-break:break-all;line-height:1.55;">
+                {url}
+              </p>
+
+              <div style="border-top:1px solid #e8eef3;padding-top:18px;
+                          font-size:12px;color:#0a0d11;opacity:0.55;line-height:1.65;">
+                This link expires in <strong style="color:#0a0d11;">15 minutes</strong>
+                and can only be used once.<br>
+                If you didn't request this, you can safely ignore this email.
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
 """
