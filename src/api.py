@@ -517,6 +517,7 @@ async def query(
     # Fire-and-forget: a failure here must never break the user's response.
     try:
         codes = sorted({m.upper() for m in _QUERY_CODE_RE.findall(req.question)})
+        now_utc = datetime.now(timezone.utc)
         _query_log.append({
             "query_id":      f"q_{uuid.uuid4().hex[:8]}",
             "machine_id":    req.machine_filter or "unknown",
@@ -527,11 +528,16 @@ async def query(
             "codes":         codes,
             "answer_chars":  len(result.get("answer", "")),
             "status":        result.get("status", "unknown"),
-            "asked_at":      datetime.now(timezone.utc).isoformat(),
+            "asked_at":      now_utc.isoformat(),
             "workstation_ip": (
                 _worker_sessions.get(worker_session, {}).get("workstation_ip")
                 if worker_session else None
             ),
+            "domain": (
+                _worker_sessions.get(worker_session, {}).get("domain", "unknown")
+                if worker_session else "unknown"
+            ),
+            "shift": _get_shift(now_utc),
         })
         # FIFO cap so memory stays bounded.
         if len(_query_log) > QUERY_LOG_MAX:
