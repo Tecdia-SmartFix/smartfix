@@ -54,7 +54,7 @@ const Navbar = () => {
         <div className="max-w-[1680px] mx-auto w-full px-5 sm:px-8 lg:px-10 h-[64px] flex items-center justify-between">
           {/* Logo */}
           {/* Left Side: Logo & Primary Links */}
-          <div className="flex items-center gap-10 h-full">
+          <div className="flex items-center gap-10 h-full ml-6">
             <BrandMark className="text-white" logoClassName="h-10 w-auto shrink-0" />
             
             <div className="hidden md:flex items-center gap-8 h-full">
@@ -92,16 +92,7 @@ const Navbar = () => {
                   <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
                 )}
               </Link>
-              <Link to="/admin/login"
-                onMouseEnter={() => setHoveredPath('/admin/login')}
-                onMouseLeave={() => setHoveredPath(null)}
-                className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors duration-200 text-white hover:text-white h-full"
-              >
-                <User size={14} /> Admin
-                {hoveredPath === '/admin/login' && (
-                  <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
-                )}
-              </Link>
+              
             </div>
           </div>
   
@@ -137,6 +128,9 @@ const Navbar = () => {
               </>
             )}
 
+            <Link to="/admin/login" className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-white hover:text-white mr-2">
+              <User size={14} /> Admin
+            </Link>
             <button
               type="button"
               onClick={toggleTheme}

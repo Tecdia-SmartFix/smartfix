@@ -51,8 +51,8 @@ const TecdiaWordmark = ({ className }) => (
 
 const BrandMark = ({ to = '/', className = '', logoClassName = 'h-9 w-auto', showProduct = true }) => {
   const content = (
-    <span className={`inline-flex items-center gap-3 ${className}`}>
-      <TecdiaWordmark className={logoClassName} />
+    <span className={`inline-flex items-center gap-3 align-middle ${className}`}>
+      <TecdiaWordmark className={`${logoClassName} align-middle`} />
       {showProduct && (
         <span className="hidden border-l border-current/20 pl-3 text-[11px] font-black uppercase leading-none tracking-[0.2em] sm:inline">
           SmartFix

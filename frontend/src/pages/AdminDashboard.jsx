@@ -2141,6 +2141,15 @@ const AdminDashboard = () => {
   const [expandedMachineId, setExpandedMachineId] = useState(null);
   const fileInputRef = useRef();
 
+  const [seenAlertsCount, setSeenAlertsCount] = useState(0);
+  const unreadAlertsCount = Math.max(0, alerts.length - seenAlertsCount);
+
+  useEffect(() => {
+    if (activeTab === 'alerts') {
+      setSeenAlertsCount(alerts.length);
+    }
+  }, [activeTab, alerts.length]);
+
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
 
 
@@ -2255,7 +2264,7 @@ const AdminDashboard = () => {
             
             {/* Admin Panel Logo */}
             <div className="mr-5 flex h-[34px] shrink-0 items-center gap-3 border-r border-white/10 pr-5">
-              <span className="text-[11px] font-black uppercase tracking-[0.22em] text-white/62">SmartFix Admin</span>
+              <span className="text-[11px] font-black uppercase tracking-[0.22em] text-white">SmartFix Admin</span>
             </div>
 
             {/* Tabs */}
@@ -2263,7 +2272,7 @@ const AdminDashboard = () => {
               {[
                 { id: 'machines',  label: 'All Machines' },
               { id: 'add',       label: 'Add Machine' },
-              { id: 'alerts',    label: 'Alert History', count: alerts.length },
+              { id: 'alerts',    label: 'Alert History', count: unreadAlertsCount },
               { id: 'analytics', label: 'Analytics' },
               { id: 'shift_logs',label: 'Shift Logs' },
               { id: 'audit',     label: 'Audit Log' },
