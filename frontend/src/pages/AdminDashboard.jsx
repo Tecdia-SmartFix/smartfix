@@ -47,7 +47,6 @@ const ICON_OPTIONS = [
   { label: 'Radio',     value: 'Radio',        icon: Radio        },
   { label: 'Thermo',    value: 'Thermometer',  icon: Thermometer  },
   { label: 'Drive',     value: 'HardDrive',    icon: HardDrive    },
-  { label: 'Activity',  value: 'Activity',     icon: Activity     },
   { label: 'Truck',     value: 'Truck',        icon: Truck        },
   { label: 'Flask',     value: 'FlaskConical', icon: FlaskConical },
   { label: 'Upload',    value: 'Upload',       icon: Upload       },
@@ -56,7 +55,7 @@ const ICON_OPTIONS = [
 const ICON_MAP = {
   Settings2, Gauge, Printer, Scissors, Bot, Wrench, Cpu,
   Factory, Cog, Activity, Flame, Monitor, Layers, Radio, Thermometer,
-  HardDrive, Activity, Truck, FlaskConical, Upload,
+  HardDrive, Truck, FlaskConical, Upload,
 };
 
 const COLOR_OPTIONS = [
