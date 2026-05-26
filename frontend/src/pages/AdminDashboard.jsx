@@ -2589,11 +2589,12 @@ const AdminDashboard = () => {
 
                     {/* Drop zone */}
                     <div
+                      onClick={() => fileInputRef.current.click()}
                       onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                       onDragLeave={() => setIsDragging(false)}
                       onDrop={handleDrop}
                       style={{
-                        width: '100%', borderRadius: 14, padding: '48px 24px',
+                        cursor: 'pointer',width: '100%', borderRadius: 14, padding: '48px 24px',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                         border: `1px dashed ${isDragging ? '#3b82f6' : '#cbd5e1'}`,
                         background: isDragging ? '#eff6ff' : '#ffffff',
