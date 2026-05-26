@@ -1288,15 +1288,60 @@ const CSS = `
 // All charts use plain <div>s with width%/clip-path so no extra dep is needed.
 // ═══════════════════════════════════════════════════════════════════════════
 
-const SEVERITY_PALETTE = {
-  '1': { color: '#E5E7EB', label: 'Informational' },
-  '2': { color: '#999999', label: 'Minor' },
-  '3': { color: '#555555', label: 'Degraded' },
-  '4': { color: '#111111', label: 'Production Impact' },
-  '5': { color: '#0A2540', label: 'Safety Risk' },
+/* ─── Palette ──────────────────────────────────────────────────────── */
+const P = {
+  mint:    '#c0e1d2',
+  sage:    '#e5eee4',
+  cream:   '#f6f4e8',
+  rose:    '#dc9b9b',
+  blue:    '#2D8CFF',
+  deep:    '#0f1c3f',
+  text:    '#2e4e40',
+  muted:   '#6d7c74',
+  border:  '#e2e8f4',
+  hover:   '#f8faff',
+  activeB: '#e8f3ff',
 };
 
-const MACHINE_COLORS = ['#111111', '#555555', '#0A2540', '#999999', '#333333', '#E5E7EB'];
+const SEV_DONUT  = { 1: '#c0e1d2', 2: '#b8cc9a', 3: '#d4c070', 4: '#dc9b9b', 5: '#0f1c3f' };
+const SEV_LABEL  = { 1: 'Informational', 2: 'Minor', 3: 'Degraded', 4: 'Production Impact', 5: 'Safety Risk' };
+const SEV_BORDER = { 1: '#8ecfb8', 2: '#b8d4b5', 3: '#d4c88a', 4: '#dc9b9b', 5: '#505c7a' };
+
+/* ─── Shared atoms ─────────────────────────────────────────────────── */
+const ANALYTICS_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap');
+  @keyframes sl-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .sl-row:hover td { background: ${P.hover} !important; }
+  .sl-sync:hover { background: ${P.blue} !important; color:#fff !important; }
+`;
+
+const tableCard = {
+  background: '#fff', border: `1px solid ${P.border}`, borderRadius: 16,
+  boxShadow: '0 2px 12px rgba(15,28,63,.06)', overflow: 'hidden',
+};
+const sectionCard = {
+  background: '#fff', border: `1px solid ${P.border}`, borderRadius: 16,
+  boxShadow: '0 2px 12px rgba(15,28,63,.06)', padding: '20px 24px',
+};
+
+const TH = (w, align = 'left', minW) => ({
+  padding: '11px 14px', textAlign: align,
+  fontSize: 10, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase',
+  color: P.deep, fontFamily: "'Syne', sans-serif", whiteSpace: 'nowrap',
+  width: w, minWidth: minW || 'auto',
+});
+const TD = (align = 'left') => ({ padding: '10px 14px', verticalAlign: 'middle', textAlign: align });
+const mono = { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11 };
+const ctrlLabel = { fontSize: 9, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: P.muted };
+const selectSt = {
+  fontFamily: "'IBM Plex Sans',sans-serif", fontSize: 12, fontWeight: 500,
+  padding: '6px 22px 6px 0', border: 'none', borderBottom: `1px solid ${P.border}`,
+  background: '#fff', color: P.deep, outline: 'none', cursor: 'pointer', appearance: 'none',
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%232D8CFF' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+  backgroundRepeat: 'no-repeat', backgroundPosition: 'right center',
+};
+const sectionTitle = { fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: P.deep, fontFamily: "'Syne',sans-serif", marginBottom: 4 };
+const sectionSub   = { ...mono, fontSize: 10, color: P.muted, marginBottom: 16 };
 
 const QuestionItem = ({ q }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -1671,136 +1716,27 @@ const AnalyticsPanel = () => {
         );
       })()}
 
-      {/* ── 1. KPI cards ───────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <KpiCard label="Total Queries"  value={totals.queries.toLocaleString()} />
-        <KpiCard label="Alerts Fired"   value={totals.alerts.toLocaleString()}   accent="border-[#111111]/20 shadow-[0_0_15px_rgba(17,17,17,0.05)]" />
-        <KpiCard label="Alert Rate"     value={`${totals.alert_rate_pct}%`}      accent="border-[#333333]/20" />
-        <KpiCard label="Active Machines" value={totals.machines}                 />
-      </div>
+      <style>{ANALYTICS_CSS}</style>
+      <div style={{ fontFamily:"'IBM Plex Sans',sans-serif", color:P.text, marginTop: 32, marginBottom: 32 }}>
 
-      {/* ── 2. Per-machine table ───────────────────────────────────── */}
-      <SectionCard className="mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Per-machine activity</h3>
-        </div>
-        {filteredPerMachine.length === 0 ? (
-          <p className="text-sm text-tecdia-text/40 italic">No machines match the current filter.</p>
-        ) : (
-          <div className="overflow-x-auto -mx-6 px-6 custom-scrollbar">
-            <table className="w-full text-sm border-separate border-spacing-y-2">
-              <thead>
-                <tr className="text-[10px] font-bold uppercase tracking-widest text-tecdia-text/30">
-                  <th className="text-left px-4 py-3">Machine</th>
-                  <th className="text-right px-4 py-3">Queries</th>
-                  <th className="text-right px-4 py-3">Alerts</th>
-                  <th className="text-right px-4 py-3">Rate</th>
-                  <th className="text-right px-4 py-3">Avg Severity</th>
-                  <th className="text-left px-4 py-3">Top Alarm Codes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPerMachine.map((m, i) => (
-                  <tr key={m.machine_id} className="group transition-all duration-200">
-                    <td className="px-4 py-3.5 bg-white/30 group-hover:bg-white/60 border-l border-y border-tecdia-border/30 rounded-l-xl">
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-tecdia-textDeep">{m.display_name}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5 bg-white/30 group-hover:bg-white/60 border-y border-tecdia-border/30 text-right font-mono tabular-nums text-tecdia-text/80">{m.query_count}</td>
-                    <td className="px-4 py-3.5 bg-white/30 group-hover:bg-white/60 border-y border-tecdia-border/30 text-right font-mono tabular-nums text-tecdia-textDeep font-bold">{m.alert_count}</td>
-                    <td className="px-4 py-3.5 bg-white/30 group-hover:bg-white/60 border-y border-tecdia-border/30 text-right font-mono tabular-nums text-tecdia-text/50">{m.alert_rate_pct}%</td>
-                    <td className="px-4 py-3.5 bg-white/30 group-hover:bg-white/60 border-y border-tecdia-border/30 text-right">
-                      <SeverityPill value={m.avg_severity} />
-                    </td>
-                    <td className="px-4 py-3.5 bg-white/30 group-hover:bg-white/60 border-r border-y border-tecdia-border/30 rounded-r-xl">
-                      <div className="flex flex-wrap gap-3">
-                        {m.most_asked_codes.length === 0 ? (
-                          <span className="text-[10px] text-tecdia-text/20 italic">No codes recorded</span>
-                        ) : (
-                          m.most_asked_codes.slice(0, 3).map(([code, count]) => (
-                            <span key={code} className="text-[10px] font-bold text-tecdia-textDeep">
-                              {code} <span className="text-tecdia-text/40 font-medium ml-1">×{count}</span>
-                            </span>
-                          ))
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </SectionCard>
+        <section style={{ marginBottom:36 }}>
+          <MachineTable data={filteredPerMachine} />
+        </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* ── 3. Code frequency bars ────────────────────────────────── */}
-        <div>
-          <h3 className="text-lg font-bold text-tecdia-textDeep tracking-tight mb-6">Top Error / Alarm Codes</h3>
-          {filteredCodes.length === 0 ? (
-            <p className="text-sm text-tecdia-text/40 italic">No codes match the current filter.</p>
-          ) : (
-            // Cap visible bars so this card matches the donut card next to it;
-            // overflow scrolls the rest. ~6 rows fit before scroll kicks in.
-            <div className="custom-scrollbar space-y-4 max-h-[280px] overflow-y-auto pr-2">
-              {filteredCodes.map((c, i) => {
-                const maxCount = filteredCodes[0]?.count || 1;
-                const pct = (c.count / maxCount) * 100;
-                return (
-                  <div key={`${c.code}_${c.machine}_${i}`} className="group">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-mono font-bold text-tecdia-textDeep tracking-wide">{c.code}</span>
-                      <span className="text-xs font-mono tabular-nums text-tecdia-text/40 font-semibold">×{c.count}</span>
-                    </div>
-                    <div className="w-full h-2 bg-[#F0F0F0] rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${pct}%` }}
-                        transition={{ duration: 0.8, ease: 'easeOut', delay: i * 0.03 }}
-                        className="h-full rounded-full group-hover:opacity-80 transition-opacity"
-                        style={{ background: i === 0 ? '#111111' : i < 3 ? '#333333' : i < 6 ? '#666666' : '#999999' }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:32, marginBottom:36 }}>
+          <div style={sectionCard}><ErrorCodeTable codes={filteredCodes} /></div>
+          <div style={sectionCard}><SeverityDonut distribution={severity_distribution} /></div>
         </div>
 
-        {/* ── 4. Severity donut ─────────────────────────────────────── */}
-        <div>
-          <h3 className="text-lg font-bold text-tecdia-textDeep tracking-tight mb-6">Severity Distribution</h3>
-          <SeverityDonut distribution={severity_distribution} />
+        <section style={{ marginBottom:36 }}>
+          <ActivityBars buckets={queries_per_hour_24h} />
+        </section>
+
+        <div style={{ display:'flex', flexDirection:'column', gap:24 }}>
+          <FailureLikelihood rows={filteredFailures} />
+          <AssetDepreciation rows={filteredDeprec} />
         </div>
-      </div>
 
-      {/* ── 5. Last 24h activity bars ──────────────────────────────── */}
-      <SectionCard className="mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Query volume — last 24h (UTC)</h3>
-        </div>
-        <ActivityBars buckets={queries_per_hour_24h} />
-      </SectionCard>
-
-      {/* ── 6 + 7. Failure likelihood + depreciation ─────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <SectionCard>
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Failure likelihood</h3>
-          </div>
-          <p className="text-[10px] text-tecdia-text/40 mb-4 ml-6">Poisson estimate from last 7 days of alerts</p>
-          <FailureLikelihoodList rows={filteredFailures} />
-        </SectionCard>
-
-        <SectionCard>
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider">Asset depreciation</h3>
-          </div>
-          <p className="text-[10px] text-tecdia-text/40 mb-4 ml-6">Straight-line, 12-month trailing</p>
-          <DepreciationList rows={filteredDeprec} />
-        </SectionCard>
       </div>
 
       {/* ── Top questions (flat list, machine shown per row) ────────── */}
@@ -1811,223 +1747,371 @@ const AnalyticsPanel = () => {
   );
 };
 
-const FailureLikelihoodList = ({ rows }) => {
-  if (!rows || rows.length === 0) {
-    return <p className="text-sm text-tecdia-text/40 italic">No machines indexed.</p>;
-  }
-  const riskColor = (pct) => {
-    if (pct >= 75) return '#0A2540';
-    if (pct >= 40) return '#111111';
-    if (pct >= 15) return '#333333';
-    if (pct >  0)  return '#555555';
-    return '#E5E7EB';
-  };
-  return (
-    <div className="space-y-4">
-      {rows.map((r, i) => (
-        <div key={r.machine_id} className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full" style={{ background: MACHINE_COLORS[i % MACHINE_COLORS.length] }} />
-              <span className="text-sm font-bold text-tecdia-textDeep">{r.display_name}</span>
-            </div>
-            <span className="text-[10px] font-mono text-tecdia-text/40">
-              λ {r.lambda_per_day.toFixed(2)}/day · {r.alerts_7d} alerts/7d
-            </span>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {[['24h', r.prob_24h_pct], ['7d', r.prob_7d_pct], ['30d', r.prob_30d_pct]].map(([label, pct]) => (
-              <div key={label} className="bg-[#F2F2F2]/60 rounded-lg px-2.5 py-1.5">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-tecdia-text/50">{label}</span>
-                  <span className="text-xs font-mono font-bold tabular-nums" style={{ color: riskColor(pct) }}>{pct}%</span>
-                </div>
-                <div className="h-1 bg-white/70 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, pct)}%`, background: riskColor(pct) }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-const DepreciationList = ({ rows }) => {
-  if (!rows || rows.length === 0) {
-    return <p className="text-sm text-tecdia-text/40 italic">No depreciation data configured.</p>;
-  }
-  const fmt = (n) => `₹${(n / 100000).toFixed(1)}L`;
-  return (
-    <div className="space-y-4">
-      {rows.map((r, i) => {
-        const values = r.series.map((p) => p.value);
-        const min = Math.min(...values, 0);
-        const max = Math.max(...values, r.initial_value);
-        const range = max - min || 1;
-        const W = 100;
-        const H = 28;
-        const points = r.series.map((p, idx) => {
-          const x = (idx / (r.series.length - 1)) * W;
-          const y = H - ((p.value - min) / range) * H;
-          return `${x.toFixed(1)},${y.toFixed(1)}`;
-        }).join(' ');
-        return (
-          <div key={r.machine_id} className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: MACHINE_COLORS[i % MACHINE_COLORS.length] }} />
-                <span className="text-sm font-bold text-tecdia-textDeep truncate">{r.display_name}</span>
-              </div>
-              <span className="text-xs font-mono font-bold tabular-nums text-tecdia-textDeep">{fmt(r.current_value)}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="flex-1 h-7">
-                <polyline
-                  points={points}
-                  fill="none"
-                  stroke={MACHINE_COLORS[i % MACHINE_COLORS.length]}
-                  strokeWidth="1.5"
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="flex flex-col items-end text-[10px] font-mono tabular-nums">
-                <span className="font-bold text-tecdia-text/60">{r.pct_remaining}% left</span>
-                <span className="text-tecdia-text/30">−{fmt(r.monthly_loss)}/mo</span>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-const KpiCard = ({ label, value, accent, icon: Icon }) => (
-  <div className={`rounded-2xl p-5 border transition-all duration-300 hover:translate-y-[-2px] bg-white/50 backdrop-blur-md border-tecdia-border/30 hover:border-tecdia-accent/40 hover:shadow-lg ${accent}`}>
-    <div className="flex items-center justify-between mb-3">
-      <div className="text-[10px] font-bold uppercase tracking-widest text-tecdia-text/40">{label}</div>
-      {Icon && <Icon size={14} className="opacity-40" />}
-    </div>
-    <div className="text-2xl font-extrabold font-mono tabular-nums text-tecdia-textDeep">{value}</div>
+const TableFooter = ({ shown, total, unit = 'entries' }) => (
+  <div style={{ borderTop: `1px solid ${P.border}`, padding: '11px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <span style={{ ...mono, fontWeight: 700, color: '#a0acc8', letterSpacing: '.1em', textTransform: 'uppercase' }}>
+      Showing {shown} of {total} {unit}
+    </span>
   </div>
 );
 
-const SeverityPill = ({ value }) => {
+const SevPill = ({ value }) => (
+  <span style={{
+    display: 'inline-block', fontFamily: "'IBM Plex Mono', monospace",
+    fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 6,
+    background: '#f4f6fb', color: P.deep, border: `1px solid ${P.border}`,
+  }}>
+    {value ? value.toFixed(1) : '0.0'}
+  </span>
+);
+
+const CodeCountPill = ({ code, n }) => (
+  <span style={{
+    display: 'inline-flex', alignItems: 'center', gap: 5,
+    fontFamily: "'IBM Plex Mono', monospace", fontSize: 10,
+    padding: '3px 8px', borderRadius: 20,
+    background: '#f0f2f8', border: `1px solid ${P.border}`,
+    whiteSpace: 'nowrap',
+  }}>
+    <span style={{ fontWeight: 700, color: P.deep }}>{code}</span>
+    <span style={{ fontWeight: 400, color: P.muted }}>×{n}</span>
+  </span>
+);
+
+/* ─── 1. MachineTable ──────────────────────────────────────────────── */
+const MachineTable = ({ data = [] }) => {
+  const [activeId, setActiveId] = useState(null);
+
+  const rows = data;
+
+  const totalQ = rows.reduce((a, r) => a + (r.query_count || 0), 0);
+  const totalA = rows.reduce((a, r) => a + (r.alert_count || 0), 0);
+
   return (
-    <span className="text-[10px] font-bold text-tecdia-textDeep tabular-nums">
-      {(value || 0).toFixed(2)}
-    </span>
-  );
-};
-
-// Minimal severity donut with black/grey palette.
-const SeverityDonut = ({ distribution }) => {
-  const [hovered, setHovered] = useState(null);
-  const entries = Object.entries(distribution).sort((a, b) => Number(a[0]) - Number(b[0]));
-  const total = entries.reduce((sum, [, c]) => sum + c, 0);
-  
-  if (total === 0) {
-    return <p className="text-sm text-tecdia-text/40 italic">No queries to distribute yet.</p>;
-  }
-
-  const r = 40;
-  const circ = 2 * Math.PI * r;
-  let accumulatedPercent = 0;
-
-  return (
-    <div className="flex flex-col sm:flex-row items-center gap-12">
-      <div className="relative w-40 h-40 flex-shrink-0" >
-        <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90 overflow-visible">
-          <circle cx="50" cy="50" r={r} fill="none" stroke="#F0F0F0" strokeWidth="8" />
-          
-          {entries.map(([sev, count]) => {
-            const percent = (count / total);
-            if (percent === 0) return null;
-            const dashLength = percent * circ;
-            const dashOffset = -accumulatedPercent * circ;
-            accumulatedPercent += percent;
-            const config = SEVERITY_PALETTE[sev];
-            const isHovered = hovered?.sev === sev;
-
-            return (
-              <motion.circle
-                key={sev} cx="50" cy="50" r={r} fill="none" stroke={config.color}
-                strokeWidth={isHovered ? 11 : 8}
-                strokeDasharray={`${dashLength} ${circ}`}
-                strokeDashoffset={dashOffset}
-                strokeLinecap="butt"
-                onMouseEnter={() => setHovered({ sev, count, pct: Math.round(percent * 100), color: config.color, label: config.label })}
-                onMouseLeave={() => setHovered(null)}
-                className="transition-all duration-300 ease-out cursor-pointer"
-              />
-            );
-          })}
-          <circle cx="50" cy="50" r="34" fill="white" />
-        </svg>
-
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center">
-            <span className="text-3xl font-extrabold font-mono tabular-nums text-tecdia-textDeep">{total}</span>
-            <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-tecdia-text/30 block mt-0.5">Queries</span>
-          </div>
+    <div>
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:16, marginBottom:24, paddingBottom:20, borderBottom:`1px solid ${P.border}` }}>
+        <div>
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:'.2em', textTransform:'uppercase', color:P.blue, marginBottom:4 }}>Analytics</div>
+          <h2 style={{ fontSize:22, fontWeight:700, color:P.deep, letterSpacing:'-.02em', margin:'0 0 4px' }}>Per-machine activity</h2>
+          <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:11, color:P.muted }}>Query &amp; alert breakdown across all machines</div>
+        </div>
+        <div style={{ display:'flex', gap:32 }}>
+          {[['Queries',totalQ],['Alerts',totalA],['Machines',rows.length]].map(([l,n]) => (
+            <div key={l}>
+              <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:22, fontWeight:700, lineHeight:1, color:P.blue }}>{n}</div>
+              <div style={{ fontSize:9, fontWeight:600, textTransform:'uppercase', letterSpacing:'.12em', color:P.muted, marginTop:5 }}>{l}</div>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="flex-1 w-full space-y-4">
-        {entries.map(([sev, count]) => {
-          const obj = SEVERITY_PALETTE[sev];
-          const pct = total ? Math.round((count / total) * 100) : 0;
-          const isHovered = hovered?.sev === sev;
-          return (
-            <div 
-              key={sev} 
-              onMouseEnter={() => setHovered({ sev, count, pct, color: obj.color, label: obj.label })}
-              onMouseLeave={() => setHovered(null)}
-              className={`group flex items-center gap-4 transition-all duration-200 cursor-pointer ${
-                isHovered ? 'translate-x-1' : ''
-              }`}
-            >
-              <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: obj.color }} />
-              <span className={`flex-1 text-sm font-semibold transition-colors ${ isHovered ? 'text-tecdia-textDeep' : 'text-tecdia-text/70' }`}>
-                Level {sev} — {obj.label}
-              </span>
-              <span className="font-mono tabular-nums font-bold text-tecdia-textDeep text-sm w-8 text-right">{count}</span>
-              <span className="font-mono tabular-nums text-tecdia-text/30 text-xs w-10 text-right font-semibold">{pct}%</span>
+      <div style={{ height: 20 }}></div>
+
+      <div style={tableCard}>
+        {rows.length === 0
+          ? <div style={{ padding:'32px 16px', textAlign:'center', fontSize:12, color:P.muted, fontStyle:'italic' }}>No machines match the current filter.</div>
+          : <div style={{ overflowX:'auto' }}>
+              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
+                <colgroup>
+                  <col style={{ width:'22%' }} />
+                  <col style={{ width:'9%' }} />
+                  <col style={{ width:'8%' }} />
+                  <col style={{ width:'9%' }} />
+                  <col style={{ width:'12%' }} />
+                  <col style={{ width:'40%' }} />
+                </colgroup>
+                <thead>
+                  <tr style={{ borderBottom:`1px solid ${P.border}`, background:'#fafbfd' }}>
+                    <th style={TH(undefined,'left','140px')}>Machine</th>
+                    <th style={TH(undefined,'right','64px')}>Queries</th>
+                    <th style={TH(undefined,'right','56px')}>Alerts</th>
+                    <th style={TH(undefined,'right','56px')}>Rate</th>
+                    <th style={TH(undefined,'right','88px')}>Avg Severity</th>
+                    <th style={TH(undefined,'left','180px')}>Top Alarm Codes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(m => {
+                    const isActive = activeId === m.machine_id;
+                    return (
+                      <tr key={m.machine_id} className="sl-row" onClick={() => setActiveId(isActive ? null : m.machine_id)}
+                        style={{ borderBottom:`1px solid ${P.border}`, cursor:'pointer', borderLeft:isActive?`3px solid ${P.blue}`:'3px solid transparent' }}>
+                        <td style={{ ...TD(), background: isActive ? P.activeB : '#fff' }}>
+                          <span style={{ fontSize:12, fontWeight:600, color:P.deep }}>{m.display_name}</span>
+                        </td>
+                        <td style={{ ...TD('right'), background: isActive ? P.activeB : '#fff' }}>
+                          <span style={{ ...mono, color:P.deep }}>{m.query_count}</span>
+                        </td>
+                        <td style={{ ...TD('right'), background: isActive ? P.activeB : '#fff' }}>
+                          <span style={{ ...mono, fontWeight:600, color:P.deep }}>{m.alert_count}</span>
+                        </td>
+                        <td style={{ ...TD('right'), background: isActive ? P.activeB : '#fff' }}>
+                          <span style={{ ...mono, color:P.muted }}>{m.alert_rate_pct?.toFixed(1)}%</span>
+                        </td>
+                        <td style={{ ...TD('right'), background: isActive ? P.activeB : '#fff' }}>
+                          <SevPill value={m.avg_severity} />
+                        </td>
+                        <td style={{ ...TD(), background: isActive ? P.activeB : '#fff' }}>
+                          <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                            {!m.most_asked_codes || m.most_asked_codes.length === 0
+                              ? <span style={{ fontSize:11, color:'#a0acc8', fontStyle:'italic' }}>No codes</span>
+                              : m.most_asked_codes.slice(0, 3).map(([c, n]) => (
+                                  <CodeCountPill key={c} code={c} n={n} />
+                                ))
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          );
-        })}
+        }
+        <TableFooter shown={rows.length} total={data.length} unit="machines" />
       </div>
     </div>
   );
 };
 
-const ActivityBars = ({ buckets }) => {
-  const max = Math.max(1, ...buckets.map(b => b.count));
+/* ─── 2. ErrorCodeTable ────────────────────────────────────────────── */
+const ErrorCodeTable = ({ codes = [] }) => (
+  <div>
+    <div style={{ marginBottom: 14 }}>
+      <div style={sectionTitle}>Top Error / Alarm Codes</div>
+      <div style={{ ...mono, fontSize: 10, color: P.muted, marginTop: 2 }}>Frequency across all machines</div>
+    </div>
+    <div style={tableCard}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
+        <colgroup>
+          <col style={{ width: '10%' }} />
+          <col style={{ width: '52%' }} />
+          <col style={{ width: '38%' }} />
+        </colgroup>
+        <thead>
+          <tr style={{ borderBottom: `1px solid ${P.border}`, background: '#fafbfd' }}>
+            <th style={TH(undefined, 'right', '36px')}>#</th>
+            <th style={TH(undefined, 'left',  '80px')}>Code</th>
+            <th style={TH(undefined, 'right', '70px')}>Count</th>
+          </tr>
+        </thead>
+      </table>
+      <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
+          <colgroup>
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '52%' }} />
+            <col style={{ width: '38%' }} />
+          </colgroup>
+          <tbody>
+            {codes.map((c, i) => (
+              <tr key={`${c.code}-${i}`} className="sl-row" style={{ borderBottom: `1px solid ${P.border}` }}>
+                <td style={{ ...TD('right') }}>
+                  <span style={{ ...mono, fontWeight: 700, color: '#a0acc8' }}>{i + 1}</span>
+                </td>
+                <td style={TD()}>
+                  <CodeCountPill code={c.code} n={c.count} />
+                </td>
+                <td style={{ ...TD('right') }}>
+                  <span style={{ ...mono, fontWeight: 700, color: P.deep }}>{c.count}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <TableFooter shown={codes.length} total={codes.length} unit="codes" />
+    </div>
+  </div>
+);
+
+/* ─── 3. SeverityDonut ─────────────────────────────────────────────── */
+const SeverityDonut = ({ distribution = {} }) => {
+  const [hovered, setHovered] = useState(null);
+  const entries = Object.entries(distribution).sort((a, b) => Number(a[0]) - Number(b[0]));
+  const total = entries.reduce((s, [, c]) => s + c, 0);
+  if (!total) return null;
+  const r = 40, circ = 2 * Math.PI * r;
+  let acc = 0;
   return (
-    <div className="flex items-end gap-1 h-32 overflow-x-auto pb-2 custom-scrollbar">
-      {buckets.map(b => (
-        <div key={b.hour} className="flex-1 min-w-[16px] flex flex-col items-center group">
-          <div className="relative w-full flex flex-col items-center justify-end h-full">
-            <motion.div
-              initial={{ height: 0 }}
-              animate={{ height: `${(b.count / max) * 100}%` }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="w-full bg-[#111111] rounded-t-md transition-all duration-300 group-hover:bg-[#0A2540] group-hover:shadow-[0_0_12px_rgba(10,37,64,0.2)] relative"
-              style={{ minHeight: b.count > 0 ? 2 : 0 }}
-            >
-              {b.count > 0 && (
-                <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-[#333333] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-white px-1.5 py-0.5 rounded-md shadow-sm border border-tecdia-border/30">
-                  {b.count}
-                </span>
-              )}
-            </motion.div>
+    <div>
+      <div style={sectionTitle}>Severity Distribution</div>
+      <div style={{ height:4 }} />
+      <div style={{ display:'flex', alignItems:'center', gap:20, flexWrap:'wrap' }}>
+        <div style={{ position:'relative', width:100, height:100, flexShrink:0 }}>
+          <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%', transform:'rotate(-90deg)', overflow:'visible' }}>
+            <circle cx="50" cy="50" r={r} fill="none" stroke="#F0F0F0" strokeWidth="8"/>
+            {entries.map(([sev, count]) => {
+              const pct = count / total; if (!pct) return null;
+              const dash = pct * circ, offset = -acc * circ; acc += pct;
+              const isH = hovered === sev;
+              return <circle key={sev} cx="50" cy="50" r={r} fill="none" stroke={SEV_DONUT[sev]}
+                strokeWidth={isH ? 11 : 8} strokeDasharray={`${dash} ${circ}`} strokeDashoffset={offset} strokeLinecap="butt"
+                style={{ transition:'stroke-width .2s', cursor:'pointer' }}
+                onMouseEnter={() => setHovered(sev)} onMouseLeave={() => setHovered(null)}/>;
+            })}
+            <circle cx="50" cy="50" r="34" fill="white"/>
+          </svg>
+          <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+            <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:18, fontWeight:700, color:P.deep, lineHeight:1 }}>{total}</span>
+            <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'.15em', color:P.muted, marginTop:3 }}>Queries</span>
           </div>
-          <span className="text-[9px] font-bold text-tecdia-text/30 mt-2 tabular-nums">{b.hour.split(':')[0]}</span>
         </div>
-      ))}
+        <div style={{ flex:1, display:'flex', flexDirection:'column', gap:10 }}>
+          {entries.map(([sev, count]) => {
+            const pct = Math.round((count / total) * 100), isH = hovered === sev;
+            return (
+              <div key={sev} onMouseEnter={() => setHovered(sev)} onMouseLeave={() => setHovered(null)}
+                style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', transform:isH?'translateX(4px)':'none', transition:'transform .15s' }}>
+                <span style={{ width:10, height:10, borderRadius:2, background:SEV_DONUT[sev], border:`1px solid ${SEV_BORDER[sev]}`, flexShrink:0 }}/>
+                <span style={{ flex:1, fontSize:11, fontWeight:isH?600:400, color:isH?P.deep:P.text, transition:'color .15s' }}>Lv{sev} — {SEV_LABEL[sev]}</span>
+                <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:11, fontWeight:700, color:P.deep, width:24, textAlign:'right' }}>{count}</span>
+                <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:10, color:P.muted, width:28, textAlign:'right' }}>{pct}%</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── 4. ActivityBars ──────────────────────────────────────────────── */
+const ActivityBars = ({ buckets = [] }) => {
+  const max = Math.max(1, ...buckets.map(b => b.count || 0));
+  return (
+    <div style={sectionCard}>
+      <div style={sectionTitle}>Query volume — last 24h (UTC)</div>
+      <div style={{ height:4 }} />
+      <div style={{ display:'flex', alignItems:'flex-end', gap:3, height:100, paddingBottom:8 }}>
+        {buckets.map(b => (
+          <div key={b.hour} style={{ flex:1, minWidth:14, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-end', height:'100%', gap:4 }}>
+            <motion.div initial={{ height:0 }} animate={{ height:`${((b.count || 0) / max) * 80}px` }}
+              transition={{ duration:0.7, ease:'easeOut' }}
+              style={{ width:'100%', background: P.blue, borderRadius:'3px 3px 0 0', minHeight:(b.count || 0) > 0 ? 2 : 0 }}/>
+            <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:P.muted, fontWeight:600 }}>
+              {b.hour ? b.hour.split(':')[0] : ''}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* ─── 5. FailureLikelihood ─────────────────────────────────────────── */
+const FailureLikelihood = ({ rows = [] }) => {
+  const [activeId, setActiveId] = useState(null);
+  return (
+    <div style={{ flex:1 }}>
+      <div style={{ marginBottom:16 }}>
+        <div style={sectionTitle}>Failure likelihood</div>
+        <div style={sectionSub}>Poisson estimate from last 7 days of alerts</div>
+      </div>
+      <div style={tableCard}>
+        <div style={{ overflowX:'auto' }}>
+          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
+            <colgroup>
+              <col style={{ width:'36%' }} />
+              <col style={{ width:'20%' }} />
+              <col style={{ width:'15%' }} />
+              <col style={{ width:'15%' }} />
+              <col style={{ width:'14%' }} />
+            </colgroup>
+            <thead>
+              <tr style={{ borderBottom:`1px solid ${P.border}`, background:'#fafbfd' }}>
+                <th style={TH(undefined,'left','140px')}>Machine</th>
+                <th style={TH(undefined,'right','72px')}>λ / day</th>
+                <th style={TH(undefined,'right','48px')}>24H</th>
+                <th style={TH(undefined,'right','40px')}>7D</th>
+                <th style={TH(undefined,'right','40px')}>30D</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => {
+                const isActive = activeId === r.machine_id;
+                const bg = isActive ? P.activeB : '#fff';
+                return (
+                  <tr key={r.machine_id} className="sl-row" onClick={() => setActiveId(isActive ? null : r.machine_id)}
+                    style={{ borderBottom:`1px solid ${P.border}`, cursor:'pointer', borderLeft:isActive?`3px solid ${P.blue}`:'3px solid transparent' }}>
+                    <td style={{ ...TD(), background:bg }}>
+                      <div style={{ fontSize:12, fontWeight:600, color:P.deep }}>{r.display_name}</div>
+                      <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:10, color:P.muted, marginTop:2 }}>{r.alerts_7d} alerts/7d</div>
+                    </td>
+                    <td style={{ ...TD('right'), background:bg }}>
+                      <span style={{ ...mono, fontWeight:600, color:P.deep }}>{r.lambda_per_day?.toFixed(2)}</span>
+                    </td>
+                    {[r.prob_24h_pct, r.prob_7d_pct, r.prob_30d_pct].map((pct, j) => (
+                      <td key={j} style={{ ...TD('right'), background:bg }}>
+                        <span style={{ ...mono, fontWeight:700, color:P.deep }}>{pct}%</span>
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <TableFooter shown={rows.length} total={rows.length} unit="machines" />
+      </div>
+    </div>
+  );
+};
+
+/* ─── 6. AssetDepreciation ─────────────────────────────────────────── */
+const AssetDepreciation = ({ rows = [] }) => {
+  const [activeId, setActiveId] = useState(null);
+  const fmt = n => `₹${(n / 100000).toFixed(1)}L`;
+  return (
+    <div style={{ flex:1 }}>
+      <div style={{ marginBottom:16 }}>
+        <div style={sectionTitle}>Asset depreciation</div>
+        <div style={sectionSub}>Straight-line, 12-month trailing</div>
+      </div>
+      <div style={tableCard}>
+        <div style={{ overflowX:'auto' }}>
+          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
+            <colgroup>
+              <col style={{ width:'40%', minWidth:'160px' }} />
+              <col style={{ width:'22%', minWidth:'110px' }} />
+              <col style={{ width:'18%', minWidth:'90px' }} />
+              <col style={{ width:'20%', minWidth:'100px' }} />
+            </colgroup>
+            <thead>
+              <tr style={{ borderBottom:`1px solid ${P.border}`, background:'#fafbfd' }}>
+                <th style={TH(undefined, 'left',  '160px')}>Machine</th>
+                <th style={TH(undefined, 'right', '110px')}>Current Value</th>
+                <th style={TH(undefined, 'right',  '90px')}>Remaining</th>
+                <th style={TH(undefined, 'right', '100px')}>Monthly Loss</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => {
+                const isActive = activeId === r.machine_id;
+                const bg = isActive ? P.activeB : '#fff';
+                return (
+                  <tr key={r.machine_id} className="sl-row" onClick={() => setActiveId(isActive ? null : r.machine_id)}
+                    style={{ borderBottom:`1px solid ${P.border}`, cursor:'pointer', borderLeft:isActive?`3px solid ${P.blue}`:'3px solid transparent' }}>
+                    <td style={{ ...TD(), background:bg }}>
+                      <span style={{ fontSize:12, fontWeight:600, color:P.deep }}>{r.display_name}</span>
+                    </td>
+                    <td style={{ ...TD('right'), background:bg }}>
+                      <span style={{ ...mono, fontWeight:700, color:P.deep }}>{fmt(r.current_value)}</span>
+                    </td>
+                    <td style={{ ...TD('right'), background:bg }}>
+                      <span style={{ ...mono, fontWeight:600, color: r.pct_remaining < 50 ? '#844d4d' : P.text }}>{r.pct_remaining}%</span>
+                    </td>
+                    <td style={{ ...TD('right'), background:bg }}>
+                      <span style={{ ...mono, color:P.muted }}>−{fmt(r.monthly_loss)}/mo</span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <TableFooter shown={rows.length} total={rows.length} unit="assets" />
+      </div>
     </div>
   );
 };
