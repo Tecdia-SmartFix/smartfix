@@ -373,7 +373,7 @@ const SETTINGS_CSS = `
     margin-bottom: 10px;
   }
 
-  .stg-root .stg-page-title {
+  .stg-root .stg-page-title { font-family: 'Sora', sans-serif;
     font-size: clamp(30px, 5vw, 46px);
     font-weight: 800;
     letter-spacing: -0.03em;
@@ -410,7 +410,7 @@ const SETTINGS_CSS = `
 
   .stg-section-header { margin-bottom: 24px; }
 
-  .stg-section-title {
+  .stg-section-title { font-family: 'Sora', sans-serif;
     font-size: 15px;
     font-weight: 700;
     letter-spacing: -0.01em;
@@ -1057,7 +1057,7 @@ const AuditPanel = () => {
 
                         {/* Status — text only, no dot */}
                         <td style={s.td}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: isFail ? '#e03b3b' : 'rgb(45,140,255)', fontFamily: "'Syne', sans-serif", letterSpacing: '0.04em' }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: isFail ? '#e03b3b' : 'rgb(45,140,255)', fontFamily: "'Inter', sans-serif", letterSpacing: '0.04em' }}>
                             {isFail ? 'REJECTED' : 'SUCCESS'}
                           </span>
                         </td>
@@ -1116,7 +1116,7 @@ const AuditPanel = () => {
 /* ─── Styles ─────────────────────────────────────────────────────── */
 const s = {
   root: {
-    fontFamily: "'Syne', sans-serif",
+    fontFamily: "'Inter', sans-serif",
     background: '#ffffff',
     color: '#0f1c3f',
     minHeight: '100vh',
@@ -1146,12 +1146,12 @@ const s = {
   pill: {
     fontSize: 12, fontWeight: 700, padding: '8px 16px', borderRadius: 8,
     cursor: 'pointer', border: 'none', background: 'transparent',
-    color: '#6b7a9e', fontFamily: "'Syne', sans-serif", transition: 'all 0.2s',
+    color: '#6b7a9e', fontFamily: "'Inter', sans-serif", transition: 'all 0.2s',
   },
   pillActive: { background: '#0f1c3f', color: '#ffffff' },
   syncBtn: {
     display: 'flex', alignItems: 'center', gap: 6,
-    fontSize: 11, fontWeight: 700, fontFamily: "'Syne', sans-serif",
+    fontSize: 11, fontWeight: 700, fontFamily: "'Inter', sans-serif",
     padding: '8px 16px', borderRadius: 8,
     border: 'none', background: 'transparent',
     color: '#6b7a9e', cursor: 'pointer', transition: 'all 0.2s',
@@ -1180,7 +1180,7 @@ const s = {
     padding: '11px 16px', textAlign: 'left',
     fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
     textTransform: 'uppercase', color: '#0f1c3f',
-    fontFamily: "'Syne', sans-serif",
+    fontFamily: "'Inter', sans-serif",
   },
   thMono: { fontFamily: "'DM Mono', monospace", fontSize: 9, textTransform: 'lowercase', letterSpacing: 0 },
 
@@ -1195,7 +1195,7 @@ const s = {
     padding: '3px 9px', borderRadius: 6,
     background: '#ffffff', color: '#0f1c3f',
     border: '1px solid #e2e8f4',
-    fontFamily: "'Syne', sans-serif", letterSpacing: '0.02em',
+    fontFamily: "'Inter', sans-serif", letterSpacing: '0.02em',
   },
   badgeFail: {
     display: 'inline-block',
@@ -1203,7 +1203,7 @@ const s = {
     padding: '3px 9px', borderRadius: 6,
     background: '#fff5f5', color: '#e03b3b',
     border: '1px solid #fcd5d5',
-    fontFamily: "'Syne', sans-serif", letterSpacing: '0.02em',
+    fontFamily: "'Inter', sans-serif", letterSpacing: '0.02em',
   },
 
   actorWrap: { display: 'flex', alignItems: 'center', gap: 8 },
@@ -1212,7 +1212,7 @@ const s = {
     background: '#e8f3ff', border: '1px solid #c9d5ee',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 10, fontWeight: 700, color: 'rgb(45,140,255)', flexShrink: 0,
-    fontFamily: "'Syne', sans-serif",
+    fontFamily: "'Inter', sans-serif",
   },
   actorName: { fontSize: 12, fontWeight: 600, color: '#0f1c3f' },
 
@@ -1327,20 +1327,20 @@ const sectionCard = {
 const TH = (w, align = 'left', minW) => ({
   padding: '11px 14px', textAlign: align,
   fontSize: 10, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase',
-  color: P.deep, fontFamily: "'Syne', sans-serif", whiteSpace: 'nowrap',
+  color: P.deep, fontFamily: "'Inter', sans-serif", whiteSpace: 'nowrap',
   width: w, minWidth: minW || 'auto',
 });
 const TD = (align = 'left') => ({ padding: '10px 14px', verticalAlign: 'middle', textAlign: align });
 const mono = { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11 };
 const ctrlLabel = { fontSize: 9, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: P.muted };
 const selectSt = {
-  fontFamily: "'IBM Plex Sans',sans-serif", fontSize: 12, fontWeight: 500,
+  fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500,
   padding: '6px 22px 6px 0', border: 'none', borderBottom: `1px solid ${P.border}`,
   background: '#fff', color: P.deep, outline: 'none', cursor: 'pointer', appearance: 'none',
   backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%232D8CFF' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
   backgroundRepeat: 'no-repeat', backgroundPosition: 'right center',
 };
-const sectionTitle = { fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: P.deep, fontFamily: "'Syne',sans-serif", marginBottom: 4 };
+const sectionTitle = { fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: P.deep, fontFamily: "'Inter', sans-serif", marginBottom: 4 };
 const sectionSub   = { ...mono, fontSize: 10, color: P.muted, marginBottom: 16 };
 
 const QuestionItem = ({ q }) => {
@@ -1717,7 +1717,7 @@ const AnalyticsPanel = () => {
       })()}
 
       <style>{ANALYTICS_CSS}</style>
-      <div style={{ fontFamily:"'IBM Plex Sans',sans-serif", color:P.text, marginTop: 32, marginBottom: 32 }}>
+      <div style={{ fontFamily:"'Inter', sans-serif", color:P.text, marginTop: 32, marginBottom: 32 }}>
 
         <section style={{ marginBottom:36 }}>
           <MachineTable data={filteredPerMachine} />
@@ -2442,7 +2442,7 @@ const AdminDashboard = () => {
 
                   {/* ── Machine Details ── */}
                   <div style={{ marginBottom: 24 }}>
-                    <p style={{ color: '#0f172a', fontWeight: 700, fontSize: 14, marginBottom: 16 }}>Machine Details</p>
+                    <p style={{ color: '#0f172a', fontWeight: 700, fontSize: 14, marginBottom: 16, fontFamily: "'Sora', sans-serif" }}>Machine Details</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
                       {/* Machine Name */}
@@ -2450,7 +2450,6 @@ const AdminDashboard = () => {
                         <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Machine Name *</label>
                         <input
                           type="text" required
-                          placeholder="e.g. Laser Cutter X300"
                           value={form.name}
                           onChange={e => {
                             const name = e.target.value;
@@ -2467,7 +2466,6 @@ const AdminDashboard = () => {
                         <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Machine ID *</label>
                         <input
                           type="text" required
-                          placeholder="AUTO_GENERATED_SLUG"
                           value={form.machine_id}
                           onChange={e => setForm(f => ({ ...f, machine_id: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''), _slugEdited: true }))}
                           style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, padding: '12px 16px', color: '#0f172a', fontSize: 13, fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }}
@@ -2530,7 +2528,7 @@ const AdminDashboard = () => {
 
                   {/* ── Appearance ── */}
                   <div style={{ marginBottom: 24 }}>
-                    <p style={{ color: '#0f172a', fontWeight: 700, fontSize: 14, marginBottom: 16 }}>Appearance</p>
+                    <p style={{ color: '#0f172a', fontWeight: 700, fontSize: 14, marginBottom: 16, fontFamily: "'Sora', sans-serif" }}>Appearance</p>
 
                     {/* Icon upload */}
                     <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Icon</label>
@@ -2571,7 +2569,7 @@ const AdminDashboard = () => {
                   {/* ── Files & Media ── */}
                   <div style={{ marginBottom: 24 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                      <p style={{ color: '#0f172a', fontWeight: 700, fontSize: 14 }}>Files & Media</p>
+                      <p style={{ color: '#0f172a', fontWeight: 700, fontSize: 14, fontFamily: "'Sora', sans-serif" }}>Files & Media</p>
                       {form.files.length > 0 && (
                         <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 999, background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', fontWeight: 600 }}>
                           {form.files.length} file{form.files.length !== 1 ? 's' : ''}
@@ -2763,16 +2761,16 @@ const AdminDashboard = () => {
                           </div>
 
                           <div className="flex flex-wrap items-center gap-2 mb-3">
-                            <span className="px-3 py-1 bg-white border border-slate-300 rounded-full text-xs font-bold font-sora text-slate-800">
+                            <span className="px-3 py-1 bg-white border border-slate-300 rounded-full text-xs font-bold font-inter text-slate-800">
                               Score {alert.score}
                             </span>
-                            <span className="px-3 py-1 bg-white border border-slate-300 rounded-full text-xs font-bold font-sora text-slate-800">
+                            <span className="px-3 py-1 bg-white border border-slate-300 rounded-full text-xs font-bold font-inter text-slate-800">
                               Severity {alert.severity_level}
                             </span>
-                            <span className="px-3 py-1 bg-white border border-slate-300 rounded-full text-xs font-bold font-sora text-slate-800">
+                            <span className="px-3 py-1 bg-white border border-slate-300 rounded-full text-xs font-bold font-inter text-slate-800">
                               Priority {alert.machine_significance}
                             </span>
-                            <span className="px-3 py-1 bg-white border border-slate-300 rounded-full text-xs font-bold font-sora text-slate-800">
+                            <span className="px-3 py-1 bg-white border border-slate-300 rounded-full text-xs font-bold font-inter text-slate-800">
                               {alert.email_notified ? 'System Notified' : 'Dispatch Pending'}
                             </span>
                           </div>
@@ -2804,7 +2802,7 @@ const AdminDashboard = () => {
                           already shows the state + a "lift" link). */}
                       <div className="mt-4 flex items-center gap-3">
                         {alert.acknowledged_at ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-bold font-sora text-black">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold font-inter text-black">
                             <CheckCircle size={13} />
                             Acknowledged
                             {alert.acknowledged_by && <span className="font-medium">· {alert.acknowledged_by}</span>}
@@ -2812,7 +2810,7 @@ const AdminDashboard = () => {
                         ) : (
                           <button
                             onClick={() => acknowledgeAlert(alert.alert_id)}
-                            className="px-3 py-1 bg-white border border-slate-300 rounded-full text-xs font-bold font-sora text-slate-800 hover:bg-slate-50 transition-colors uppercase"
+                            className="px-3 py-1 bg-white border border-slate-300 rounded-full text-xs font-bold font-inter text-slate-800 hover:bg-slate-50 transition-colors uppercase"
                           >
                             Acknowledge
                           </button>

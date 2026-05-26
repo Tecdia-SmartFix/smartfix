@@ -147,7 +147,6 @@ const ShiftLogsPanel = () => {
     <div style={s.root}>
       <style>{CSS}</style>
 
-      {/* ── Top bar — ORIGINAL ── */}
       <div style={s.topbar}>
         <div>
           <div style={s.eyebrow}>Admin Console</div>
@@ -156,10 +155,10 @@ const ShiftLogsPanel = () => {
         </div>
         <div style={s.statsRow}>
           {[
-            { num: stats.thisWeek,  lbl: 'This week'  },
+            { num: stats.thisWeek, lbl: 'This week'  },
             { num: stats.anomalies, lbl: 'Anomalies'  },
             { num: stats.highSev,   lbl: 'Sev ≥ 4'    },
-            { num: stats.total,     lbl: 'Total'       },
+            { num: stats.total,      lbl: 'Total'       },
           ].map((s2, i) => (
             <div key={i} style={s.statBox}>
               <div style={{ ...s.statNum, color: '#2D8CFF' }}>{s2.num}</div>
@@ -169,7 +168,6 @@ const ShiftLogsPanel = () => {
         </div>
       </div>
 
-      {/* ── Controls — ORIGINAL ── */}
       <div style={s.controls}>
         <div style={s.leftControls}>
           <div style={s.selectWrap}>
@@ -211,7 +209,6 @@ const ShiftLogsPanel = () => {
         </button>
       </div>
 
-      {/* Error */}
       {error && (
         <div style={s.errorBox}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
@@ -221,10 +218,8 @@ const ShiftLogsPanel = () => {
         </div>
       )}
 
-      {/* ── Main layout ── */}
       <div style={s.mainLayout}>
 
-        {/* ── Table — Audit Panel styling ── */}
         <div style={s.card}>
           {loading && logs.length === 0 ? (
             <div style={s.loadState}>
@@ -265,14 +260,12 @@ const ShiftLogsPanel = () => {
                         }}
                         className="sl-row"
                       >
-                        {/* Time */}
                         <td style={s.td}>
                           <span style={{ ...s.monoSm, color: isOpen ? '#2D8CFF' : '#6b7a9e', fontWeight: isOpen ? 500 : 400 }}>
                             {fmtTs(log.created_at)}
                           </span>
                         </td>
 
-                        {/* Phase */}
                         <td style={s.td}>
                           {isVoid
                             ? <span style={s.badgeFail}>Void</span>
@@ -280,14 +273,12 @@ const ShiftLogsPanel = () => {
                           }
                         </td>
 
-                        {/* Machine */}
                         <td style={s.td}>
                           <span style={{ fontSize: 12, fontWeight: 600, color: '#0f1c3f' }}>
                             {machineNameFor(log.machine_id)}
                           </span>
                         </td>
 
-                        {/* Worker */}
                         <td style={s.td}>
                           <div style={s.actorWrap}>
                             <div style={s.avatar}>{(log.worker_label || '?').charAt(0).toUpperCase()}</div>
@@ -295,14 +286,12 @@ const ShiftLogsPanel = () => {
                           </div>
                         </td>
 
-                        {/* Severity — number only, black */}
                         <td style={s.td}>
                           <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600, color: '#0f1c3f' }}>
                             {log.severity}
                           </span>
                         </td>
 
-                        {/* Anomalies — black */}
                         <td style={s.td}>
                           <span style={{ ...s.monoSm, color: '#0f1c3f', fontWeight: log.anomalies?.length ? 500 : 400 }}>
                             {aText}
@@ -325,7 +314,6 @@ const ShiftLogsPanel = () => {
           </div>
         </div>
 
-        {/* ── Detail panel — ORIGINAL ── */}
         {selectedLog && (() => {
           const sev = SEVERITY_STYLES[selectedLog.severity] || SEVERITY_STYLES[1];
           const readings = Object.entries(selectedLog.readings || {});
@@ -359,7 +347,7 @@ const ShiftLogsPanel = () => {
                   <span style={{
                     ...s.metaVal,
                     color: k === 'Workstation' ? '#2D8CFF' : '#2e4e40',
-                    fontFamily: k === 'Workstation' || k === 'Time' ? "'IBM Plex Mono', monospace" : 'inherit',
+                    fontFamily: k === 'Workstation' || k === 'Time' ? "'IBM Plex Mono', monospace" : "'Inter', sans-serif",
                   }}>{v}</span>
                 </div>
               ))}
@@ -450,35 +438,32 @@ const ShiftLogsPanel = () => {
   );
 };
 
-/* ─── Styles ──────────────────────────────────────────────────────── */
 const s = {
   root: {
-    fontFamily: "'IBM Plex Sans', sans-serif",
+    fontFamily: "'Inter', sans-serif",
     background: '#ffffff', color: '#2e4e40',
     minHeight: '100vh', padding: '28px 24px',
   },
 
-  /* ── Top bar — ORIGINAL ── */
   topbar: {
     display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
     flexWrap: 'wrap', gap: 16, marginBottom: 24,
     paddingBottom: 20, borderBottom: '1px solid #e5e7eb',
   },
-  eyebrow:   { fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#2D8CFF', marginBottom: 4 },
-  pageTitle: { fontSize: 'clamp(20px,3vw,28px)', fontWeight: 700, color: '#2e4e40', letterSpacing: '-0.02em', margin: '0 0 4px' },
+  eyebrow:   { fontFamily: "'Sora', sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#2D8CFF', marginBottom: 4 },
+  pageTitle: { fontFamily: "'Sora', sans-serif", fontSize: 'clamp(20px,3vw,28px)', fontWeight: 700, color: '#2e4e40', letterSpacing: '-0.02em', margin: '0 0 4px' },
   pageSub:   { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#6d7c74' },
   statsRow:  { display: 'flex', gap: 32 },
   statBox:   { minWidth: 60 },
-  statNum:   { fontFamily: "'IBM Plex Mono', monospace", fontSize: 22, fontWeight: 700, lineHeight: 1 },
-  statLbl:   { fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6d7c74', marginTop: 5 },
+  statNum:   { fontFamily: "'Sora', sans-serif", fontSize: 22, fontWeight: 700, lineHeight: 1 },
+  statLbl:   { fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6d7c74', marginTop: 5 },
 
-  /* ── Controls — ORIGINAL ── */
   controls:     { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
   leftControls: { display: 'flex', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' },
   selectWrap:   { display: 'flex', flexDirection: 'column', gap: 6 },
-  selectLabel:  { fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6d7c74' },
+  selectLabel:  { fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6d7c74' },
   select: {
-    fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12, fontWeight: 500,
+    fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500,
     padding: '6px 24px 6px 0px', border: 'none', borderBottom: '1px solid #e5e7eb',
     background: '#fff', color: '#2e4e40', outline: 'none', cursor: 'pointer', appearance: 'none',
     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%232D8CFF' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
@@ -486,13 +471,13 @@ const s = {
   },
   searchWrap: { display: 'flex', flexDirection: 'column', gap: 6 },
   searchInput: {
-    fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12, fontWeight: 500,
+    fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500,
     padding: '6px 10px 6px 24px', border: 'none', borderBottom: '1px solid #e5e7eb',
     background: '#fff', color: '#2e4e40', outline: 'none', width: 200,
   },
   syncBtn: {
     display: 'flex', alignItems: 'center', gap: 6,
-    fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12, fontWeight: 600,
+    fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600,
     padding: '6px 12px', border: '1px solid #2D8CFF', borderRadius: 4,
     background: '#fff', color: '#2D8CFF', cursor: 'pointer', transition: 'all 0.12s',
   },
@@ -506,7 +491,6 @@ const s = {
 
   mainLayout: { display: 'flex', alignItems: 'flex-start', gap: 24 },
 
-  /* ── Table card — Audit Panel styling ── */
   card: {
     flex: 1,
     background: '#fff', border: '1px solid #e2e8f4', borderRadius: 16,
@@ -521,13 +505,13 @@ const s = {
     padding: '11px 16px', textAlign: 'left',
     fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
     textTransform: 'uppercase', color: '#0f1c3f',
-    fontFamily: "'Syne', sans-serif",
+    fontFamily: "'Sora', sans-serif",
   },
   thMono: { fontFamily: "'DM Mono', monospace", fontSize: 9, textTransform: 'lowercase', letterSpacing: 0 },
-  tr:     { borderBottom: '1px solid #e2e8f4', cursor: 'pointer', transition: 'background 0.14s' },
+  tr:       { borderBottom: '1px solid #e2e8f4', cursor: 'pointer', transition: 'background 0.14s' },
   trOpen: { background: '#e8f3ff', borderLeft: '3px solid #2D8CFF' },
   trVoid: {},
-  td:     { padding: '10px 16px', verticalAlign: 'middle' },
+  td:       { padding: '10px 16px', verticalAlign: 'middle' },
 
   monoSm: { fontFamily: "'DM Mono', monospace", fontSize: 11 },
 
@@ -535,13 +519,13 @@ const s = {
     display: 'inline-block', fontSize: 10, fontWeight: 700,
     padding: '3px 9px', borderRadius: 6,
     background: '#ffffff', color: '#000000', border: '1px solid #e2e8f4',
-    fontFamily: "'Syne', sans-serif", letterSpacing: '0.02em',
+    fontFamily: "'Inter', sans-serif", letterSpacing: '0.02em',
   },
   badgeFail: {
     display: 'inline-block', fontSize: 10, fontWeight: 700,
     padding: '3px 9px', borderRadius: 6,
     background: '#ffffff', color: '#000000', border: '1px solid #e2e8f4',
-    fontFamily: "'Syne', sans-serif", letterSpacing: '0.02em',
+    fontFamily: "'Inter', sans-serif", letterSpacing: '0.02em',
   },
 
   actorWrap: { display: 'flex', alignItems: 'center', gap: 8 },
@@ -550,7 +534,7 @@ const s = {
     background: '#e8f3ff', border: '1px solid #c9d5ee',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 10, fontWeight: 700, color: '#2D8CFF', flexShrink: 0,
-    fontFamily: "'Syne', sans-serif",
+    fontFamily: "'Sora', sans-serif",
   },
   actorName: { fontSize: 12, fontWeight: 600, color: '#0f1c3f' },
 
@@ -562,21 +546,20 @@ const s = {
   footerRight: { fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 600, color: '#2D8CFF', display: 'flex', alignItems: 'center', gap: 5 },
   liveDot:     { width: 6, height: 6, borderRadius: '50%', background: '#2D8CFF', display: 'inline-block' },
 
-  /* ── Detail panel — ORIGINAL ── */
   detailPanel: {
     width: 280, flexShrink: 0,
     background: '#fff', padding: '0 8px',
   },
-  detailHeader:     { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 },
+  detailHeader:      { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 },
   detailHeaderLeft: { display: 'flex', flexDirection: 'column' },
-  detailMachine:    { fontSize: 15, fontWeight: 600, color: '#2e4e40', lineHeight: 1.2 },
+  detailMachine:    { fontFamily: "'Sora', sans-serif", fontSize: 15, fontWeight: 600, color: '#2e4e40', lineHeight: 1.2 },
   unackBadge: {
     fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, fontWeight: 600,
     color: '#2D8CFF', letterSpacing: '0.04em', marginTop: 2,
   },
   divider:  { height: 1, background: '#e5e7eb', margin: '14px 0' },
   metaRow:  { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', gap: 8 },
-  metaKey:  { fontSize: 10, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6d7c74' },
+  metaKey:  { fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6d7c74' },
   metaVal:  { fontSize: 12, fontWeight: 500, color: '#2e4e40' },
   sectionLabel: {
     fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, fontWeight: 600,
@@ -593,7 +576,7 @@ const s = {
   notesBlock:   { fontSize: 12, color: '#4e5a52', fontStyle: 'italic', lineHeight: 1.5, padding: '4px 0' },
   anomalyBlock: { padding: '4px 0' },
   anomalyItem:  { marginBottom: 8 },
-  anomalyTitle: { fontSize: 12, fontWeight: 600, color: '#844d4d' },
+  anomalyTitle: { fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#844d4d' },
   anomalyDetail:{ fontSize: 11, color: '#6d5335', fontStyle: 'italic' },
   voidBlock:    { padding: '4px 0' },
   voidBy:       { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: '#6d7c74' },
@@ -605,12 +588,12 @@ const s = {
   },
 
   ackBtn: {
-    flex: 1, fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 11, fontWeight: 600,
+    flex: 1, fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600,
     padding: '8px 0', border: 'none', borderRadius: 4,
     background: '#2D8CFF', color: '#ffffff', cursor: 'pointer', transition: 'all 0.12s',
   },
   voidBtn: {
-    fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 11, fontWeight: 600,
+    fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600,
     padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 4,
     background: '#fff', color: '#6d7c74', cursor: 'pointer', transition: 'all 0.12s',
   },
@@ -620,19 +603,19 @@ const s = {
     background: '#fff', color: '#2e4e40', outline: 'none',
   },
   cancelBtn: {
-    flex: 1, fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 11, fontWeight: 600,
+    flex: 1, fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600,
     padding: '8px 0', border: '1px solid #e5e7eb', borderRadius: 4,
     background: '#fff', color: '#6d7c74', cursor: 'pointer',
   },
   confirmBtn: {
-    flex: 1, fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 11, fontWeight: 600,
+    flex: 1, fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600,
     padding: '8px 0', border: 'none', borderRadius: 4,
     background: '#dc9b9b', color: '#fff', cursor: 'pointer',
   },
 };
 
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Syne:wght@600;700;800&family=DM+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&family=DM+Mono:wght@400;500&display=swap');
   .sl-row:hover { background: #f8faff !important; }
   .sl-sync-btn:hover { background: #2D8CFF !important; color: #fff !important; }
   .sl-ack-btn:hover:not(:disabled) { background: #1A75E8 !important; }
