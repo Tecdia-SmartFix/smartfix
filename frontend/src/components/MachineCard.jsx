@@ -66,14 +66,14 @@ const MachineCard = ({
       className={`theme-machine-card group relative flex w-full cursor-pointer flex-col overflow-hidden rounded-2xl border bg-[#111] transition-colors duration-200 ${
         isExpanded
           ? 'border-[#007aff]/40 shadow-2xl shadow-[#007aff]/20'
-          : 'border-white/10 hover:-translate-y-1'
+          : 'border-white/10 hover:-translate-y-1 h-[380px]'
       }`}
       style={{ minHeight: 'auto' }}
     >
       {/* ── Top image area (shared between layouts) ── */}
       <motion.div
         layout
-        className={`relative w-full overflow-hidden bg-gradient-to-br from-[#007aff]/20 to-[#007aff]/10 ${
+        className={`relative w-full shrink-0 overflow-hidden bg-gradient-to-br from-[#007aff]/20 to-[#007aff]/10 ${
           isExpanded ? 'h-[140px]' : 'h-[180px]'
         }`}
       >
@@ -128,7 +128,7 @@ const MachineCard = ({
         </h3>
 
         {!isExpanded && (
-          <div className="mt-3 flex flex-col">
+          <div className="mt-auto flex flex-col pt-3">
             <span className="mb-0.5 text-[11px] font-bold uppercase tracking-[0.18em] text-white">
               {machine.category || 'General Equipment'}
             </span>

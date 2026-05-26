@@ -339,6 +339,8 @@ const SettingsSectionCard = ({ title, subtitle, children }) => (
 );
 
 const SETTINGS_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
   .stg-root {
     --stg-bg:         #ffffff;
     --stg-surface:    #ffffff;
@@ -355,6 +357,7 @@ const SETTINGS_CSS = `
     --stg-radius:     16px;
     --stg-radius-sm:  10px;
 
+    font-family: 'Inter', sans-serif;
     background: var(--stg-bg);
     color: var(--stg-text);
     padding: 10px 24px;
@@ -1128,11 +1131,13 @@ const s = {
   eyebrow: {
     fontSize: 10, fontWeight: 700, letterSpacing: '0.22em',
     textTransform: 'uppercase', color: 'rgb(45,140,255)', marginBottom: 8,
+    fontFamily: "'Inter', sans-serif",
   },
   pageTitle: {
     fontSize: 'clamp(26px,4vw,38px)', fontWeight: 800,
     letterSpacing: '-0.03em', lineHeight: 1.06,
     color: '#0f1c3f', marginBottom: 6,
+    fontFamily: "'Sora', sans-serif",
   },
   pageDesc: { fontSize: 13, color: '#6b7a9e' },
 
@@ -1214,7 +1219,7 @@ const s = {
     fontSize: 10, fontWeight: 700, color: 'rgb(45,140,255)', flexShrink: 0,
     fontFamily: "'Inter', sans-serif",
   },
-  actorName: { fontSize: 12, fontWeight: 600, color: '#0f1c3f' },
+  actorName: { fontSize: 12, fontWeight: 600, color: '#0f1c3f', fontFamily: "'Inter', sans-serif" },
 
   monoSm: { fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#6b7a9e' },
   monoChip: {
@@ -1255,7 +1260,7 @@ const s = {
 };
 
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap');
 
   .audit-row:hover { background: #f8faff !important; }
   .pill-btn:hover:not([style*="color: #ffffff"]) { background: #f4f8ff !important; color: #0f1c3f !important; }
@@ -1309,7 +1314,7 @@ const SEV_BORDER = { 1: '#8ecfb8', 2: '#b8d4b5', 3: '#d4c88a', 4: '#dc9b9b', 5: 
 
 /* ─── Shared atoms ─────────────────────────────────────────────────── */
 const ANALYTICS_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap');
   @keyframes sl-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
   .sl-row:hover td { background: ${P.hover} !important; }
   .sl-sync:hover { background: ${P.blue} !important; color:#fff !important; }
@@ -2256,69 +2261,96 @@ const AdminDashboard = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Tab Bar — sticky at top, always visible when scrolled ── */}
-      <div className="sticky left-0 right-0 top-0 z-50 border-b border-white/10 bg-black">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
-          {/* Logo & Tabs */}
-          <div className="flex items-center overflow-x-auto scrollbar-hide h-full">
-            
-            {/* Admin Panel Logo */}
-            <div className="mr-5 flex h-[34px] shrink-0 items-center gap-3 border-r border-white/10 pr-5">
-              <span className="text-[11px] font-black uppercase tracking-[0.22em] text-white">SmartFix Admin</span>
-            </div>
+      {/* ── Tab Bar — Two-row Samsung style ── */}
+      <div className="sticky left-0 right-0 top-0 z-50 bg-black flex flex-col">
 
-            {/* Tabs */}
-            <div className="flex items-center gap-4 shrink-0 h-full">
-              {[
-                { id: 'machines',  label: 'All Machines' },
-              { id: 'add',       label: 'Add Machine' },
-              { id: 'alerts',    label: 'Alert History', count: unreadAlertsCount },
-              { id: 'analytics', label: 'Analytics' },
-              { id: 'shift_logs',label: 'Shift Logs' },
-              { id: 'audit',     label: 'Audit Log' },
-              { id: 'settings',  label: 'Settings' },
-            ].map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className="relative flex items-center gap-1.5 text-xs font-medium transition-colors duration-200 text-white h-full"
+        {/* ROW 1: Brand + stats */}
+        <div className="border-b border-white/10">
+          <div className="mx-auto flex h-[56px] max-w-6xl items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
+
+            {/* Brand */}
+            <div className="flex h-full items-center">
+              <span
+                className="text-[11px] font-black uppercase tracking-[0.22em] text-white"
+                style={{ fontFamily: "'Sora', sans-serif" }}
               >
-                {tab.label}
-                {tab.count > 0 && (
-                  <span className="ml-0.5 text-[10px] font-bold text-white/50">
-                    {tab.count}
-                  </span>
-                )}
-                {tab.isNew && (
-                  <span className="ml-1 bg-white/20 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-                    NEW
-                  </span>
-                )}
-                {activeTab === tab.id && (
-                  <motion.div layoutId="admin-tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#2b8cff] to-[#10b9d2]" />
-                )}
-              </button>
-            ))}
+                SmartFix Admin
+              </span>
             </div>
-          </div>
 
-          {/* Stats Badges */}
-          <div className="flex items-center gap-2">
-            {(() => {
-              const defaultCount = machines.filter(m => isDefault(m.id)).length;
-              return [
-                { icon: Database, label: 'Total',   value: machines.length },
-                { icon: Package,  label: 'Default', value: defaultCount },
-                { icon: Plus,     label: 'Custom',  value: Math.max(0, machines.length - defaultCount) },
-              ];
-            })().map(s => {
-              return (
-                <div key={s.label} className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/8 px-3 py-1.5 font-inter text-white">
+            {/* Stats Badges */}
+            <div className="flex items-center gap-2">
+              {(() => {
+                const defaultCount = machines.filter(m => isDefault(m.id)).length;
+                return [
+                  { label: 'Total',   value: machines.length },
+                  { label: 'Default', value: defaultCount },
+                  { label: 'Custom',  value: Math.max(0, machines.length - defaultCount) },
+                ];
+              })().map(s => (
+                <div
+                  key={s.label}
+                  className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/8 px-3 py-1.5 text-white"
+                  style={{ fontFamily: "'Inter', sans-serif" }}
+                >
                   <span className="text-sm font-bold leading-none">{s.value}</span>
                   <span className="text-sm font-bold">{s.label}</span>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
         </div>
+
+        {/* ROW 2: Tabs (Samsung sub-nav style) */}
+        <div className="border-b border-white/10">
+          <div className="mx-auto flex h-[44px] max-w-6xl items-center gap-1 overflow-x-auto px-5 sm:px-8 lg:px-10 scrollbar-hide">
+            {[
+              { id: 'machines',   label: 'All Machines' },
+              { id: 'add',        label: 'Add Machine' },
+              { id: 'alerts',     label: 'Alert History', count: unreadAlertsCount },
+              { id: 'analytics',  label: 'Analytics' },
+              { id: 'shift_logs', label: 'Shift Logs' },
+              { id: 'audit',      label: 'Audit Log' },
+              { id: 'settings',   label: 'Settings' },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className="relative flex shrink-0 items-center gap-1.5 px-3 h-full transition-colors duration-200"
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: 11,
+                  fontWeight: activeTab === tab.id ? 700 : 500,
+                  color: activeTab === tab.id ? '#ffffff' : 'rgba(255,255,255,0.5)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                {tab.label}
+                {tab.count > 0 && (
+                  <span
+                    style={{
+                      fontFamily: "'Inter', sans-serif",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: 'rgba(255,255,255,0.4)',
+                    }}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+                {activeTab === tab.id && (
+                  <motion.div
+                    layoutId="admin-tab-indicator"
+                    className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#2b8cff] to-[#10b9d2]"
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
       </div>
 
       <div className={`mx-auto max-w-6xl px-5 sm:px-8 lg:px-10 ${activeTab === 'add' ? 'pb-0' : 'pb-10'}`}>
@@ -2336,7 +2368,7 @@ const AdminDashboard = () => {
 
         {/* ══════════════ TAB: Machines ══════════════ */}
         {activeTab === 'machines' && (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="pt-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-min items-start">
               {machines.map((machine) => {
                 const isExpanded = expandedMachineId === machine.id;
@@ -2447,7 +2479,7 @@ const AdminDashboard = () => {
 
                       {/* Machine Name */}
                       <div>
-                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Machine Name *</label>
+                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6, fontFamily: "'Inter', sans-serif" }}>Machine Name *</label>
                         <input
                           type="text" required
                           value={form.name}
@@ -2463,7 +2495,7 @@ const AdminDashboard = () => {
 
                       {/* Machine ID */}
                       <div>
-                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Machine ID *</label>
+                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6, fontFamily: "'Inter', sans-serif" }}>Machine ID *</label>
                         <input
                           type="text" required
                           value={form.machine_id}
@@ -2476,7 +2508,7 @@ const AdminDashboard = () => {
 
                       {/* Description */}
                       <div>
-                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Description</label>
+                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6, fontFamily: "'Inter', sans-serif" }}>Description</label>
                         <textarea
                           rows={4}
                           placeholder="Brief description of this machine's diagnostic capabilities..."
@@ -2490,7 +2522,7 @@ const AdminDashboard = () => {
 
                       {/* Category */}
                       <div>
-                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Category</label>
+                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6, fontFamily: "'Inter', sans-serif" }}>Category</label>
                         <div style={{ position: 'relative' }}>
                           <select
                             value={form.category}
@@ -2531,7 +2563,7 @@ const AdminDashboard = () => {
                     <p style={{ color: '#0f172a', fontWeight: 700, fontSize: 14, marginBottom: 16, fontFamily: "'Sora', sans-serif" }}>Appearance</p>
 
                     {/* Icon upload */}
-                    <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Icon</label>
+                    <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10, fontFamily: "'Inter', sans-serif" }}>Icon</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <input type="file" accept="image/*" id="custom-icon-upload" className="hidden"
                         onChange={e => {
@@ -2556,7 +2588,7 @@ const AdminDashboard = () => {
 
                     {/* Preview */}
                     <div style={{ marginTop: 16 }}>
-                      <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Preview</label>
+                      <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Preview</label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, padding: '12px 16px' }}>
                         <div>
                           <span style={{ fontWeight: 600, color: '#0f172a', fontSize: 14, display: 'block' }}>{form.name || 'Machine Name'}</span>
