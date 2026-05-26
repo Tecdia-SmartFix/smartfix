@@ -189,6 +189,16 @@ def _load_runtime_config() -> None:
             pass
 DEFAULT_SIGNIFICANCE = 3
 
+def _get_shift(dt: datetime) -> str:
+    """Classify a UTC datetime into a named shift. Adjust hours to your facility."""
+    hour = dt.hour
+    if 6 <= hour < 14:
+        return "Morning"
+    elif 14 <= hour < 22:
+        return "Afternoon"
+    else:
+        return "Night"
+
 # ── Admin auth (magic-link via Resend) ─────────────────────────────────────
 # Email allowlist — only these addresses can request a sign-in link AND
 # receive alert emails. Empty allowlist means no admins, which is the
