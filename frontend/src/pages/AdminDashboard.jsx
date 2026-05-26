@@ -310,187 +310,599 @@ const AUDIT_ACTION_COLORS = {
   'machine.ingest_failed':  { className: 'bg-transparent text-tecdia-textDeep border border-tecdia-textDeep/30', label: 'Ingest Failed' },
 };
 
-// Admin-tunable runtime settings. Currently exposes the two values the
-// /admin/config endpoint accepts (alert threshold + dedup window) plus a
-// read-only view of env-driven settings (admin emails, allowed domains)
-// so the admin can sanity-check what's loaded without shelling onto the
-// box. ADMIN_EMAILS editing isn't included on purpose — too easy to
-// lock yourself out by mistake; do that in .env with eyes open.
+// ═══════════════════════════════════════════════════════════════════════════
+// SettingsPanel
+// ═══════════════════════════════════════════════════════════════════════════
+
+const fmtTime = s => {
+  if (!s || s === 0) return "disabled";
+  if (s < 60) return `${s}s`;
+  if (s < 3600) return `${Math.round(s / 60)}m`;
+  return `${(s / 3600).toFixed(1)}h`;
+};
+
+const SettingsTag = ({ children }) => <span className="stg-tag">{children}</span>;
+
+const SettingsSectionCard = ({ title, subtitle, children }) => (
+  <motion.div
+    className="stg-section-card"
+    initial={{ opacity: 0, y: 14 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+  >
+    <div className="stg-section-header">
+      <h3 className="stg-section-title">{title}</h3>
+      {subtitle && <p className="stg-section-sub">{subtitle}</p>}
+    </div>
+    {children}
+  </motion.div>
+);
+
+const SETTINGS_CSS = `
+  .stg-root {
+    --stg-bg:         #ffffff;
+    --stg-surface:    #ffffff;
+    --stg-border:     #e2e8f4;
+    --stg-border-hi:  #c9d5ee;
+    --stg-text:       #0f1c3f;
+    --stg-muted:      #6b7a9e;
+    --stg-dim:        #a0acc8;
+    --stg-accent:     #2D8CFF;
+    --stg-accent-lt:  #eaf3ff;
+    --stg-accent-mid: #1a7ae6;
+    --stg-blue-glow:  rgba(45,140,255,0.15);
+    --stg-danger:     #e03b3b;
+    --stg-radius:     16px;
+    --stg-radius-sm:  10px;
+
+    background: var(--stg-bg);
+    color: var(--stg-text);
+    padding: 10px 24px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .stg-root .stg-page-header { margin-bottom: 44px; }
+
+  .stg-root .stg-header-eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--stg-accent);
+    margin-bottom: 10px;
+  }
+
+  .stg-root .stg-page-title {
+    font-size: clamp(30px, 5vw, 46px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.06;
+    color: var(--stg-text);
+    margin-bottom: 10px;
+  }
+
+  .stg-root .stg-page-desc {
+    font-size: 13.5px;
+    color: var(--stg-muted);
+    font-weight: 400;
+  }
+
+  .stg-section-card {
+    background: var(--stg-surface);
+    border: 1px solid var(--stg-border);
+    border-radius: var(--stg-radius);
+    padding: 28px 32px;
+    margin-bottom: 18px;
+    box-shadow: 0 2px 12px rgba(15,28,63,0.06), 0 1px 3px rgba(15,28,63,0.04);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stg-section-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--stg-accent), #6db3ff);
+    border-radius: var(--stg-radius) var(--stg-radius) 0 0;
+  }
+
+  .stg-section-header { margin-bottom: 24px; }
+
+  .stg-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--stg-text);
+    margin-bottom: 4px;
+  }
+
+  .stg-section-sub {
+    font-size: 12.5px;
+    color: var(--stg-muted);
+    font-weight: 400;
+  }
+
+  .stg-root .stg-fields { display: flex; flex-direction: column; }
+
+  .stg-root .stg-field-row {
+    display: grid;
+    grid-template-columns: 1fr 180px;
+    gap: 24px;
+    align-items: start;
+    padding: 20px 0;
+  }
+
+  .stg-root .stg-field-meta { display: flex; flex-direction: column; gap: 5px; }
+
+  .stg-root .stg-field-label {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--stg-text);
+    letter-spacing: -0.01em;
+  }
+
+  .stg-root .stg-field-hint {
+    font-size: 12px;
+    color: var(--stg-muted);
+    line-height: 1.6;
+  }
+
+  .stg-root .stg-field-control {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 7px;
+  }
+
+  .stg-root .stg-divider { height: 1px; background: var(--stg-border); }
+
+  .stg-root .stg-num-input {
+    width: 110px;
+    background: var(--stg-accent-lt);
+    border: 1.5px solid var(--stg-border-hi);
+    border-radius: var(--stg-radius-sm);
+    color: var(--stg-text);
+    font-size: 20px;
+    font-weight: 500;
+    padding: 8px 12px;
+    text-align: right;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    -moz-appearance: textfield;
+  }
+
+  .stg-root .stg-num-input::-webkit-inner-spin-button,
+  .stg-root .stg-num-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .stg-root .stg-num-input:focus {
+    border-color: var(--stg-accent);
+    background: #fff;
+    box-shadow: 0 0 0 4px var(--stg-blue-glow);
+  }
+
+  .stg-root .stg-input-wrap { position: relative; display: flex; align-items: center; }
+  .stg-root .stg-input-wrap .stg-num-input { padding-right: 48px; width: 130px; }
+
+  .stg-root .stg-time-badge {
+    position: absolute;
+    right: 9px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--stg-accent);
+    background: rgba(45,140,255,0.1);
+    border-radius: 5px;
+    padding: 2px 5px;
+    pointer-events: none;
+  }
+
+  .stg-root .stg-range-label {
+    font-size: 10px;
+    color: var(--stg-dim);
+  }
+
+  .stg-root .stg-threshold-track {
+    width: 110px;
+    height: 4px;
+    background: var(--stg-accent-lt);
+    border-radius: 2px;
+    overflow: hidden;
+    border: 1px solid var(--stg-border);
+  }
+
+  .stg-root .stg-threshold-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6db3ff, var(--stg-accent));
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  .stg-root .stg-save-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-top: 22px;
+    margin-top: 10px;
+    border-top: 1px solid var(--stg-border);
+  }
+
+  .stg-root .stg-save-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border: 1.5px solid var(--stg-border-hi);
+    background: var(--stg-accent-lt);
+    color: var(--stg-dim);
+    border-radius: var(--stg-radius-sm);
+    padding: 10px 22px;
+    cursor: not-allowed;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: all 0.22s;
+  }
+
+  .stg-root .stg-save-btn.stg-active {
+    border-color: var(--stg-accent);
+    background: var(--stg-accent);
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 4px 18px var(--stg-blue-glow);
+  }
+
+  .stg-root .stg-save-btn.stg-active:hover {
+    background: var(--stg-accent-mid);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(45,140,255,0.28);
+  }
+
+  .stg-root .stg-btn-spinner {
+    width: 13px; height: 13px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: stg-spin 0.7s linear infinite;
+  }
+
+  @keyframes stg-spin { to { transform: rotate(360deg); } }
+
+  .stg-root .stg-toast {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #166534;
+    letter-spacing: 0.01em;
+  }
+
+  .stg-root .stg-toast-dot {
+    width: 7px; height: 7px;
+    background: #22c55e;
+    border-radius: 50%;
+    box-shadow: 0 0 7px #22c55e;
+    flex-shrink: 0;
+  }
+
+  .stg-root .stg-env-grid { display: flex; flex-direction: column; gap: 22px; }
+
+  .stg-root .stg-env-key {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--stg-dim);
+    margin-bottom: 10px;
+  }
+
+  .stg-root .stg-tag-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .stg-tag {
+    display: inline-flex;
+    align-items: center;
+    background: var(--stg-accent-lt);
+    border: 1px solid var(--stg-border-hi);
+    border-radius: 100px;
+    padding: 5px 13px;
+    font-size: 12px;
+    color: var(--stg-accent);
+    font-weight: 500;
+    transition: background 0.18s, border-color 0.18s;
+  }
+
+  .stg-tag:hover {
+    background: #d4e6ff;
+    border-color: var(--stg-accent);
+  }
+
+  .stg-root .stg-empty-note {
+    font-size: 13px;
+    color: var(--stg-dim);
+    font-style: italic;
+  }
+
+  .stg-root .stg-mono {
+    font-size: 11.5px;
+    background: var(--stg-accent-lt);
+    border: 1px solid var(--stg-border-hi);
+    padding: 1px 6px;
+    border-radius: 5px;
+    color: var(--stg-accent);
+  }
+
+  .stg-root .stg-loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    height: 200px;
+    color: var(--stg-muted);
+    font-size: 13px;
+  }
+
+  .stg-root .stg-loader {
+    width: 18px; height: 18px;
+    border: 2px solid var(--stg-border);
+    border-top-color: var(--stg-accent);
+    border-radius: 50%;
+    animation: stg-spin 0.8s linear infinite;
+  }
+
+  .stg-root .stg-error-state {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    background: #fff5f5;
+    border: 1px solid #fcd5d5;
+    border-radius: var(--stg-radius);
+    padding: 20px 24px;
+    margin-top: 40px;
+  }
+
+  .stg-root .stg-error-icon {
+    font-size: 14px;
+    font-weight: 900;
+    color: var(--stg-danger);
+    background: #ffe4e4;
+    border-radius: 50%;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .stg-root .stg-error-state strong { font-size: 14px; display: block; margin-bottom: 4px; color: var(--stg-text); }
+  .stg-root .stg-error-state p { font-size: 13px; color: var(--stg-muted); }
+
+  @media (max-width: 560px) {
+    .stg-root { padding: 10px 16px; }
+    .stg-root .stg-field-row { grid-template-columns: 1fr; }
+    .stg-root .stg-field-control { align-items: flex-start; }
+    .stg-section-card { padding: 20px 18px; }
+    .stg-root .stg-num-input, .stg-root .stg-input-wrap .stg-num-input { width: 100%; text-align: left; }
+    .stg-root .stg-threshold-track { width: 100%; }
+  }
+`;
+
 const SettingsPanel = () => {
   const [config, setConfig] = useState(null);
   const [draft, setDraft] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState('');
+  const [toast, setToast] = useState("");
   const [error, setError] = useState(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const data = await fetchApi('/admin/config');
+      const data = await fetchApi("/admin/config");
       setConfig(data);
-      setDraft({
-        alert_threshold: data.alert_threshold,
-        alert_dedup_seconds: data.alert_dedup_seconds,
-      });
+      setDraft({ alert_threshold: data.alert_threshold, alert_dedup_seconds: data.alert_dedup_seconds });
       setError(null);
-    } catch (e) {
-      setError(e.detail || e.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { setError(e.detail || e.message); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => { load(); }, []);
 
   const handleSave = async () => {
-    setSaving(true);
-    setToast('');
+    setSaving(true); setToast("");
     try {
-      const saved = await fetchApi('/admin/config', {
-        method: 'PATCH',
-        body: JSON.stringify({
-          alert_threshold:     Number(draft.alert_threshold),
-          alert_dedup_seconds: Number(draft.alert_dedup_seconds),
-        }),
+      const saved = await fetchApi("/admin/config", {
+        method: "PATCH",
+        body: JSON.stringify({ alert_threshold: Number(draft.alert_threshold), alert_dedup_seconds: Number(draft.alert_dedup_seconds) }),
       });
       setConfig(saved);
-      setDraft({
-        alert_threshold:     saved.alert_threshold,
-        alert_dedup_seconds: saved.alert_dedup_seconds,
-      });
-      setToast('Settings saved. Live across all admin sessions.');
-      setTimeout(() => setToast(''), 3000);
-    } catch (e) {
-      setError(e.detail || e.message);
-    } finally {
-      setSaving(false);
-    }
+      setDraft({ alert_threshold: saved.alert_threshold, alert_dedup_seconds: saved.alert_dedup_seconds });
+      setToast("Changes saved and live across all sessions");
+      setTimeout(() => setToast(""), 3500);
+    } catch (e) { setError(e.detail || e.message); }
+    finally { setSaving(false); }
   };
 
-  if (loading) return <div className="p-12 text-center text-tecdia-text/50 text-sm">Loading settings…</div>;
-  if (error)   return <div className="p-8 rounded-2xl bg-red-50 border border-red-200 text-red-700">{error}</div>;
-  if (!config) return null;
-
-  const dirty = (
-    Number(draft.alert_threshold) !== config.alert_threshold
-    || Number(draft.alert_dedup_seconds) !== config.alert_dedup_seconds
+  const dirty = config && (
+    Number(draft.alert_threshold) !== config.alert_threshold ||
+    Number(draft.alert_dedup_seconds) !== config.alert_dedup_seconds
   );
 
-  return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-      <div className="mb-8">
-        <h2 className="text-3xl md:text-4xl font-bold text-tecdia-textDeep tracking-tight">
-          Settings
-        </h2>
-        <p className="text-[12px] font-medium text-tecdia-text/45 uppercase tracking-widest mt-1">
-          Runtime overrides — survive restart, take effect immediately
-        </p>
+  const thresholdPct = Math.round((Number(draft.alert_threshold || 0) / 25) * 100);
+
+  if (loading) return (
+    <div className="stg-root">
+      <style>{SETTINGS_CSS}</style>
+      <div className="stg-loading-state">
+        <div className="stg-loader" />
+        <span>Loading configuration…</span>
       </div>
+    </div>
+  );
 
-      {/* ── Editable knobs ─────────────────────────────────────────── */}
-      <div className="bg-white border border-tecdia-border rounded-2xl p-6 shadow-sm mb-6 max-w-2xl">
-        <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider mb-5">
-          Alerts
-        </h3>
+  if (error) return (
+    <div className="stg-root">
+      <style>{SETTINGS_CSS}</style>
+      <div className="stg-error-state">
+        <span className="stg-error-icon">!</span>
+        <div><strong>Configuration error</strong><p>{error}</p></div>
+      </div>
+    </div>
+  );
 
-        <div className="space-y-5">
-          <div>
-            <label className="block text-[11px] font-bold uppercase tracking-[0.16em] text-tecdia-text/55 mb-1.5">
-              Alert threshold
-            </label>
-            <p className="text-[12px] text-tecdia-text/50 mb-2">
-              Alerts fire when (severity × machine significance) ≥ this value. Higher = quieter.
-            </p>
-            <input
-              type="number" min={1} max={25}
-              value={draft.alert_threshold ?? ''}
-              onChange={(e) => setDraft(d => ({ ...d, alert_threshold: e.target.value }))}
-              className="w-32 rounded-lg border border-tecdia-border bg-white px-3 py-2 text-[14px] font-semibold text-tecdia-textDeep outline-none focus:border-tecdia-accent focus:ring-2 focus:ring-tecdia-accent/20"
-            />
-            <span className="ml-2 text-[12px] text-tecdia-text/40">/ 25 max possible</span>
+  if (!config) return null;
+
+  return (
+    <div className="stg-root">
+      <style>{SETTINGS_CSS}</style>
+
+      {/* ── Page Header ── */}
+      <motion.header
+        className="stg-page-header"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45 }}
+      >
+        <div className="stg-header-eyebrow">Admin Console</div>
+        <h1 className="stg-page-title">System Settings</h1>
+        <p className="stg-page-desc">Runtime overrides take effect immediately and survive restart.</p>
+      </motion.header>
+
+      {/* ── Alert Configuration ── */}
+      <SettingsSectionCard title="Alert Configuration" subtitle="Control when and how the system surfaces notifications.">
+        <div className="stg-fields">
+
+          <div className="stg-field-row">
+            <div className="stg-field-meta">
+              <span className="stg-field-label">Alert Threshold</span>
+              <span className="stg-field-hint">
+                Alerts fire when severity × machine significance ≥ this value. Higher = fewer, more critical alerts only.
+              </span>
+            </div>
+            <div className="stg-field-control">
+              <input
+                type="number" min={1} max={25}
+                value={draft.alert_threshold ?? ""}
+                onChange={e => setDraft(d => ({ ...d, alert_threshold: e.target.value }))}
+                className="stg-num-input"
+              />
+              <div className="stg-threshold-track">
+                <div className="stg-threshold-fill" style={{ width: `${thresholdPct}%` }} />
+              </div>
+              <span className="stg-range-label">{thresholdPct}% of max (25)</span>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-[11px] font-bold uppercase tracking-[0.16em] text-tecdia-text/55 mb-1.5">
-              Dedup window (seconds)
-            </label>
-            <p className="text-[12px] text-tecdia-text/50 mb-2">
-              Suppress repeat alerts for the same (machine + error code) within this window. 0 disables dedup.
-            </p>
-            <input
-              type="number" min={0} max={60 * 60 * 24}
-              value={draft.alert_dedup_seconds ?? ''}
-              onChange={(e) => setDraft(d => ({ ...d, alert_dedup_seconds: e.target.value }))}
-              className="w-32 rounded-lg border border-tecdia-border bg-white px-3 py-2 text-[14px] font-semibold text-tecdia-textDeep outline-none focus:border-tecdia-accent focus:ring-2 focus:ring-tecdia-accent/20"
-            />
-            <span className="ml-2 text-[12px] text-tecdia-text/40">
-              {Math.round((Number(draft.alert_dedup_seconds) || 0) / 60)} min
-            </span>
+          <div className="stg-divider" />
+
+          <div className="stg-field-row">
+            <div className="stg-field-meta">
+              <span className="stg-field-label">Deduplication Window</span>
+              <span className="stg-field-hint">
+                Suppress repeated alerts for the same machine + error code pair within this window. Set to 0 to disable.
+              </span>
+            </div>
+            <div className="stg-field-control">
+              <div className="stg-input-wrap">
+                <input
+                  type="number" min={0} max={86400}
+                  value={draft.alert_dedup_seconds ?? ""}
+                  onChange={e => setDraft(d => ({ ...d, alert_dedup_seconds: e.target.value }))}
+                  className="stg-num-input"
+                />
+                <span className="stg-time-badge">{fmtTime(Number(draft.alert_dedup_seconds))}</span>
+              </div>
+              <span className="stg-range-label">seconds · max 86 400 (24 h)</span>
+            </div>
           </div>
+
         </div>
 
-        <div className="mt-6 flex items-center gap-4 pt-5 border-t border-tecdia-border">
+        <div className="stg-save-row">
           <button
             onClick={handleSave}
             disabled={!dirty || saving}
-            className="rounded-xl bg-gradient-to-r from-[#1a1a1a] to-[#0a0d11] text-white px-6 py-2.5 text-[13px] font-bold uppercase tracking-[0.14em] shadow-md shadow-black/20 transition-all hover:brightness-125 disabled:opacity-40 disabled:cursor-not-allowed"
+            className={`stg-save-btn ${dirty ? "stg-active" : ""}`}
           >
-            {saving ? 'Saving…' : 'Save changes'}
+            {saving
+              ? <><div className="stg-btn-spinner" /><span>Saving…</span></>
+              : <><span>↑</span><span>Save Changes</span></>
+            }
           </button>
-          {toast && <span className="text-[12px] font-bold text-emerald-700">{toast}</span>}
+
+          <AnimatePresence>
+            {toast && (
+              <motion.div
+                className="stg-toast"
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0 }}
+              >
+                <span className="stg-toast-dot" />{toast}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      </div>
+      </SettingsSectionCard>
 
-      {/* ── Read-only env-driven values ───────────────────────────── */}
-      <div className="bg-white border border-tecdia-border rounded-2xl p-6 shadow-sm max-w-2xl">
-        <h3 className="text-sm font-bold text-tecdia-textDeep uppercase tracking-wider mb-1">
-          Environment
-        </h3>
-        <p className="text-[12px] text-tecdia-text/45 mb-5">
-          Loaded from <span className="font-mono">.env</span> at startup. Edit on the server to change.
-        </p>
-
-        <div className="space-y-4 text-[13px]">
+      {/* ── Environment ── */}
+      <SettingsSectionCard
+        title="Environment"
+        subtitle={<>Loaded from <code className="stg-mono">.env</code> at startup — edit on the server to change.</>}
+      >
+        <div className="stg-env-grid">
           <div>
-            <p className="text-[10px] font-bold text-tecdia-text/40 uppercase tracking-widest mb-1">Admin emails</p>
-            <div className="flex flex-wrap gap-2">
-              {(config.admin_emails || []).length === 0 ? (
-                <span className="text-tecdia-text/40 italic">none — magic-link login disabled</span>
-              ) : config.admin_emails.map(e => (
-                <span key={e} className="rounded-full bg-tecdia-border/40 px-3 py-1 text-[12px] font-mono text-tecdia-textDeep">{e}</span>
-              ))}
+            <p className="stg-env-key">Admin Emails</p>
+            <div className="stg-tag-row">
+              {(config.admin_emails || []).length === 0
+                ? <span className="stg-empty-note">None — magic-link login disabled</span>
+                : config.admin_emails.map(e => <SettingsTag key={e}>{e}</SettingsTag>)
+              }
             </div>
           </div>
-
           <div>
-            <p className="text-[10px] font-bold text-tecdia-text/40 uppercase tracking-widest mb-1">Worker expertise domains</p>
-            <div className="flex flex-wrap gap-2">
-              {config.allowed_domains.map(d => (
-                <span key={d} className="rounded-full bg-tecdia-border/40 px-3 py-1 text-[12px] text-tecdia-textDeep">{d}</span>
-              ))}
+            <p className="stg-env-key">Worker Expertise Domains</p>
+            <div className="stg-tag-row">
+              {(config.allowed_domains || []).map(d => <SettingsTag key={d}>{d}</SettingsTag>)}
             </div>
           </div>
         </div>
-      </div>
-    </motion.div>
+      </SettingsSectionCard>
+
+    </div>
   );
 };
 
 
-const AuditPanel = () => {
-  const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
-  const [filter, setFilter]   = useState('all'); // 'all' | 'auth.' | 'machine.'
-  const [expanded, setExpanded] = useState(new Set());
 
-  const load = useCallback(async (prefix = filter) => {
+
+
+
+const BADGE_MAP = {
+  'auth.admin_login':        'Login',
+  'auth.admin_logout':       'Logout',
+  'machine.create':          'Machine Created',
+  'machine.delete':          'Machine Deleted',
+  'machine.ingest_complete': 'Ingest Complete',
+  'machine.ingest_failed':   'Ingest Failed',
+};
+
+const fmtTs = (ts) => {
+  try { return new Date(ts).toISOString().replace('T', ' ').slice(0, 19); } catch { return ts; }
+};
+
+const AuditPanel = () => {
+  const [entries, setEntries]   = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState(null);
+  const [filter, setFilter]     = useState('all');
+  const [expanded, setExpanded] = useState(new Set());
+  const [syncing, setSyncing]   = useState(false);
+
+  const load = useCallback(async (f = filter) => {
     setLoading(true);
     try {
       const qs = new URLSearchParams({ limit: '200' });
-      if (prefix !== 'all') qs.set('action_prefix', prefix);
-      const d = await fetchApi(`/admin/audit?${qs.toString()}`);
+      if (f !== 'all') qs.set('action_prefix', f === 'auth' ? 'auth.' : 'machine.');
+      const d = await fetchApi(`/admin/audit?${qs}`);
       setEntries(d.entries || []);
       setError(null);
     } catch (e) {
@@ -500,8 +912,13 @@ const AuditPanel = () => {
     }
   }, [filter]);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(filter); }, [filter, load]);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    await load(filter);
+    setSyncing(false);
+  };
 
   const toggleExpanded = (idx) => {
     setExpanded(prev => {
@@ -511,196 +928,351 @@ const AuditPanel = () => {
     });
   };
 
-  return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="relative z-10">
-      {/* Background Glows for premium feel */}
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-tecdia-accent/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-blue-400/5 rounded-full blur-3xl pointer-events-none" />
+  const filtered = filter === 'all'
+    ? entries
+    : entries.filter(e => (e.action || '').startsWith(filter === 'auth' ? 'auth.' : 'machine.'));
 
-      {/* header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 relative z-10">
-        <div>
-          <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-tecdia-textDeep to-tecdia-accent flex items-center gap-3">
-            <Shield size={28} className="text-tecdia-accent" />
-            Audit Log
-          </h2>
-          <p className="text-[11px] font-semibold text-tecdia-text/50 uppercase tracking-[0.2em] mt-1.5 ml-10 flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-tecdia-accent animate-pulse" />
-            Append-only security record
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex p-1 bg-white/50 backdrop-blur-md rounded-xl border border-tecdia-border/50 shadow-sm relative">
-            {[
-              { id: 'all',       label: 'All Activity' },
-              { id: 'auth.',     label: 'Authentication' },
-              { id: 'machine.',  label: 'Machine Events' },
-            ].map(f => (
-              <button key={f.id} onClick={() => setFilter(f.id)}
-                className={`text-xs font-bold px-4 py-2 rounded-lg transition-all duration-300 relative z-10 ${
-                  filter === f.id
-                    ? 'text-white shadow-md'
-                    : 'text-tecdia-text/60 hover:text-tecdia-textDeep hover:bg-white/50'
-                }`}>
-                {filter === f.id && (
-                  <motion.div layoutId="auditTab" className="absolute inset-0 bg-gradient-to-r from-tecdia-accent to-gray-800 rounded-lg -z-10" transition={{ type: "spring", stiffness: 300, damping: 30 }} />
-                )}
-                {f.label}
-              </button>
-            ))}
-          </div>
-          <button onClick={() => load(filter)} className="group bg-white hover:bg-tecdia-accent hover:text-white text-tecdia-textDeep border border-tecdia-border shadow-sm text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 flex items-center gap-2">
-            <Activity size={14} className={loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} />
-            Sync
-          </button>
-        </div>
+  return (
+    <div style={s.root}>
+      <style>{CSS}</style>
+
+      {/* Header */}
+      <div style={s.pageHeader}>
+        <div style={s.eyebrow}>Admin Console</div>
+        <h1 style={s.pageTitle}>Audit Log</h1>
+        <p style={s.pageDesc}>Append-only security record · last 200 events</p>
       </div>
 
+      {/* Controls */}
+      <div style={s.controls}>
+        <div style={s.filterWrap}>
+          {[
+            { id: 'all',     label: 'All activity' },
+            { id: 'auth',    label: 'Authentication' },
+            { id: 'machine', label: 'Machine events' },
+          ].map(f => (
+            <button
+              key={f.id}
+              onClick={() => { setFilter(f.id); setExpanded(new Set()); }}
+              style={{ ...s.pill, ...(filter === f.id ? s.pillActive : {}) }}
+              className="pill-btn"
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <button onClick={handleSync} style={s.syncBtn} className="sync-btn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transition: 'transform 0.6s', transform: syncing ? 'rotate(360deg)' : 'none' }}>
+            <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          Sync
+        </button>
+      </div>
+
+      {/* Error */}
       {error && (
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-600 text-sm mb-6 flex items-center gap-3 font-medium backdrop-blur-md relative z-10">
-          <AlertCircle size={18} />
+        <div style={s.errorBox}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
           {error}
-        </motion.div>
+        </div>
       )}
 
-      {loading && entries.length === 0 ? (
-        <div className="p-20 flex flex-col items-center justify-center gap-4 text-tecdia-text/50 relative z-10">
-          <Activity size={32} className="animate-spin text-tecdia-accent opacity-50" />
-          <span className="text-sm font-semibold tracking-wider uppercase">Retrieving secure logs...</span>
-        </div>
-      ) : entries.length === 0 ? (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-white/60 to-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-12 text-center relative overflow-hidden z-10">
-          <Shield size={48} className="mx-auto text-tecdia-accent/20 mb-4" />
-          <p className="text-lg font-bold text-tecdia-textDeep mb-2">No Security Events Found</p>
-          <p className="text-sm text-tecdia-text/60">The audit ledger is currently empty for this filter.</p>
-        </motion.div>
-      ) : (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="relative z-10">
-          <div className="bg-gradient-to-br from-white/80 to-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.06)] rounded-3xl overflow-hidden relative">
-            <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="bg-white/50 border-b border-tecdia-border/40 text-[10px] font-black uppercase tracking-[0.15em] text-tecdia-text/40">
-                    <th className="text-left py-4 px-6 font-semibold">Timestamp <span className="font-mono lowercase text-[9px]">(utc)</span></th>
-                    <th className="text-left py-4 px-6 font-semibold">Event Vector</th>
-                    <th className="text-left py-4 px-6 font-semibold">Principal</th>
-                    <th className="text-left py-4 px-6 font-semibold">Resource</th>
-                    <th className="text-left py-4 px-6 font-semibold">Origin IP</th>
-                    <th className="text-left py-4 px-6 font-semibold">Resolution</th>
-                    <th className="text-right py-4 px-6 font-semibold">Payload</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-tecdia-border/30">
-                  <AnimatePresence>
-                    {entries.map((e, i) => {
-                      const colorObj = AUDIT_ACTION_COLORS[e.action] || { className: 'bg-tecdia-surface text-tecdia-textDeep border border-tecdia-border', label: e.action };
-                      const isFailure = e.status === 'failure';
-                      const hasDetails = e.details && Object.keys(e.details).length > 0;
-                      const isExpanded = expanded.has(i);
-                      let ts = e.ts;
-                      try { ts = new Date(e.ts).toISOString().replace('T', ' ').slice(0, 19); } catch { /* keep raw */ }
-                      
-                      return (
-                        <React.Fragment key={`${e.ts}-${i}`}>
-                          <motion.tr 
-                            onClick={() => toggleExpanded(i)}
-                            initial={{ opacity: 0, backgroundColor: 'rgba(255,255,255,0)' }} 
-                            animate={{ opacity: 1, backgroundColor: isExpanded ? 'rgba(17,17,17,0.08)' : 'rgba(255,255,255,0)' }}
-                            className={`transition-colors duration-200 cursor-pointer group ${isExpanded ? 'border-l-2 border-tecdia-accent' : 'border-l-2 border-transparent'}`}
-                          >
-                            <td className={`py-3.5 px-6 font-mono text-[11px] tabular-nums whitespace-nowrap transition-colors ${isExpanded ? 'text-tecdia-accent font-bold' : 'text-tecdia-textDeep/70'}`}>
-                              {ts}
-                            </td>
-                            <td className="py-3.5 px-6">
-                              <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-lg ${colorObj.className}`}>
-                                {colorObj.label}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-6">
-                              <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-gray-100 to-gray-200 border border-white flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-gray-500">
-                                  {e.actor ? e.actor.charAt(0).toUpperCase() : '?'}
-                                </div>
-                                <span className={`text-xs font-semibold truncate max-w-[200px] transition-colors ${isExpanded ? 'text-tecdia-accent' : 'text-tecdia-textDeep'}`}>{e.actor || 'Anonymous'}</span>
-                              </div>
-                            </td>
-                            <td className="py-3.5 px-6">
-                              <span className="font-mono text-[11px] text-tecdia-text/60 truncate max-w-[200px] block bg-white/50 px-2 py-0.5 rounded-md border border-black/5">{e.target || '*'}</span>
-                            </td>
-                            <td className="py-3.5 px-6">
-                              <div className="flex items-center gap-1.5">
-                                <Monitor size={12} className="text-tecdia-text/30" />
-                                <span className="font-mono text-[11px] text-tecdia-text/60 tracking-tight">{e.ip || '—'}</span>
-                              </div>
-                            </td>
-                            <td className="py-3.5 px-6">
-                              <span className={`inline-flex items-center gap-1.5 text-[10px] font-black px-2.5 py-1 rounded-lg border ${
-                                isFailure 
-                                  ? 'bg-tecdia-textDeep/5 border-tecdia-textDeep/20 text-tecdia-textDeep' 
-                                  : 'bg-tecdia-accent/10 border-tecdia-accent/30 text-tecdia-accent'
-                              }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${isFailure ? 'bg-tecdia-textDeep animate-pulse' : 'bg-tecdia-accent'}`} />
-                                {isFailure ? 'REJECTED' : 'SUCCESS'}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-6 text-right">
-                              {hasDetails && (
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); toggleExpanded(i); }} 
-                                  className={`p-1.5 rounded-lg transition-all duration-300 ${isExpanded ? 'bg-tecdia-accent text-white shadow-md' : 'bg-white text-tecdia-text/40 hover:text-tecdia-accent hover:shadow-sm border border-transparent hover:border-tecdia-border/50'}`}
-                                >
-                                  <ChevronRight size={14} className={`transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`} />
-                                </button>
-                              )}
-                            </td>
-                          </motion.tr>
-                          
-                          {/* Expanded payload details */}
-                          <AnimatePresence>
-                            {isExpanded && hasDetails && (
-                              <motion.tr
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="bg-gradient-to-b from-white/60 to-transparent"
-                              >
-                                <td colSpan={7} className="px-6 py-4 border-b border-tecdia-border/20">
-                                  <div className="bg-[#0A2540] rounded-xl p-4 shadow-inner relative overflow-hidden group/code">
-                                    <div className="absolute top-0 left-0 w-1 h-full bg-tecdia-accent" />
-                                    <div className="flex items-center justify-between mb-2 opacity-60">
-                                      <span className="text-[10px] font-mono text-blue-300 uppercase tracking-widest flex items-center gap-1.5"><Database size={10} /> Event Payload</span>
-                                    </div>
-                                    <pre className="text-[11px] font-mono text-blue-100 overflow-x-auto custom-scrollbar pb-2">
-                                      {JSON.stringify(e.details, null, 2)}
-                                    </pre>
-                                  </div>
-                                </td>
-                              </motion.tr>
-                            )}
-                          </AnimatePresence>
-                        </React.Fragment>
-                      );
-                    })}
-                  </AnimatePresence>
-                </tbody>
-              </table>
-            </div>
-            
-            <div className="bg-white/50 border-t border-tecdia-border/30 px-6 py-4 flex items-center justify-between">
-              <p className="text-[10px] font-bold text-tecdia-text/40 uppercase tracking-widest flex items-center gap-2">
-                <Layers size={12} />
-                Showing {entries.length} log {entries.length === 1 ? 'entry' : 'entries'}
-              </p>
-              <div className="flex items-center gap-1.5 text-[10px] font-semibold text-tecdia-text/40">
-                <Activity size={12} className="text-tecdia-accent" /> Real-time sync active
-              </div>
-            </div>
+      {/* Table card */}
+      <div style={s.card}>
+        {loading && filtered.length === 0 ? (
+          <div style={s.loadState}>
+            <div className="spinner" />
+            <span style={{ fontSize: 13, color: '#6b7a9e' }}>Retrieving secure logs…</span>
           </div>
-        </motion.div>
-      )}
-    </motion.div>
+        ) : filtered.length === 0 ? (
+          <div style={s.emptyState}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#c9d5ee" strokeWidth="1.5" strokeLinecap="round" style={{ marginBottom: 12 }}>
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <p style={{ fontWeight: 700, fontSize: 14, color: '#0f1c3f', marginBottom: 4 }}>No events found</p>
+            <p style={{ fontSize: 12, color: '#6b7a9e' }}>The audit ledger is empty for this filter.</p>
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={s.table}>
+              <thead>
+                <tr style={s.theadRow}>
+                  <th style={s.th}>Timestamp <span style={s.thMono}>(utc)</span></th>
+                  <th style={s.th}>Event</th>
+                  <th style={s.th}>Principal</th>
+                  <th style={s.th}>Resource</th>
+                  <th style={s.th}>Origin IP</th>
+                  <th style={s.th}>Status</th>
+                  <th style={{ ...s.th, textAlign: 'right' }}>Payload</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((e, i) => {
+                  const isOpen    = expanded.has(i);
+                  const isFail    = e.status === 'failure';
+                  const hasDetail = e.details && Object.keys(e.details).length > 0;
+                  const initials  = (e.actor || '?').charAt(0).toUpperCase();
+                  const label     = BADGE_MAP[e.action] || e.action;
+
+                  return (
+                    <React.Fragment key={`${e.ts}-${i}`}>
+                      <tr
+                        onClick={() => toggleExpanded(i)}
+                        style={{ ...s.tr, ...(isOpen ? s.trOpen : {}) }}
+                        className="audit-row"
+                      >
+                        {/* Timestamp */}
+                        <td style={s.td}>
+                          <span style={{ ...s.monoSm, color: isOpen ? 'rgb(45,140,255)' : '#6b7a9e', fontWeight: isOpen ? 500 : 400 }}>
+                            {fmtTs(e.ts)}
+                          </span>
+                        </td>
+
+                        {/* Event badge — only 2 variants: default and failure */}
+                        <td style={s.td}>
+                          <span style={isFail ? s.badgeFail : s.badgeDefault}>
+                            {label}
+                          </span>
+                        </td>
+
+                        {/* Principal */}
+                        <td style={s.td}>
+                          <div style={s.actorWrap}>
+                            <div style={s.avatar}>{initials}</div>
+                            <span style={s.actorName}>{e.actor || 'Anonymous'}</span>
+                          </div>
+                        </td>
+
+                        {/* Resource */}
+                        <td style={s.td}>
+                          <span style={s.monoChip}>{e.target || '*'}</span>
+                        </td>
+
+                        {/* IP */}
+                        <td style={s.td}>
+                          <span style={s.monoSm}>{e.ip || '—'}</span>
+                        </td>
+
+                        {/* Status — text only, no dot */}
+                        <td style={s.td}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: isFail ? '#e03b3b' : 'rgb(45,140,255)', fontFamily: "'Syne', sans-serif", letterSpacing: '0.04em' }}>
+                            {isFail ? 'REJECTED' : 'SUCCESS'}
+                          </span>
+                        </td>
+
+                        {/* Expand */}
+                        <td style={{ ...s.td, textAlign: 'right' }}>
+                          {hasDetail && (
+                            <button
+                              onClick={ev => { ev.stopPropagation(); toggleExpanded(i); }}
+                              style={{ ...s.expandBtn, ...(isOpen ? s.expandBtnOpen : {}) }}
+                              className="expand-btn"
+                              aria-label={isOpen ? 'Collapse payload' : 'Expand payload'}
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                                <polyline points="6 9 12 15 18 9"/>
+                              </svg>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+
+                      {/* Payload drawer */}
+                      {isOpen && hasDetail && (
+                        <tr>
+                          <td colSpan={7} style={{ padding: 0 }}>
+                            <div style={s.payloadWrap}>
+                              <div style={s.payloadLabel}>Event payload</div>
+                              <pre style={s.payloadPre}>{JSON.stringify(e.details, null, 2)}</pre>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div style={s.footer}>
+          <span style={s.footerLeft}>
+            Showing {filtered.length} log {filtered.length === 1 ? 'entry' : 'entries'}
+          </span>
+          <span style={s.footerRight}>
+            <span style={s.liveDot} className="live-dot" />
+            Real-time sync active
+          </span>
+        </div>
+      </div>
+    </div>
   );
 };
+
+/* ─── Styles ─────────────────────────────────────────────────────── */
+const s = {
+  root: {
+    fontFamily: "'Syne', sans-serif",
+    background: '#ffffff',
+    color: '#0f1c3f',
+    minHeight: '100vh',
+    padding: '40px 32px',
+    maxWidth: 1100,
+    margin: '0 auto',
+  },
+  pageHeader: { marginBottom: 28 },
+  eyebrow: {
+    fontSize: 10, fontWeight: 700, letterSpacing: '0.22em',
+    textTransform: 'uppercase', color: 'rgb(45,140,255)', marginBottom: 8,
+  },
+  pageTitle: {
+    fontSize: 'clamp(26px,4vw,38px)', fontWeight: 800,
+    letterSpacing: '-0.03em', lineHeight: 1.06,
+    color: '#0f1c3f', marginBottom: 6,
+  },
+  pageDesc: { fontSize: 13, color: '#6b7a9e' },
+
+  controls: { 
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+    background: '#ffffff', border: '1px solid #e2e8f4', borderRadius: 12, 
+    padding: '6px', marginBottom: 20,
+    boxShadow: '0 2px 8px rgba(15,28,63,0.04)' 
+  },
+  filterWrap: { display: 'flex', gap: 4 },
+  pill: {
+    fontSize: 12, fontWeight: 700, padding: '8px 16px', borderRadius: 8,
+    cursor: 'pointer', border: 'none', background: 'transparent',
+    color: '#6b7a9e', fontFamily: "'Syne', sans-serif", transition: 'all 0.2s',
+  },
+  pillActive: { background: '#0f1c3f', color: '#ffffff' },
+  syncBtn: {
+    display: 'flex', alignItems: 'center', gap: 6,
+    fontSize: 11, fontWeight: 700, fontFamily: "'Syne', sans-serif",
+    padding: '8px 16px', borderRadius: 8,
+    border: 'none', background: 'transparent',
+    color: '#6b7a9e', cursor: 'pointer', transition: 'all 0.2s',
+    letterSpacing: '0.04em',
+  },
+
+  errorBox: {
+    display: 'flex', alignItems: 'center', gap: 10,
+    padding: '12px 16px', borderRadius: 10,
+    background: '#fff5f5', border: '1px solid #fcd5d5',
+    color: '#e03b3b', fontSize: 13, fontWeight: 600, marginBottom: 14,
+  },
+
+  card: {
+    background: '#fff', border: '1px solid #e2e8f4', borderRadius: 16,
+    boxShadow: '0 2px 12px rgba(15,28,63,0.06)', overflow: 'hidden',
+    position: 'relative',
+  },
+
+  loadState: { padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 },
+  emptyState: { padding: '48px 24px', textAlign: 'center' },
+
+  table: { width: '100%', borderCollapse: 'collapse', fontSize: 12 },
+  theadRow: { borderBottom: '1px solid #e2e8f4', background: '#ffffff' },
+  th: {
+    padding: '11px 16px', textAlign: 'left',
+    fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+    textTransform: 'uppercase', color: '#0f1c3f',
+    fontFamily: "'Syne', sans-serif",
+  },
+  thMono: { fontFamily: "'DM Mono', monospace", fontSize: 9, textTransform: 'lowercase', letterSpacing: 0 },
+
+  tr: { borderBottom: '1px solid #e2e8f4', cursor: 'pointer', transition: 'background 0.14s' },
+  trOpen: { background: '#e8f3ff', borderLeft: '2px solid rgb(45,140,255)' },
+  td: { padding: '10px 16px', verticalAlign: 'middle' },
+
+  /* Badges — just 2: default (neutral) and fail (red) */
+  badgeDefault: {
+    display: 'inline-block',
+    fontSize: 10, fontWeight: 700,
+    padding: '3px 9px', borderRadius: 6,
+    background: '#ffffff', color: '#0f1c3f',
+    border: '1px solid #e2e8f4',
+    fontFamily: "'Syne', sans-serif", letterSpacing: '0.02em',
+  },
+  badgeFail: {
+    display: 'inline-block',
+    fontSize: 10, fontWeight: 700,
+    padding: '3px 9px', borderRadius: 6,
+    background: '#fff5f5', color: '#e03b3b',
+    border: '1px solid #fcd5d5',
+    fontFamily: "'Syne', sans-serif", letterSpacing: '0.02em',
+  },
+
+  actorWrap: { display: 'flex', alignItems: 'center', gap: 8 },
+  avatar: {
+    width: 24, height: 24, borderRadius: '50%',
+    background: '#e8f3ff', border: '1px solid #c9d5ee',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: 10, fontWeight: 700, color: 'rgb(45,140,255)', flexShrink: 0,
+    fontFamily: "'Syne', sans-serif",
+  },
+  actorName: { fontSize: 12, fontWeight: 600, color: '#0f1c3f' },
+
+  monoSm: { fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#6b7a9e' },
+  monoChip: {
+    fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#6b7a9e',
+    display: 'inline-block',
+  },
+
+  expandBtn: {
+    padding: '4px 7px', borderRadius: 6,
+    border: '1px solid #e2e8f4', background: '#ffffff',
+    cursor: 'pointer', color: '#6b7a9e', transition: 'all 0.18s',
+    display: 'inline-flex', alignItems: 'center',
+  },
+  expandBtnOpen: { background: 'rgb(45,140,255)', borderColor: 'rgb(45,140,255)', color: '#fff' },
+
+  payloadWrap: {
+    background: '#071226', margin: '0 16px 12px',
+    borderRadius: 10, padding: '12px 14px',
+    borderLeft: '2px solid rgb(45,140,255)',
+  },
+  payloadLabel: {
+    fontFamily: "'DM Mono', monospace", fontSize: 9,
+    color: '#5aadff', letterSpacing: '0.14em',
+    textTransform: 'uppercase', marginBottom: 6,
+  },
+  payloadPre: {
+    fontFamily: "'DM Mono', monospace", fontSize: 11,
+    color: '#a8d4ff', overflowX: 'auto', lineHeight: 1.6, margin: 0,
+  },
+
+  footer: {
+    background: '#ffffff', borderTop: '1px solid #e2e8f4',
+    padding: '11px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+  },
+  footerLeft: { fontSize: 10, fontWeight: 700, color: '#a0acc8', letterSpacing: '0.1em', textTransform: 'uppercase' },
+  footerRight: { fontSize: 10, fontWeight: 600, color: 'rgb(45,140,255)', display: 'flex', alignItems: 'center', gap: 5 },
+  liveDot: { width: 6, height: 6, borderRadius: '50%', background: 'rgb(45,140,255)', display: 'inline-block' },
+};
+
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
+
+  .audit-row:hover { background: #f8faff !important; }
+  .pill-btn:hover:not([style*="color: #ffffff"]) { background: #f4f8ff !important; color: #0f1c3f !important; }
+  .sync-btn:hover { background: #f4f8ff !important; color: #0f1c3f !important; }
+  .expand-btn:hover { background: rgb(45,140,255) !important; border-color: rgb(45,140,255) !important; color: #fff !important; }
+
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid #e2e8f4;
+    border-top-color: rgb(45,140,255);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  .live-dot { animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+`;
 
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1579,7 +2151,7 @@ const AdminDashboard = () => {
   const isDefault = (id) => ['INJECTION_MOLDING_MACHINE', 'LASER_CUTTING_MACHINE'].includes(id?.toUpperCase());
 
   return (
-    <div className="relative z-0 min-h-screen bg-[#eef1ef] pt-0 text-tecdia-text transition-all duration-500">
+    <div className="relative z-0 min-h-screen bg-white pt-0 text-tecdia-text transition-all duration-500">
 
       {/* ── Dynamic Full-Page Background for Add Machine & Alerts ── */}
       <AnimatePresence>
@@ -1593,7 +2165,7 @@ const AdminDashboard = () => {
 
       {/* ── Tab Bar — sticky at top, always visible when scrolled ── */}
       <div className="sticky left-0 right-0 top-0 z-50 border-b border-white/10 bg-black">
-        <div className="mx-auto flex h-14 max-w-[1680px] items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
           {/* Logo & Tabs */}
           <div className="flex items-center overflow-x-auto scrollbar-hide h-full">
             
@@ -1609,7 +2181,7 @@ const AdminDashboard = () => {
               { id: 'add',       label: 'Add Machine' },
               { id: 'alerts',    label: 'Alert History', count: alerts.length },
               { id: 'analytics', label: 'Analytics' },
-              { id: 'shift_logs',label: 'Shift Logs', isNew: true },
+              { id: 'shift_logs',label: 'Shift Logs' },
               { id: 'audit',     label: 'Audit Log' },
               { id: 'settings',  label: 'Settings' },
             ].map(tab => (
@@ -1656,7 +2228,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className={`mx-auto max-w-[1680px] px-5 sm:px-8 lg:px-10 ${activeTab === 'add' ? 'py-0' : 'py-10'}`}>
+      <div className={`mx-auto max-w-6xl px-5 sm:px-8 lg:px-10 ${activeTab === 'add' ? 'pb-0' : 'pb-10'}`}>
 
         {/* ── Global ingestion progress bar ── */}
         <AnimatePresence>
@@ -2013,13 +2585,13 @@ const AdminDashboard = () => {
           </motion.div>
         )}
 
-      <div className="max-w-7xl mx-auto px-6">{/* reopen container for remaining tabs */}
+      <div className="mx-auto max-w-6xl px-5 sm:px-8 lg:px-10">{/* reopen container for remaining tabs */}
 
         {/* ══════════════ TAB: Alerts ══════════════ */}
         {activeTab === 'alerts' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
             {alertThreshold && (
-              <p className="text-sm font-inter text-landing-text/60 mb-4">
+              <p className="text-sm font-inter text-slate-500 mb-4">
                 Alerts fire when score ≥ {alertThreshold} of 25.
                 {dedupSeconds > 0 && (
                   <> Repeats for the same machine + code within {Math.round(dedupSeconds / 60)} min are auto-deduped.</>
@@ -2028,15 +2600,15 @@ const AdminDashboard = () => {
             )}
 
             {Object.keys(snoozes).length > 0 && (
-              <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
-                <span className="font-bold uppercase tracking-wider text-[11px]">Snoozed:</span>
+              <div className="mb-6 flex flex-wrap items-center gap-2 text-[13px] text-slate-800">
+                <span className="font-bold uppercase tracking-wider text-[11px] text-slate-500">Snoozed:</span>
                 {Object.entries(snoozes).map(([mid, until]) => (
-                  <span key={mid} className="inline-flex items-center gap-2 rounded-full bg-white border border-amber-200 px-3 py-1 font-semibold">
+                  <span key={mid} className="inline-flex items-center gap-2 rounded-full bg-white border border-slate-300 px-3 py-1 font-semibold text-slate-800">
                     {mid.replaceAll('_', ' ')}
-                    <span className="text-amber-700/70 text-[11px]">until {new Date(until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="text-slate-500 text-[11px]">until {new Date(until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     <button
                       onClick={() => snoozeMachine(mid, 0)}
-                      className="text-amber-700 hover:text-amber-900 underline text-[11px]"
+                      className="text-slate-500 hover:text-slate-800 underline text-[11px]"
                     >
                       lift
                     </button>
@@ -2047,7 +2619,6 @@ const AdminDashboard = () => {
 
             <div className="flex items-center justify-between mb-10">
               <h2 className="text-3xl md:text-4xl font-bold font-sora text-slate-800 tracking-tight flex items-center gap-3">
-                <BellRing size={32} className="text-slate-400" />
                 Critical Fault Alerts
               </h2>
               <div className="flex items-center gap-6 mr-48">
@@ -2108,17 +2679,9 @@ const AdminDashboard = () => {
                             <span className="px-3 py-1 bg-white border border-slate-300 rounded-full text-xs font-bold font-sora text-slate-800">
                               Priority {alert.machine_significance}
                             </span>
-                            
-                            <div className={`flex items-center justify-center gap-1.5 px-3 py-1 rounded-full border transition-colors duration-300 ${
-                              alert.email_notified 
-                                ? 'bg-slate-50 border-slate-200 text-slate-700' 
-                                : 'bg-white border-slate-200 text-slate-400'
-                            }`}>
-                              <div className={`w-1.5 h-1.5 rounded-full ${alert.email_notified ? 'bg-slate-500 animate-pulse' : 'bg-slate-300'}`} />
-                              <span className="text-xs font-bold font-sora">
-                                {alert.email_notified ? 'System Notified' : 'Dispatch Pending'}
-                              </span>
-                            </div>
+                            <span className="px-3 py-1 bg-white border border-slate-300 rounded-full text-xs font-bold font-sora text-slate-800">
+                              {alert.email_notified ? 'System Notified' : 'Dispatch Pending'}
+                            </span>
                           </div>
 
                           <p className="text-sm font-inter text-slate-600 leading-relaxed">
@@ -2148,15 +2711,15 @@ const AdminDashboard = () => {
                           already shows the state + a "lift" link). */}
                       <div className="mt-4 flex items-center gap-3">
                         {alert.acknowledged_at ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-bold font-sora text-slate-500">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold font-sora text-black">
                             <CheckCircle size={13} />
                             Acknowledged
-                            {alert.acknowledged_by && <span className="text-slate-400 font-medium">· {alert.acknowledged_by}</span>}
+                            {alert.acknowledged_by && <span className="font-medium">· {alert.acknowledged_by}</span>}
                           </span>
                         ) : (
                           <button
                             onClick={() => acknowledgeAlert(alert.alert_id)}
-                            className="rounded-full bg-slate-900 text-white text-xs font-bold uppercase tracking-[0.14em] px-4 py-1.5 hover:brightness-125 transition-all"
+                            className="px-3 py-1 bg-white border border-slate-300 rounded-full text-xs font-bold font-sora text-slate-800 hover:bg-slate-50 transition-colors uppercase"
                           >
                             Acknowledge
                           </button>

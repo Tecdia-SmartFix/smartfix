@@ -18,8 +18,8 @@ export default {
           textDeep:   '#1a1a2e',
           muted:      '#1a1a2e',
           caption:    '#1a1a2e',
-          accent:     '#00A9FF',
-          hover:      '#89CFF3',
+          accent:     '#007bff',
+          hover:      '#0056b3',
         },
         tecdia: {
           background: '#F2F2F2', // Secondary Background
@@ -31,14 +31,14 @@ export default {
           secondary:  '#5f5f5f',
           muted:      '#7a7a7a', // Muted/helper text
           caption:    '#7a7a7a', // Muted/helper text
-          accent:     '#2b8cff', // Accent Blue (Samsung Blue)
-          hover:      '#1a7ae5', 
+          accent:     '#007bff', // Accent Blue
+          hover:      '#0056b3', 
           
           // Backward compatibility
           dark:       '#F2F2F2', 
-          cyan:       '#2b8cff',
-          sky:        '#2b8cff',
-          steel:      '#2b8cff',
+          cyan:       '#007bff',
+          sky:        '#007bff',
+          steel:      '#007bff',
         }
       },
       fontFamily: {
