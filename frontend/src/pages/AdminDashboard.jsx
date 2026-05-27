@@ -2129,6 +2129,21 @@ const AdminDashboard = () => {
 
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'add' ? 'add' : 'machines');
   const [form, setForm] = useState(EMPTY_FORM);
+
+  // Derived from `form` so the left-side live preview re-renders every
+  // keystroke. Shape mirrors what `/admin/machines` actually returns, so
+  // MachineCard renders identically to the real grid view. Empty fields
+  // get placeholder text — the preview is never blank.
+  const previewMachine = {
+    id:            form.machine_id || 'MACHINE_ID',
+    name:          form.name || 'Machine name',
+    display_name:  form.name || 'Machine name',
+    category:      form.category || 'General',
+    significance:  form.significance,
+    description:   form.description || '',
+    icon:          form.icon,
+    customIconUrl: form.customIconUrl,
+  };
   const [toast, setToast] = useState('');
   const [fileErrors, setFileErrors] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -2370,66 +2385,65 @@ const AdminDashboard = () => {
           >
             <div className="flex w-full min-h-[calc(100vh-60px)]">
 
-              {/* ── LEFT: image collage ── */}
+              {/* ── LEFT: live preview ──
+                  Renders a draft MachineCard from the form state so the
+                  admin sees what their entry will look like in the All
+                  Machines grid as they type. Replaces the prior decorative
+                  4-photo collage; same wrapper classes so the right-side
+                  form lays out unchanged. */}
               <div
-                className="hidden md:block w-1/2 sticky top-[60px] overflow-hidden"
+                className="hidden md:flex w-1/2 sticky top-[60px] overflow-hidden flex-col items-center justify-center px-10 py-12"
                 style={{ height: 'calc(100vh - 60px)', background: '#ffffff' }}
               >
-                <div className="grid grid-cols-2 w-full h-full" style={{ gridTemplateRows: '50% 50%' }}>
-                  
-                  {/* branding strip (overlaid) */}
-                  <div className="absolute top-0 left-0 right-0 z-20 pt-6 pl-8" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 100%)', paddingBottom: '40px' }}>
-                    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.3em', color: '#0f172a', textTransform: 'uppercase' }}>
-                      Smartfix · Machine Registry
-                    </span>
-                  </div>
-
-                  {/* laser cutter */}
-                  <div className="relative overflow-hidden">
-                    <img
-                      src={laserImg}
-                      alt="Laser Cutter"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(1.05) saturate(1.1)' }}
-                    />
-                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.1))' }} />
-                  </div>
-
-                  {/* welding sparks */}
-                  <div className="relative overflow-hidden">
-                    <img
-                      src="https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=600&q=80"
-                      alt="Welding"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(1.05) saturate(1.1)' }}
-                    />
-                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.1))' }} />
-                  </div>
-
-                  {/* circuit board */}
-                  <div className="relative overflow-hidden">
-                    <img
-                      src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80"
-                      alt="Circuit board"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(1.05) saturate(1.1)' }}
-                    />
-                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.1))' }} />
-                  </div>
-
-                  {/* CNC machine */}
-                  <div className="relative overflow-hidden">
-                    <img
-                      src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&q=80"
-                      alt="CNC machine"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(1.05) saturate(1.1)' }}
-                    />
-                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg,rgba(255,255,255,0.02),rgba(255,255,255,0.1))' }} />
-                  </div>
+                {/* Brand eyebrow (preserved from the previous design). */}
+                <div className="absolute top-0 left-0 right-0 z-20 pt-6 pl-8">
+                  <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.3em', color: '#0f172a', textTransform: 'uppercase' }}>
+                    Smartfix · Machine Registry
+                  </span>
                 </div>
 
-                {/* bottom caption */}
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 24px', background: 'linear-gradient(0deg,rgba(255,255,255,0.95),transparent)' }}>
-                  <p style={{ color: 'rgba(0,0,0,0.6)', fontSize: 11, lineHeight: 1.6, fontWeight: 500 }}>
-                    Upload a new machine to begin indexing diagnostic data and enable AI-powered fault analysis.
-                  </p>
+                <div className="w-full max-w-[440px] flex flex-col gap-5">
+                  <div>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#2563eb', letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+                      Live preview
+                    </p>
+                    <h3 style={{ marginTop: 6, color: '#0f172a', fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 18, letterSpacing: '-0.01em' }}>
+                      How it will appear in All Machines
+                    </h3>
+                    <p style={{ marginTop: 4, color: '#64748b', fontSize: 12, lineHeight: 1.55 }}>
+                      Updates as you fill out the form. Click into the card to see the expanded admin view.
+                    </p>
+                  </div>
+
+                  {/* The card — sized at its natural ~440px width. Uses the
+                      same MachineCard component the All Machines grid does,
+                      so this preview is byte-for-byte identical to the real
+                      thing. No onDelete prop so the trash button is hidden. */}
+                  <MachineCard machine={previewMachine} />
+
+                  {/* PDF + ingestion status — reinforces the next action. */}
+                  <div
+                    className="rounded-2xl p-4"
+                    style={{ background: form.pdfFile ? '#ecfdf5' : '#f1f5f9', border: `1px solid ${form.pdfFile ? '#a7f3d0' : '#e2e8f0'}` }}
+                  >
+                    <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: form.pdfFile ? '#047857' : '#64748b', marginBottom: 6 }}>
+                      Manual
+                    </p>
+                    {form.pdfFile ? (
+                      <>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', wordBreak: 'break-all' }}>
+                          {form.pdfFile.name}
+                        </p>
+                        <p style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>
+                          {(form.pdfFile.size / (1024 * 1024)).toFixed(2)} MB · ready to ingest
+                        </p>
+                      </>
+                    ) : (
+                      <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
+                        Drop the machine's PDF manual on the right. Ingestion takes ~3–5&nbsp;min once you submit.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
 
