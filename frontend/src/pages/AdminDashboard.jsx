@@ -78,6 +78,7 @@ const EMPTY_FORM = {
   border: 'hover:border-tecdia-accent/40',
   customColor: '',
   customIconUrl: null,
+  customIconFile: null,   // Image File for the optional admin-uploaded machine icon
   iconFile: null,         // File object for icon upload
   pdfFile: null,          // File object for PDF upload
   files: [],
@@ -2214,6 +2215,11 @@ const AdminDashboard = () => {
     fd.append('significance', String(form.significance));
     // Backend expects a Lucide icon name string (e.g. "Printer"), not an image File.
     if (form.icon)        fd.append('icon',         form.icon);
+    // Admin-uploaded image file. Goes into a separate FastAPI param
+    // (`custom_icon`) and gets saved to data/uploads/icons/{id}{ext} on
+    // the server; the resulting card renders it via MachineCard's
+    // existing customIconUrl path.
+    if (form.customIconFile) fd.append('custom_icon', form.customIconFile);
     const result = await addMachine(fd);
     setIsSubmitting(false);
     if (result.success) {
@@ -2348,14 +2354,18 @@ const AdminDashboard = () => {
 
       <div className={`mx-auto max-w-6xl px-5 sm:px-8 lg:px-10 ${activeTab === 'add' ? 'pb-0' : 'pb-10'}`}>
 
-        {/* ── Global ingestion progress bar ── */}
+        {/* ── Global ingestion progress bar ──
+            Wrapped in mt-10 so the panel doesn't sit flush against the
+            nav bar — gives roughly 1cm of breathing room when it appears. */}
         <AnimatePresence>
           {activeJob && (
-            <IngestionProgress
-              job={activeJob}
-              onDismiss={clearActiveJob}
-              onRetry={canRetryUpload ? retryUpload : undefined}
-            />
+            <div className="mt-10">
+              <IngestionProgress
+                job={activeJob}
+                onDismiss={clearActiveJob}
+                onRetry={canRetryUpload ? retryUpload : undefined}
+              />
+            </div>
           )}
         </AnimatePresence>
 
@@ -2563,7 +2573,13 @@ const AdminDashboard = () => {
                       <input type="file" accept="image/*" id="custom-icon-upload" className="hidden"
                         onChange={e => {
                           const file = e.target.files[0];
-                          if (file) setForm(f => ({ ...f, customIconUrl: URL.createObjectURL(file) }));
+                          // Keep BOTH the blob URL (for the in-form preview)
+                          // and the original File object (so handleAddMachine
+                          // can attach it to the FormData). Before this fix
+                          // only the blob URL was kept and the file never
+                          // left the browser — uploads looked successful but
+                          // the card always showed the gradient placeholder.
+                          if (file) setForm(f => ({ ...f, customIconUrl: URL.createObjectURL(file), customIconFile: file }));
                         }}
                       />
                       <label htmlFor="custom-icon-upload"
@@ -2573,7 +2589,7 @@ const AdminDashboard = () => {
                       {form.customIconUrl && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <img src={form.customIconUrl} alt="custom icon" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover', border: '1px solid #cbd5e1' }} />
-                          <button type="button" onClick={() => setForm(f => ({ ...f, customIconUrl: null }))}
+                          <button type="button" onClick={() => setForm(f => ({ ...f, customIconUrl: null, customIconFile: null }))}
                             style={{ width: 24, height: 24, borderRadius: '50%', background: '#f1f5f9', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', cursor: 'pointer' }}>
                             <X size={11} />
                           </button>

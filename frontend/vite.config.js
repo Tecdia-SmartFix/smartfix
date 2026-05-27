@@ -30,6 +30,10 @@ export default defineConfig({
       '/query':       'http://localhost:8000',
       '/health':      'http://localhost:8000',
       '/workstation': 'http://localhost:8000',
+      // Custom machine icons (admin upload) served by FastAPI's StaticFiles
+      // mount at /uploads/icons/. Only this subpath is exposed; PDFs in
+      // /uploads/ stay private.
+      '/uploads':     'http://localhost:8000',
 
       // ── SPA-vs-API collisions ──
       // /admin covers every backend endpoint under that prefix (config,

@@ -16,6 +16,7 @@ from fastapi import Cookie, Depends, FastAPI, File, Form, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr, Field
 from sentence_transformers import SentenceTransformer
 
@@ -225,6 +226,11 @@ ADMIN_SESSION_DAYS = 30
 # Replaces the previous tempfile-then-delete flow.
 UPLOADS_DIR = Path("./data/uploads")
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+# Custom machine icons uploaded by admins. Served as a static directory at
+# /uploads/icons (mounted below) — only this subfolder is publicly readable,
+# the parent data/uploads/ where PDFs live stays private.
+ICONS_DIR = UPLOADS_DIR / "icons"
+ICONS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Allowed worker domains. "All Access" bypasses the per-machine domain check.
 ALLOWED_DOMAINS = {
@@ -270,6 +276,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve custom machine icons uploaded by admins. Deliberately scoped to
+# the icons subdir so the PDFs in data/uploads/ aren't exposed.
+app.mount("/uploads/icons", StaticFiles(directory=ICONS_DIR), name="machine_icons")
+
 
 # ── error envelope ─────────────────────────────────────────────────────────
 
@@ -580,6 +591,12 @@ def _list_machines_basic() -> list[dict]:
             or DISPLAY_NAME_OVERRIDES.get(machine_id)
             or machine_id.replace("_", " ").title()
         )
+        # Custom-uploaded icon, detected on disk so it survives restarts
+        # (in-memory _machine_metadata doesn't). MachineCard prefers this
+        # URL over the bundled MACHINE_IMAGES, so an admin upload always
+        # wins. None when no file is present.
+        icon_files = list(ICONS_DIR.glob(f"{machine_id}.*"))
+        custom_icon_url = f"/uploads/icons/{icon_files[0].name}" if icon_files else None
         machines.append(
             {
                 "id": machine_id,
@@ -589,6 +606,7 @@ def _list_machines_basic() -> list[dict]:
                 "category": meta.get("category", "General"),
                 "significance": meta.get("significance", DEFAULT_SIGNIFICANCE),
                 "icon": meta.get("icon"),
+                "customIconUrl": custom_icon_url,
                 "suggested_questions": meta.get("suggested_questions", []),
             }
         )
@@ -984,6 +1002,47 @@ def _run_ingestion(job_id: str, machine_id: str, pdf_path: str, filename: str):
     # PDF is intentionally NOT deleted — it stays in data/uploads/ for re-ingest/audit.
 
 
+# Image mime types accepted for the optional admin-uploaded machine icon.
+_ICON_MIME_TO_EXT = {
+    "image/png":  ".png",
+    "image/jpeg": ".jpg",
+    "image/jpg":  ".jpg",
+    "image/webp": ".webp",
+    "image/gif":  ".gif",
+    "image/svg+xml": ".svg",
+}
+_ICON_MAX_BYTES = 5 * 1024 * 1024  # 5 MB — icons are tiny
+
+
+def _save_machine_icon(machine_id: str, custom_icon: UploadFile) -> Optional[str]:
+    """Persist an admin-uploaded machine icon and return its public URL,
+    or None when no file was provided. Drops any previously-saved icon for
+    the same machine so an update replaces cleanly.
+    """
+    if not custom_icon or not custom_icon.filename:
+        return None
+    ext = _ICON_MIME_TO_EXT.get(custom_icon.content_type or "")
+    if not ext:
+        # Fall back to filename extension when the browser sent a vague
+        # content_type — common with .svg from drag-and-drop.
+        suffix = Path(custom_icon.filename).suffix.lower()
+        if suffix in _ICON_MIME_TO_EXT.values():
+            ext = suffix
+    if not ext:
+        raise APIError(400, "Icon must be PNG, JPG, WebP, GIF, or SVG", "invalid_icon_type")
+
+    # Wipe any prior icon for this machine — different extensions etc.
+    for old in ICONS_DIR.glob(f"{machine_id}.*"):
+        old.unlink(missing_ok=True)
+
+    dest = ICONS_DIR / f"{machine_id}{ext}"
+    dest.write_bytes(custom_icon.file.read())
+    if dest.stat().st_size > _ICON_MAX_BYTES:
+        dest.unlink(missing_ok=True)
+        raise APIError(413, "Icon exceeds 5 MB", "icon_too_large")
+    return f"/uploads/icons/{dest.name}"
+
+
 @app.post("/admin/machines", status_code=202)
 async def admin_create_machine(
     request: Request,
@@ -994,6 +1053,10 @@ async def admin_create_machine(
     category: str = Form("General"),
     significance: int = Form(DEFAULT_SIGNIFICANCE),
     icon: Optional[str] = Form(None),
+    # Optional admin-uploaded image file. Distinct from `icon` (Lucide
+    # name): if both are provided, the uploaded image wins on the card
+    # because MachineCard reads `customIconUrl` before `MACHINE_IMAGES`.
+    custom_icon: Optional[UploadFile] = File(None),
     admin_email: str = Depends(require_admin),
 ):
     actor = admin_email
@@ -1014,6 +1077,10 @@ async def admin_create_machine(
     if machine_id in existing:
         audit.append("machine.create", status="failure", actor=actor, target=machine_id, ip=ip, details={"reason": "machine_exists"})
         raise APIError(409, "Machine already exists", "machine_exists")
+
+    # Save custom icon (if any) before reading the PDF body — keeps the
+    # error path simple if the icon is invalid.
+    icon_url = _save_machine_icon(machine_id, custom_icon)
 
     # Archive uploaded PDF under data/uploads/{machine_id}.pdf so it can be
     # re-ingested or audited later. Overwrites if the same machine_id is re-added
@@ -1124,6 +1191,10 @@ async def admin_delete_machine(
     # `{machine_id}.pdf` on disk — that's fine, missing_ok handles it.
     archived_pdf = UPLOADS_DIR / f"{machine_id}.pdf"
     archived_pdf.unlink(missing_ok=True)
+    # Also drop any uploaded custom icon so a re-add of the same machine_id
+    # doesn't inherit a stale image from a previous incarnation.
+    for old_icon in ICONS_DIR.glob(f"{machine_id}.*"):
+        old_icon.unlink(missing_ok=True)
 
     audit.append(
         "machine.delete",
