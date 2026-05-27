@@ -2225,18 +2225,28 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleDelete = async (id, name) => {
-    if (deleteConfirm === id) {
-      const result = await deleteMachine(id);
-      setDeleteConfirm(null);
-      if (result.success) {
-        showToast(`"${name}" removed.`);
-      } else {
-        showToast(`Error: ${result.error}`);
-      }
+  // Clicking the trash on a MachineCard now opens an explicit confirmation
+  // popup (see ConfirmDeleteModal below) rather than the previous two-step
+  // "click again to confirm" pattern. Safer for a destructive action that
+  // wipes Chroma chunks + shift logs + parameters in one go.
+  const [machineToDelete, setMachineToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = (id, name) => {
+    setMachineToDelete({ id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (!machineToDelete) return;
+    setIsDeleting(true);
+    const { id, name } = machineToDelete;
+    const result = await deleteMachine(id);
+    setIsDeleting(false);
+    setMachineToDelete(null);
+    if (result.success) {
+      showToast(`"${name}" removed.`);
     } else {
-      setDeleteConfirm(id);
-      setTimeout(() => setDeleteConfirm(null), 3000);
+      showToast(`Error: ${result.error}`);
     }
   };
 
@@ -2876,6 +2886,67 @@ const AdminDashboard = () => {
         isOpen={!!selectedMachine}
         onClose={() => setSelectedMachine(null)}
       />
+
+      {/* Destructive-action confirmation. Opens when the trash icon on a
+          MachineCard is clicked. Destroys the machine record, indexed
+          chunks in Chroma, shift logs, and parameters — explicit confirm
+          is mandatory rather than the prior "click twice within 3s"
+          pattern. */}
+      <AnimatePresence>
+        {machineToDelete && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isDeleting && setMachineToDelete(null)}
+              className="absolute inset-0 bg-black/70 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ duration: 0.2 }}
+              className="relative z-10 w-full max-w-md rounded-2xl bg-white p-7 shadow-2xl shadow-black/40"
+            >
+              <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-full bg-red-50 text-red-600">
+                <Trash2 size={20} />
+              </div>
+              <h2 className="text-[20px] font-bold text-[#0f172a] leading-tight">
+                Delete this machine?
+              </h2>
+              <p className="mt-2 text-[14px] leading-relaxed text-[#475569]">
+                <span className="font-bold text-[#0f172a]">{machineToDelete.name}</span> will be
+                permanently removed, along with all its indexed manual
+                chunks, shift logs, and configured parameters. This cannot
+                be undone.
+              </p>
+
+              <div className="mt-6 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMachineToDelete(null)}
+                  disabled={isDeleting}
+                  className="rounded-xl px-4 py-2.5 text-[13px] font-bold uppercase tracking-[0.12em] text-[#475569] transition-colors hover:text-[#0f172a] disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-[13px] font-bold uppercase tracking-[0.12em] text-white shadow-md shadow-red-600/30 transition-all hover:bg-red-700 disabled:opacity-50"
+                >
+                  {isDeleting && (
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  )}
+                  {isDeleting ? 'Deleting…' : 'Delete'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
