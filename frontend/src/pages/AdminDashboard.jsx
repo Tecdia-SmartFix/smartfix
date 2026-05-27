@@ -2454,98 +2454,101 @@ const AdminDashboard = () => {
               >
                 <form onSubmit={handleAddMachine} style={{ width: '100%' }}>
 
-                  {/* ── Machine Details ── */}
-                  <div style={{ marginBottom: 24 }}>
-                    <p style={{ color: '#0f172a', fontWeight: 700, fontSize: 14, marginBottom: 16, fontFamily: "'Sora', sans-serif" }}>Machine Details</p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {/* ── Machine Details ──
+                      Pair short fields side-by-side so the section fits
+                      well above the fold. No fields removed; only layout
+                      density changed. */}
+                  <div style={{ marginBottom: 16 }}>
+                    <p style={{ color: '#0f172a', fontWeight: 700, fontSize: 14, marginBottom: 10, fontFamily: "'Sora', sans-serif" }}>Machine Details</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
-                      {/* Machine Name */}
-                      <div>
-                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Machine Name *</label>
-                        <input
-                          type="text" required
-                          value={form.name}
-                          onChange={e => {
-                            const name = e.target.value;
-                            setForm(f => ({ ...f, name, machine_id: f._slugEdited ? f.machine_id : toSlug(name) }));
-                          }}
-                          style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, padding: '12px 16px', color: '#0f172a', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
-                          onFocus={e => { e.target.style.borderColor = '#3b82f6'; e.target.style.boxShadow = '0 0 0 2px rgba(59,130,246,0.15)'; }}
-                          onBlur={e => { e.target.style.borderColor = '#cbd5e1'; e.target.style.boxShadow = 'none'; }}
-                        />
+                      {/* Row 1: Name + ID (both short, semantically linked) */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Machine Name *</label>
+                          <input
+                            type="text" required
+                            value={form.name}
+                            onChange={e => {
+                              const name = e.target.value;
+                              setForm(f => ({ ...f, name, machine_id: f._slugEdited ? f.machine_id : toSlug(name) }));
+                            }}
+                            style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, padding: '10px 14px', color: '#0f172a', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                            onFocus={e => { e.target.style.borderColor = '#3b82f6'; e.target.style.boxShadow = '0 0 0 2px rgba(59,130,246,0.15)'; }}
+                            onBlur={e => { e.target.style.borderColor = '#cbd5e1'; e.target.style.boxShadow = 'none'; }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Machine ID *</label>
+                          <input
+                            type="text" required
+                            value={form.machine_id}
+                            onChange={e => setForm(f => ({ ...f, machine_id: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''), _slugEdited: true }))}
+                            style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, padding: '10px 14px', color: '#0f172a', fontSize: 13, fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }}
+                            onFocus={e => { e.target.style.borderColor = '#3b82f6'; e.target.style.boxShadow = '0 0 0 2px rgba(59,130,246,0.15)'; }}
+                            onBlur={e => { e.target.style.borderColor = '#cbd5e1'; e.target.style.boxShadow = 'none'; }}
+                          />
+                        </div>
                       </div>
 
-                      {/* Machine ID */}
-                      <div>
-                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Machine ID *</label>
-                        <input
-                          type="text" required
-                          value={form.machine_id}
-                          onChange={e => setForm(f => ({ ...f, machine_id: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''), _slugEdited: true }))}
-                          style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, padding: '12px 16px', color: '#0f172a', fontSize: 13, fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }}
-                          onFocus={e => { e.target.style.borderColor = '#3b82f6'; e.target.style.boxShadow = '0 0 0 2px rgba(59,130,246,0.15)'; }}
-                          onBlur={e => { e.target.style.borderColor = '#cbd5e1'; e.target.style.boxShadow = 'none'; }}
-                        />
-                      </div>
-
-                      {/* Description */}
+                      {/* Description (rows 4 → 3) */}
                       <div>
                         <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Description</label>
                         <textarea
-                          rows={4}
+                          rows={3}
                           placeholder="Brief description of this machine's diagnostic capabilities..."
                           value={form.description}
                           onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                          style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, padding: '12px 16px', color: '#0f172a', fontSize: 14, outline: 'none', resize: 'none', boxSizing: 'border-box' }}
+                          style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, padding: '10px 14px', color: '#0f172a', fontSize: 14, outline: 'none', resize: 'none', boxSizing: 'border-box' }}
                           onFocus={e => { e.target.style.borderColor = '#3b82f6'; e.target.style.boxShadow = '0 0 0 2px rgba(59,130,246,0.15)'; }}
                           onBlur={e => { e.target.style.borderColor = '#cbd5e1'; e.target.style.boxShadow = 'none'; }}
                         />
                       </div>
 
-                      {/* Category */}
-                      <div>
-                        <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Category</label>
-                        <div style={{ position: 'relative' }}>
-                          <select
-                            value={form.category}
-                            onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                            style={{ width: '100%', appearance: 'none', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, padding: '12px 40px 12px 16px', color: form.category ? '#0f172a' : '#94a3b8', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
-                          >
-                            <option value="" style={{ background: '#ffffff', color: '#94a3b8' }}>Select a category…</option>
-                            {CATEGORY_OPTIONS.map(c => (
-                              <option key={c} value={c} style={{ background: '#ffffff', color: '#0f172a' }}>{c}</option>
-                            ))}
-                          </select>
-                          <ChevronDown size={16} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
+                      {/* Row 3: Category + Significance */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Category</label>
+                          <div style={{ position: 'relative' }}>
+                            <select
+                              value={form.category}
+                              onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                              style={{ width: '100%', appearance: 'none', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, padding: '10px 36px 10px 14px', color: form.category ? '#0f172a' : '#94a3b8', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                            >
+                              <option value="" style={{ background: '#ffffff', color: '#94a3b8' }}>Select a category…</option>
+                              {CATEGORY_OPTIONS.map(c => (
+                                <option key={c} value={c} style={{ background: '#ffffff', color: '#0f172a' }}>{c}</option>
+                              ))}
+                            </select>
+                            <ChevronDown size={16} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
+                          </div>
                         </div>
-                      </div>
-
-                      {/* Significance slider */}
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                          <label style={{ fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Machine Significance</label>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: '#2563eb' }}>Level {form.significance}</span>
-                        </div>
-                        <input
-                          type="range" min="1" max="5" step="1"
-                          value={form.significance}
-                          onChange={e => setForm(f => ({ ...f, significance: parseInt(e.target.value) }))}
-                          style={{ width: '100%', height: 6, borderRadius: 4, background: '#e2e8f0', accentColor: '#3b82f6', cursor: 'pointer' }}
-                        />
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                          <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Low Impact</span>
-                          <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Mission Critical</span>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                            <label style={{ fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Significance</label>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#2563eb' }}>Level {form.significance}</span>
+                          </div>
+                          <input
+                            type="range" min="1" max="5" step="1"
+                            value={form.significance}
+                            onChange={e => setForm(f => ({ ...f, significance: parseInt(e.target.value) }))}
+                            style={{ width: '100%', height: 6, borderRadius: 4, background: '#e2e8f0', accentColor: '#3b82f6', cursor: 'pointer', marginTop: 6 }}
+                          />
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Low</span>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Mission Critical</span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* ── Appearance ── */}
-                  <div style={{ marginBottom: 24 }}>
-                    <p style={{ color: '#0f172a', fontWeight: 700, fontSize: 14, marginBottom: 16, fontFamily: "'Sora', sans-serif" }}>Appearance</p>
+                  <div style={{ marginBottom: 16 }}>
+                    <p style={{ color: '#0f172a', fontWeight: 700, fontSize: 14, marginBottom: 10, fontFamily: "'Sora', sans-serif" }}>Appearance</p>
 
                     {/* Icon upload */}
-                    <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Icon</label>
+                    <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Icon</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <input type="file" accept="image/*" id="custom-icon-upload" className="hidden"
                         onChange={e => {
@@ -2581,8 +2584,8 @@ const AdminDashboard = () => {
                   </div>
 
                   {/* ── Files & Media ── */}
-                  <div style={{ marginBottom: 24 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                       <p style={{ color: '#0f172a', fontWeight: 700, fontSize: 14, fontFamily: "'Sora', sans-serif" }}>Files & Media</p>
                       {form.files.length > 0 && (
                         <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 999, background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', fontWeight: 600 }}>
@@ -2602,13 +2605,15 @@ const AdminDashboard = () => {
                       style={{ display: 'none' }}
                     />
 
-                    {/* Drop zone */}
+                    {/* Drop zone — tighter vertical padding + smaller icon
+                        so it doesn't dominate the form. Functionality
+                        unchanged. */}
                     <div
                       onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                       onDragLeave={() => setIsDragging(false)}
                       onDrop={handleDrop}
                       style={{
-                        width: '100%', borderRadius: 14, padding: '48px 24px',
+                        width: '100%', borderRadius: 14, padding: '24px 20px',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                         border: `1px dashed ${isDragging ? '#3b82f6' : '#cbd5e1'}`,
                         background: isDragging ? '#eff6ff' : '#ffffff',
@@ -2616,23 +2621,23 @@ const AdminDashboard = () => {
                         boxSizing: 'border-box',
                       }}
                     >
-                      <div style={{ width: 72, height: 72, borderRadius: '50%', background: isDragging ? '#dbeafe' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-                        <FileText size={32} style={{ color: '#3b82f6' }} />
+                      <div style={{ width: 48, height: 48, borderRadius: '50%', background: isDragging ? '#dbeafe' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                        <FileText size={22} style={{ color: '#3b82f6' }} />
                       </div>
-                      <p style={{ fontSize: 15, color: isDragging ? '#2563eb' : '#64748b', marginBottom: 10, fontWeight: 500 }}>
+                      <p style={{ fontSize: 14, color: isDragging ? '#2563eb' : '#64748b', marginBottom: 8, fontWeight: 500 }}>
                         {isDragging ? 'Drop your file here' : 'Drag and drop your file'}
                       </p>
                       {!isDragging && (
                         <>
-                          <p style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 10, fontWeight: 600 }}>or</p>
+                          <p style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 8, fontWeight: 600 }}>or</p>
                           <div
                             onClick={() => fileInputRef.current.click()}
-                            style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', fontSize: 13, fontWeight: 600, padding: '8px 24px', borderRadius: 8, cursor: 'pointer', marginBottom: 16 }}>
+                            style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', fontSize: 13, fontWeight: 600, padding: '6px 20px', borderRadius: 8, cursor: 'pointer', marginBottom: 10 }}>
                             Browse
                           </div>
                         </>
                       )}
-                      <p style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500 }}>PDF, JPG, PNG, WebP &nbsp;|&nbsp; Max 10 MB</p>
+                      <p style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>PDF, JPG, PNG, WebP &nbsp;|&nbsp; Max 10 MB</p>
                     </div>
 
                     {/* Errors */}
