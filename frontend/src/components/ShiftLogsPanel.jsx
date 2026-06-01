@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { fetchApi } from '../api/apiClient';
+import { useMachines } from '../context/MachineContext';
 
 const SEVERITY_STYLES = {
   1: { label: '1 — Info',     color: '#2e4e40', bg: '#e5eee4', border: '#c0e1d2' },
@@ -8,52 +9,6 @@ const SEVERITY_STYLES = {
   4: { label: '4 — Impact',   color: '#ffffff', bg: '#dc9b9b', border: '#dc9b9b' },
   5: { label: '5 — Safety',   color: '#4a1515', bg: '#f4d2d2', border: '#dc9b9b' },
 };
-
-const MOCK_SHIFT_LOGS = [
-  {
-    id: 'log_1', machine_id: 'INJECTION_MOLDING_MACHINE', worker_label: 'Alice Smith',
-    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    phase: 'end', severity: 1, notes: 'Everything running smoothly. Output meets quality specs.',
-    readings: { temperature: 145, pressure: 2.1 }, anomalies: [], acknowledged: true, workstation_ip: '192.168.1.5',
-  },
-  {
-    id: 'log_2', machine_id: 'LASER_CUTTING_MACHINE', worker_label: 'Bob Jones',
-    created_at: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
-    phase: 'end', severity: 4, notes: 'Laser alignment seems slightly off on X axis. Needs calibration.',
-    readings: { alignment_score: 82, power_output: '95%' },
-    anomalies: [{ title: 'Alignment Deviation', detail: 'Score dropped below 90 threshold' }],
-    acknowledged: false, workstation_ip: '192.168.1.12',
-  },
-  {
-    id: 'log_3', machine_id: 'INJECTION_MOLDING_MACHINE', worker_label: 'Charlie Brown',
-    created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-    phase: 'start', severity: 2, notes: "Noticed minor scratching on the mold surface. Doesn't affect output yet.",
-    readings: { temperature: 150, pressure: 2.2 }, anomalies: [], acknowledged: true, workstation_ip: '192.168.1.5',
-  },
-  {
-    id: 'log_4', machine_id: 'CNC_MILLING_MACHINE', worker_label: 'Diana Prince',
-    created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    phase: 'end', severity: 5, notes: 'Emergency stop triggered due to excessive vibration. Needs maintenance ASAP.',
-    readings: { vibration_level: 8.5 },
-    anomalies: [{ title: 'Critical Vibration', detail: 'Vibration level exceeded safety limit of 5.0' }],
-    acknowledged: false, workstation_ip: '192.168.1.20',
-    void_at: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    void_reason: 'False alarm from faulty vibration sensor', voided_by: 'Admin',
-  },
-  {
-    id: 'log_5', machine_id: 'LASER_CUTTING_MACHINE', worker_label: 'Eve Adams',
-    created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-    phase: 'start', severity: 1, notes: 'All pre-checks passed.',
-    readings: { alignment_score: 98, power_output: '100%' }, anomalies: [],
-    acknowledged: false, workstation_ip: '192.168.1.12',
-  },
-];
-
-const MOCK_MACHINES = [
-  { id: 'INJECTION_MOLDING_MACHINE', name: 'Injection Molding Machine' },
-  { id: 'LASER_CUTTING_MACHINE',     name: 'Laser Cutting Machine' },
-  { id: 'CNC_MILLING_MACHINE',       name: 'CNC Milling Machine' },
-];
 
 const fmtTs = (iso) => {
   if (!iso) return '—';
@@ -68,7 +23,7 @@ const fmtTs = (iso) => {
 };
 
 const ShiftLogsPanel = () => {
-  const machines = MOCK_MACHINES;
+  const { machines } = useMachines();
 
   const [logs, setLogs]                   = useState([]);
   const [loading, setLoading]             = useState(true);
@@ -89,12 +44,19 @@ const ShiftLogsPanel = () => {
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
-    await new Promise(r => setTimeout(r, 400));
-    let data = [...MOCK_SHIFT_LOGS];
-    if (machineFilter) data = data.filter(l => l.machine_id === machineFilter);
-    if (phaseFilter)   data = data.filter(l => l.phase === phaseFilter);
-    setLogs(data);
-    setLoading(false);
+    try {
+      const qs = new URLSearchParams();
+      if (machineFilter) qs.set('machine_id', machineFilter);
+      if (phaseFilter)   qs.set('phase', phaseFilter);
+      qs.set('limit', '200');
+      const data = await fetchApi(`/admin/shifts?${qs.toString()}`);
+      setLogs(data.logs || []);
+    } catch (e) {
+      setError(e.message || 'Failed to load shift logs');
+      setLogs([]);
+    } finally {
+      setLoading(false);
+    }
   }, [machineFilter, phaseFilter]);
 
   useEffect(() => { load(); }, [load]);

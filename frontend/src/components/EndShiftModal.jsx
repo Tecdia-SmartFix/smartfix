@@ -209,9 +209,23 @@ const EndShiftModal = ({ isOpen, onClose, machineId, machineName, phase = 'end' 
                             />
                             {range && <p className="mt-1.5 text-[12px] text-white/36">{range}</p>}
                             {recent.length > 0 && (
-                              <p className="mt-1 text-[11px] text-[#70dceb]/70 font-mono">
-                                last {recent.length}: {recent.join(' · ')}{r.unit ? ` ${r.unit}` : ''}
-                              </p>
+                              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
+                                  Previous {recent.length}
+                                </span>
+                                {recent.map((v, i) => (
+                                  <span
+                                    key={i}
+                                    className={`inline-flex items-center rounded-lg border px-2.5 py-1 font-mono text-[15px] font-bold tabular-nums ${
+                                      i === 0
+                                        ? 'border-[#70dceb]/60 bg-[#70dceb]/15 text-[#70dceb]'
+                                        : 'border-white/12 bg-white/[0.04] text-white/55'
+                                    }`}
+                                  >
+                                    {v}
+                                  </span>
+                                ))}
+                              </div>
                             )}
                           </div>
                         );

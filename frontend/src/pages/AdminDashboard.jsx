@@ -483,6 +483,51 @@ const SETTINGS_CSS = `
     box-shadow: 0 0 0 4px var(--stg-blue-glow);
   }
 
+  .stg-root .stg-num-input.stg-invalid {
+    border-color: #dc2626;
+    background: #fef2f2;
+  }
+  .stg-root .stg-num-input.stg-invalid:focus {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 4px rgba(220,38,38,0.15);
+  }
+
+  .stg-root .stg-field-error {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: #b91c1c;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 6px 10px;
+    max-width: 280px;
+  }
+  .stg-root .stg-field-error::before {
+    content: "!";
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #dc2626;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+  }
+
+  .stg-root .stg-save-error {
+    font-size: 12px;
+    font-weight: 500;
+    color: #b91c1c;
+    margin-left: 14px;
+  }
+
   .stg-root .stg-input-wrap { position: relative; display: flex; align-items: center; }
   .stg-root .stg-input-wrap .stg-num-input { padding-right: 48px; width: 130px; }
 
@@ -686,13 +731,44 @@ const SETTINGS_CSS = `
   }
 `;
 
+const validateSettings = (d) => {
+  const errs = {};
+  const t = Number(d.alert_threshold);
+  if (d.alert_threshold === "" || d.alert_threshold == null || !Number.isFinite(t)) {
+    errs.alert_threshold = "Enter a number between 1 and 25.";
+  } else if (t < 1) {
+    errs.alert_threshold = "Must be at least 1.";
+  } else if (t > 25) {
+    errs.alert_threshold = "Must be 25 or less.";
+  } else if (!Number.isInteger(t)) {
+    errs.alert_threshold = "Must be a whole number.";
+  }
+
+  const s = Number(d.alert_dedup_seconds);
+  if (d.alert_dedup_seconds === "" || d.alert_dedup_seconds == null || !Number.isFinite(s)) {
+    errs.alert_dedup_seconds = "Enter a number between 0 and 86 400.";
+  } else if (s < 0) {
+    errs.alert_dedup_seconds = "Cannot be negative.";
+  } else if (s > 86400) {
+    errs.alert_dedup_seconds = "Must be 86 400 (24 h) or less.";
+  } else if (!Number.isInteger(s)) {
+    errs.alert_dedup_seconds = "Must be a whole number.";
+  }
+  return errs;
+};
+
 const SettingsPanel = () => {
   const [config, setConfig] = useState(null);
   const [draft, setDraft] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState("");
-  const [error, setError] = useState(null);
+  // `loadError` blocks the panel entirely (we can't show fields without
+  // a config to edit). `saveError` is a non-blocking inline message next
+  // to the Save button, so the user can correct the input without losing
+  // the whole page like before.
+  const [loadError, setLoadError] = useState(null);
+  const [saveError, setSaveError] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -700,15 +776,19 @@ const SettingsPanel = () => {
       const data = await fetchApi("/admin/config");
       setConfig(data);
       setDraft({ alert_threshold: data.alert_threshold, alert_dedup_seconds: data.alert_dedup_seconds });
-      setError(null);
-    } catch (e) { setError(e.detail || e.message); }
+      setLoadError(null);
+    } catch (e) { setLoadError(e.detail || e.message); }
     finally { setLoading(false); }
   };
 
   useEffect(() => { load(); }, []);
 
+  const fieldErrors = validateSettings(draft);
+  const hasFieldErrors = Object.keys(fieldErrors).length > 0;
+
   const handleSave = async () => {
-    setSaving(true); setToast("");
+    if (hasFieldErrors) return;
+    setSaving(true); setToast(""); setSaveError("");
     try {
       const saved = await fetchApi("/admin/config", {
         method: "PATCH",
@@ -718,7 +798,7 @@ const SettingsPanel = () => {
       setDraft({ alert_threshold: saved.alert_threshold, alert_dedup_seconds: saved.alert_dedup_seconds });
       setToast("Changes saved and live across all sessions");
       setTimeout(() => setToast(""), 3500);
-    } catch (e) { setError(e.detail || e.message); }
+    } catch (e) { setSaveError(e.detail || e.message); }
     finally { setSaving(false); }
   };
 
@@ -739,12 +819,12 @@ const SettingsPanel = () => {
     </div>
   );
 
-  if (error) return (
+  if (loadError) return (
     <div className="stg-root">
       <style>{SETTINGS_CSS}</style>
       <div className="stg-error-state">
         <span className="stg-error-icon">!</span>
-        <div><strong>Configuration error</strong><p>{error}</p></div>
+        <div><strong>Configuration error</strong><p>{loadError}</p></div>
       </div>
     </div>
   );
@@ -783,12 +863,16 @@ const SettingsPanel = () => {
                 type="number" min={1} max={25}
                 value={draft.alert_threshold ?? ""}
                 onChange={e => setDraft(d => ({ ...d, alert_threshold: e.target.value }))}
-                className="stg-num-input"
+                aria-invalid={!!fieldErrors.alert_threshold}
+                className={`stg-num-input ${fieldErrors.alert_threshold ? "stg-invalid" : ""}`}
               />
               <div className="stg-threshold-track">
-                <div className="stg-threshold-fill" style={{ width: `${thresholdPct}%` }} />
+                <div className="stg-threshold-fill" style={{ width: `${Math.min(100, Math.max(0, thresholdPct))}%` }} />
               </div>
               <span className="stg-range-label">{thresholdPct}% of max (25)</span>
+              {fieldErrors.alert_threshold && (
+                <span className="stg-field-error" role="alert">{fieldErrors.alert_threshold}</span>
+              )}
             </div>
           </div>
 
@@ -807,11 +891,15 @@ const SettingsPanel = () => {
                   type="number" min={0} max={86400}
                   value={draft.alert_dedup_seconds ?? ""}
                   onChange={e => setDraft(d => ({ ...d, alert_dedup_seconds: e.target.value }))}
-                  className="stg-num-input"
+                  aria-invalid={!!fieldErrors.alert_dedup_seconds}
+                  className={`stg-num-input ${fieldErrors.alert_dedup_seconds ? "stg-invalid" : ""}`}
                 />
                 <span className="stg-time-badge">{fmtTime(Number(draft.alert_dedup_seconds))}</span>
               </div>
               <span className="stg-range-label">seconds · max 86 400 (24 h)</span>
+              {fieldErrors.alert_dedup_seconds && (
+                <span className="stg-field-error" role="alert">{fieldErrors.alert_dedup_seconds}</span>
+              )}
             </div>
           </div>
 
@@ -820,14 +908,18 @@ const SettingsPanel = () => {
         <div className="stg-save-row">
           <button
             onClick={handleSave}
-            disabled={!dirty || saving}
-            className={`stg-save-btn ${dirty ? "stg-active" : ""}`}
+            disabled={!dirty || saving || hasFieldErrors}
+            className={`stg-save-btn ${dirty && !hasFieldErrors ? "stg-active" : ""}`}
           >
             {saving
               ? <><div className="stg-btn-spinner" /><span>Saving…</span></>
               : <><span>↑</span><span>Save Changes</span></>
             }
           </button>
+
+          {saveError && (
+            <span className="stg-save-error" role="alert">{saveError}</span>
+          )}
 
           <AnimatePresence>
             {toast && (
