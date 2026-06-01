@@ -19,7 +19,7 @@ import { fetchApi } from '../api/apiClient';
 import EndShiftModal from '../components/EndShiftModal';
 import HandoffBanner from '../components/HandoffBanner';
 import BrandMark from '../components/BrandMark';
-import tecdiaLogoBlack from '../assets/tecdia-logo-black.svg';
+import chatLogo from '../assets/chat logo.png';
 
 const ICON_MAP = {
   Settings2, Gauge, Printer, Scissors, Bot, Wrench, Cpu,
@@ -482,9 +482,9 @@ const ChatPage = () => {
                 <div className="flex flex-col items-center text-center">
   
   <img
-    src={tecdiaLogoBlack}
+    src={chatLogo}
     alt="Tecdia"
-    className="h-20 w-auto mb-3"
+    className="h-14 w-auto mb-3"
   />
 
   <h1 className="text-[34px] font-semibold text-gray-900 leading-tight tracking-tight">
