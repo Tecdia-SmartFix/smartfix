@@ -181,7 +181,7 @@ const LandingPage = () => {
           <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black to-transparent" />
 
           <div className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-[1680px] flex-col justify-between pb-7 sm:min-h-[calc(100vh-6rem)]">
-            <div className="grid flex-1 items-center gap-8 lg:grid-cols-2">
+            <div className="grid flex-1 items-center gap-8 grid-cols-2">
               <div className="max-w-5xl min-w-0">
                 <motion.div {...fadeUp(0.02)} className="mb-7 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.34em] text-white/60">
                   {slide.kicker}
@@ -203,10 +203,10 @@ const LandingPage = () => {
 
               <motion.aside
                 {...fadeUp(0.25)}
-                className="bg-transparent py-4 lg:self-end"
+                className="bg-transparent py-4 self-center"
               >
                 <div className="mb-6 flex flex-wrap items-center gap-x-7 gap-y-3">
-                  <div className="min-w-max whitespace-nowrap text-white text-[clamp(3rem,5.5vw,7rem)] font-black leading-none">{slide.metric}</div>
+                  <div className="text-white text-[clamp(1.8rem,3.5vw,7rem)] font-black leading-none">{slide.metric}</div>
                   <p className="min-w-0 text-base font-black uppercase leading-7 tracking-[0.22em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">{slide.label}</p>
                 </div>
                 <p className="mb-7 text-base font-semibold leading-8 text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.92)]">
