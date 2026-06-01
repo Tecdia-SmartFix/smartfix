@@ -1862,7 +1862,10 @@ const AnalyticsPanel = () => {
           <ActivityBars buckets={queries_per_hour_24h} />
         </section>
 
-        <div style={{ display:'flex', flexDirection:'column', gap:24 }}>
+        {/* Failure-likelihood + depreciation are both per-machine bar
+            stacks, so side-by-side reads naturally and uses screen real
+            estate well. Drops to a single column below 980px. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 24, marginBottom: 36 }}>
           <FailureLikelihood rows={filteredFailures} />
           <AssetDepreciation rows={filteredDeprec} />
         </div>
@@ -2005,55 +2008,56 @@ const MachineTable = ({ data = [] }) => {
 };
 
 /* ─── 2. ErrorCodeTable ────────────────────────────────────────────── */
-const ErrorCodeTable = ({ codes = [] }) => (
-  <div>
-    <div style={{ marginBottom: 14 }}>
-      <div style={sectionTitle}>Top Error / Alarm Codes</div>
-      <div style={{ ...mono, fontSize: 10, color: P.muted, marginTop: 2 }}>Frequency across all machines</div>
-    </div>
-    <div style={tableCard}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
-        <colgroup>
-          <col style={{ width: '10%' }} />
-          <col style={{ width: '52%' }} />
-          <col style={{ width: '38%' }} />
-        </colgroup>
-        <thead>
-          <tr style={{ borderBottom: `1px solid ${P.border}`, background: '#fafbfd' }}>
-            <th style={TH(undefined, 'right', '36px')}>#</th>
-            <th style={TH(undefined, 'left',  '80px')}>Code</th>
-            <th style={TH(undefined, 'right', '70px')}>Count</th>
-          </tr>
-        </thead>
-      </table>
-      <div className="analytics-scrollbar" style={{ maxHeight: 240, overflowY: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
-          <colgroup>
-            <col style={{ width: '10%' }} />
-            <col style={{ width: '52%' }} />
-            <col style={{ width: '38%' }} />
-          </colgroup>
-          <tbody>
-            {codes.map((c, i) => (
-              <tr key={`${c.code}-${i}`} className="sl-row" style={{ borderBottom: `1px solid ${P.border}` }}>
-                <td style={{ ...TD('right') }}>
-                  <span style={{ ...mono, fontWeight: 700, color: '#a0acc8' }}>{i + 1}</span>
-                </td>
-                <td style={TD()}>
-                  <CodeCountPill code={c.code} n={c.count} />
-                </td>
-                <td style={{ ...TD('right') }}>
-                  <span style={{ ...mono, fontWeight: 700, color: P.deep }}>{c.count}</span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+const ErrorCodeTable = ({ codes = [] }) => {
+  const max = Math.max(1, ...codes.map(c => c.count || 0));
+  // Color graded: top 3 darkest, then gradient lighter. Hits the eye in
+  // descending importance order without being noisy.
+  const barColor = (rank) => {
+    if (rank === 0) return '#0f1c3f';
+    if (rank === 1) return '#2c3a60';
+    if (rank === 2) return '#4a5a80';
+    if (rank < 6)   return '#6b7ba0';
+    return '#a0acc8';
+  };
+  return (
+    <div>
+      <div style={{ marginBottom: 14 }}>
+        <div style={sectionTitle}>Top Error / Alarm Codes</div>
+        <div style={{ ...mono, fontSize: 10, color: P.muted, marginTop: 2 }}>Frequency across all machines</div>
       </div>
-      <TableFooter shown={codes.length} total={codes.length} unit="codes" />
+      {codes.length === 0 ? (
+        <div style={{ fontSize: 12, color: P.muted, fontStyle: 'italic', padding: '12px 0' }}>
+          No coded queries yet.
+        </div>
+      ) : (
+        <div className="analytics-scrollbar" style={{ maxHeight: 280, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, paddingRight: 4 }}>
+          {codes.map((c, i) => {
+            const pct = ((c.count || 0) / max) * 100;
+            return (
+              <div key={`${c.code}-${i}`}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ ...mono, fontSize: 10, fontWeight: 700, color: '#a0acc8', minWidth: 16, textAlign: 'right' }}>{i + 1}</span>
+                    <span style={{ ...mono, fontSize: 13, fontWeight: 700, color: P.deep }}>{c.code}</span>
+                  </span>
+                  <span style={{ ...mono, fontSize: 12, fontWeight: 700, color: P.deep }}>×{c.count}</span>
+                </div>
+                <div style={{ width: '100%', height: 6, borderRadius: 3, background: '#f0f3f8', overflow: 'hidden' }}>
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct}%` }}
+                    transition={{ duration: 0.6, ease: 'easeOut', delay: i * 0.02 }}
+                    style={{ height: '100%', background: barColor(i), borderRadius: 3 }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 /* ─── 3. SeverityDonut ─────────────────────────────────────────────── */
 const SeverityDonut = ({ distribution = {} }) => {
@@ -2108,139 +2112,182 @@ const SeverityDonut = ({ distribution = {} }) => {
 
 /* ─── 4. ActivityBars ──────────────────────────────────────────────── */
 const ActivityBars = ({ buckets = [] }) => {
+  const [hoverIdx, setHoverIdx] = useState(null);
   const max = Math.max(1, ...buckets.map(b => b.count || 0));
+  const total = buckets.reduce((s, b) => s + (b.count || 0), 0);
+  const peak = buckets.reduce((p, b) => (b.count > (p?.count ?? -1) ? b : p), null);
   return (
     <div style={sectionCard}>
-      <div style={sectionTitle}>Query volume — last 24h (UTC)</div>
-      <div style={{ height:4 }} />
-      <div style={{ display:'flex', alignItems:'flex-end', gap:3, height:100, paddingBottom:8 }}>
-        {buckets.map(b => (
-          <div key={b.hour} style={{ flex:1, minWidth:14, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-end', height:'100%', gap:4 }}>
-            <motion.div initial={{ height:0 }} animate={{ height:`${((b.count || 0) / max) * 80}px` }}
-              transition={{ duration:0.7, ease:'easeOut' }}
-              style={{ width:'100%', background: P.blue, borderRadius:'3px 3px 0 0', minHeight:(b.count || 0) > 0 ? 2 : 0 }}/>
-            <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:P.muted, fontWeight:600 }}>
-              {b.hour ? b.hour.split(':')[0] : ''}
-            </span>
-          </div>
-        ))}
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+        <div style={sectionTitle}>Query volume — last 24h (UTC)</div>
+        <div style={{ ...mono, fontSize: 10, color: P.muted }}>
+          <span style={{ fontWeight: 600, color: P.deep }}>{total}</span> queries
+          {peak && peak.count > 0 && (
+            <> · peak <span style={{ fontWeight: 600, color: P.deep }}>{peak.count}</span> @ {peak.hour}</>
+          )}
+        </div>
+      </div>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', gap: 3, height: 108, paddingBottom: 18, marginTop: 8, borderBottom: `1px solid ${P.border}` }}>
+        {buckets.map((b, i) => {
+          const isHover = hoverIdx === i;
+          const pct = (b.count || 0) / max;
+          return (
+            <div
+              key={b.hour}
+              onMouseEnter={() => setHoverIdx(i)}
+              onMouseLeave={() => setHoverIdx(null)}
+              style={{ flex: 1, minWidth: 14, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', cursor: 'default' }}
+            >
+              {/* Tooltip on hover */}
+              {isHover && (
+                <div style={{
+                  position: 'absolute', bottom: '100%', marginBottom: 4,
+                  background: P.deep, color: '#fff',
+                  padding: '4px 8px', borderRadius: 4, ...mono, fontSize: 10, fontWeight: 600,
+                  whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 2,
+                }}>
+                  {b.hour} · {b.count || 0}
+                </div>
+              )}
+              <motion.div
+                initial={{ height: 0 }}
+                animate={{ height: `${pct * 82}px` }}
+                transition={{ duration: 0.7, ease: 'easeOut' }}
+                style={{
+                  width: '100%',
+                  background: isHover ? P.deep : P.blue,
+                  borderRadius: '3px 3px 0 0',
+                  minHeight: (b.count || 0) > 0 ? 2 : 0,
+                  transition: 'background 0.15s',
+                }}
+              />
+            </div>
+          );
+        })}
+        {/* Hour ticks below the baseline — every 3rd so they don't crowd. */}
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, display: 'flex', gap: 3 }}>
+          {buckets.map((b, i) => (
+            <div key={b.hour} style={{ flex: 1, minWidth: 14, textAlign: 'center', ...mono, fontSize: 9, color: P.muted, fontWeight: 600, lineHeight: '14px' }}>
+              {i % 3 === 0 && b.hour ? b.hour.split(':')[0] : ''}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 };
 
-/* ─── 5. FailureLikelihood ─────────────────────────────────────────── */
+/* Color a bar by risk band (used for both failure prob and life remaining). */
+const riskColor = (pct, invert = false) => {
+  // invert=false: 0% green → 100% red (failure probability)
+  // invert=true:  0% red → 100% green (life remaining)
+  const t = invert ? 100 - pct : pct;
+  if (t < 30) return { fill: '#5fb37c', track: '#e5eee4', label: P.deep };  // healthy
+  if (t < 60) return { fill: '#d4a64a', track: '#f6f4e8', label: P.deep };  // watch
+  if (t < 85) return { fill: '#d97a4a', track: '#fbeadf', label: P.deep };  // elevated
+  return         { fill: '#c44d4d', track: '#f9e4e4', label: '#c44d4d' };   // critical
+};
+
+/* ─── 5. FailureLikelihood (visual) ────────────────────────────────── */
 const FailureLikelihood = ({ rows = [] }) => {
-  const [activeId, setActiveId] = useState(null);
+  // Sort highest-risk first so the most urgent machines surface at the top.
+  const sorted = [...rows].sort((a, b) => (b.prob_7d_pct || 0) - (a.prob_7d_pct || 0));
   return (
-    <div style={{ flex:1 }}>
-      <div style={{ marginBottom:16 }}>
+    <div style={{ flex: 1 }}>
+      <div style={{ marginBottom: 14 }}>
         <div style={sectionTitle}>Failure likelihood</div>
-        <div style={sectionSub}>Poisson estimate from last 7 days of alerts</div>
+        <div style={sectionSub}>7-day probability — Poisson estimate from recent alerts</div>
       </div>
-      <div style={tableCard}>
-        <div className="analytics-scrollbar" style={{ overflowX:'auto' }}>
-          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
-            <colgroup>
-              <col style={{ width:'36%' }} />
-              <col style={{ width:'20%' }} />
-              <col style={{ width:'15%' }} />
-              <col style={{ width:'15%' }} />
-              <col style={{ width:'14%' }} />
-            </colgroup>
-            <thead>
-              <tr style={{ borderBottom:`1px solid ${P.border}`, background:'#fafbfd' }}>
-                <th style={TH(undefined,'left','140px')}>Machine</th>
-                <th style={TH(undefined,'right','72px')}>λ / day</th>
-                <th style={TH(undefined,'right','48px')}>24H</th>
-                <th style={TH(undefined,'right','40px')}>7D</th>
-                <th style={TH(undefined,'right','40px')}>30D</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(r => {
-                const isActive = activeId === r.machine_id;
-                const bg = isActive ? P.activeB : '#fff';
-                return (
-                  <tr key={r.machine_id} className="sl-row" onClick={() => setActiveId(isActive ? null : r.machine_id)}
-                    style={{ borderBottom:`1px solid ${P.border}`, cursor:'pointer', borderLeft:isActive?`3px solid ${P.blue}`:'3px solid transparent' }}>
-                    <td style={{ ...TD(), background:bg }}>
-                      <div style={{ fontSize:12, fontWeight:600, color:P.deep }}>{r.display_name}</div>
-                      <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:10, color:P.muted, marginTop:2 }}>{r.alerts_7d} alerts/7d</div>
-                    </td>
-                    <td style={{ ...TD('right'), background:bg }}>
-                      <span style={{ ...mono, fontWeight:600, color:P.deep }}>{r.lambda_per_day?.toFixed(2)}</span>
-                    </td>
-                    {[r.prob_24h_pct, r.prob_7d_pct, r.prob_30d_pct].map((pct, j) => (
-                      <td key={j} style={{ ...TD('right'), background:bg }}>
-                        <span style={{ ...mono, fontWeight:700, color:P.deep }}>{pct}%</span>
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <TableFooter shown={rows.length} total={rows.length} unit="machines" />
+      <div style={{ ...sectionCard, padding: '18px 20px' }}>
+        {sorted.length === 0 ? (
+          <div style={{ fontSize: 12, color: P.muted, fontStyle: 'italic', padding: '12px 0' }}>
+            No alert history yet — every machine reads 0% until the first alert fires.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {sorted.map(r => {
+              const pct = r.prob_7d_pct || 0;
+              const c = riskColor(pct);
+              return (
+                <div key={r.machine_id}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: P.deep }}>{r.display_name}</span>
+                    <span style={{ ...mono, fontWeight: 700, fontSize: 14, color: c.label, tabularNums: 'lining-nums' }}>
+                      {pct}<span style={{ fontSize: 10, marginLeft: 1, color: P.muted, fontWeight: 600 }}>%</span>
+                    </span>
+                  </div>
+                  {/* Track + fill */}
+                  <div style={{ position: 'relative', width: '100%', height: 8, borderRadius: 4, background: c.track, overflow: 'hidden' }}>
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.6, ease: 'easeOut' }}
+                      style={{ height: '100%', background: c.fill, borderRadius: 4 }}
+                    />
+                  </div>
+                  {/* Secondary metrics */}
+                  <div style={{ display: 'flex', gap: 12, marginTop: 6, ...mono, fontSize: 10, color: P.muted }}>
+                    <span>24h <span style={{ fontWeight: 600, color: P.deep }}>{r.prob_24h_pct}%</span></span>
+                    <span>30d <span style={{ fontWeight: 600, color: P.deep }}>{r.prob_30d_pct}%</span></span>
+                    <span>λ <span style={{ fontWeight: 600, color: P.deep }}>{(r.lambda_per_day ?? 0).toFixed(2)}/day</span></span>
+                    <span style={{ marginLeft: 'auto' }}>{r.alerts_7d ?? 0} alerts/7d</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-/* ─── 6. AssetDepreciation ─────────────────────────────────────────── */
+/* ─── 6. AssetDepreciation (visual) ────────────────────────────────── */
 const AssetDepreciation = ({ rows = [] }) => {
-  const [activeId, setActiveId] = useState(null);
   const fmt = n => `₹${(n / 100000).toFixed(1)}L`;
+  // Sort by least-remaining so machines nearing end-of-life surface first.
+  const sorted = [...rows].sort((a, b) => (a.pct_remaining || 0) - (b.pct_remaining || 0));
   return (
-    <div style={{ flex:1 }}>
-      <div style={{ marginBottom:16 }}>
+    <div style={{ flex: 1 }}>
+      <div style={{ marginBottom: 14 }}>
         <div style={sectionTitle}>Asset depreciation</div>
-        <div style={sectionSub}>Straight-line, 12-month trailing</div>
+        <div style={sectionSub}>Remaining useful life — straight-line, 12-month trailing</div>
       </div>
-      <div style={tableCard}>
-        <div className="analytics-scrollbar" style={{ overflowX:'auto' }}>
-          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
-            <colgroup>
-              <col style={{ width:'40%', minWidth:'160px' }} />
-              <col style={{ width:'22%', minWidth:'110px' }} />
-              <col style={{ width:'18%', minWidth:'90px' }} />
-              <col style={{ width:'20%', minWidth:'100px' }} />
-            </colgroup>
-            <thead>
-              <tr style={{ borderBottom:`1px solid ${P.border}`, background:'#fafbfd' }}>
-                <th style={TH(undefined, 'left',  '160px')}>Machine</th>
-                <th style={TH(undefined, 'right', '110px')}>Current Value</th>
-                <th style={TH(undefined, 'right',  '90px')}>Remaining</th>
-                <th style={TH(undefined, 'right', '100px')}>Monthly Loss</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(r => {
-                const isActive = activeId === r.machine_id;
-                const bg = isActive ? P.activeB : '#fff';
-                return (
-                  <tr key={r.machine_id} className="sl-row" onClick={() => setActiveId(isActive ? null : r.machine_id)}
-                    style={{ borderBottom:`1px solid ${P.border}`, cursor:'pointer', borderLeft:isActive?`3px solid ${P.blue}`:'3px solid transparent' }}>
-                    <td style={{ ...TD(), background:bg }}>
-                      <span style={{ fontSize:12, fontWeight:600, color:P.deep }}>{r.display_name}</span>
-                    </td>
-                    <td style={{ ...TD('right'), background:bg }}>
-                      <span style={{ ...mono, fontWeight:700, color:P.deep }}>{fmt(r.current_value)}</span>
-                    </td>
-                    <td style={{ ...TD('right'), background:bg }}>
-                      <span style={{ ...mono, fontWeight:600, color: r.pct_remaining < 50 ? '#844d4d' : P.text }}>{r.pct_remaining}%</span>
-                    </td>
-                    <td style={{ ...TD('right'), background:bg }}>
-                      <span style={{ ...mono, color:P.muted }}>−{fmt(r.monthly_loss)}/mo</span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <TableFooter shown={rows.length} total={rows.length} unit="assets" />
+      <div style={{ ...sectionCard, padding: '18px 20px' }}>
+        {sorted.length === 0 ? (
+          <div style={{ fontSize: 12, color: P.muted, fontStyle: 'italic', padding: '12px 0' }}>
+            No machine assets configured.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {sorted.map(r => {
+              const pct = r.pct_remaining || 0;
+              const c = riskColor(pct, /* invert */ true);
+              return (
+                <div key={r.machine_id}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: P.deep }}>{r.display_name}</span>
+                    <span style={{ ...mono, fontWeight: 700, fontSize: 14, color: P.deep }}>
+                      {fmt(r.current_value)}
+                    </span>
+                  </div>
+                  <div style={{ position: 'relative', width: '100%', height: 8, borderRadius: 4, background: c.track, overflow: 'hidden' }}>
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.6, ease: 'easeOut' }}
+                      style={{ height: '100%', background: c.fill, borderRadius: 4 }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 12, marginTop: 6, ...mono, fontSize: 10, color: P.muted }}>
+                    <span><span style={{ fontWeight: 600, color: c.label }}>{pct}%</span> remaining life</span>
+                    <span style={{ marginLeft: 'auto' }}>−{fmt(r.monthly_loss)}/mo</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
