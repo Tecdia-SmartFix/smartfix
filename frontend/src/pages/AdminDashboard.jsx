@@ -989,9 +989,6 @@ const AuditPanel = () => {
           </div>
         ) : filtered.length === 0 ? (
           <div style={s.emptyState}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#c9d5ee" strokeWidth="1.5" strokeLinecap="round" style={{ marginBottom: 12 }}>
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
             <p style={{ fontWeight: 700, fontSize: 14, color: '#0f1c3f', marginBottom: 4 }}>No events found</p>
             <p style={{ fontSize: 12, color: '#6b7a9e' }}>The audit ledger is empty for this filter.</p>
           </div>
@@ -1103,10 +1100,6 @@ const AuditPanel = () => {
         <div style={s.footer}>
           <span style={s.footerLeft}>
             Showing {filtered.length} log {filtered.length === 1 ? 'entry' : 'entries'}
-          </span>
-          <span style={s.footerRight}>
-            <span style={s.liveDot} className="live-dot" />
-            Real-time sync active
           </span>
         </div>
       </div>
@@ -1314,6 +1307,50 @@ const ANALYTICS_CSS = `
   @keyframes sl-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
   .sl-row:hover td { background: ${P.hover} !important; }
   .sl-sync:hover { background: ${P.blue} !important; color:#fff !important; }
+
+  /* Custom scrollbar for analytics tables to match the light theme */
+  .analytics-scrollbar::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+  }
+  .analytics-scrollbar::-webkit-scrollbar-track {
+    background: #ffffff;
+    border-left: 1px solid #e2e8f4;
+    border-top: 1px solid #e2e8f4;
+  }
+  .analytics-scrollbar::-webkit-scrollbar-thumb {
+    background: #dbdbdb;
+    border: 3px solid #ffffff;
+    border-radius: 7px;
+  }
+  .analytics-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #c0c0c0;
+  }
+  .analytics-scrollbar::-webkit-scrollbar-button {
+    background-color: #ffffff;
+    display: block;
+    height: 14px;
+    width: 14px;
+  }
+  .analytics-scrollbar::-webkit-scrollbar-button:single-button:vertical:decrement {
+    background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='4' viewBox='0 0 8 4'%3E%3Cpath d='M4 0L8 4H0z' fill='%23cccccc'/%3E%3C/svg%3E") no-repeat center center;
+    border-left: 1px solid #e2e8f4;
+  }
+  .analytics-scrollbar::-webkit-scrollbar-button:single-button:vertical:increment {
+    background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='4' viewBox='0 0 8 4'%3E%3Cpath d='M0 0h8L4 4z' fill='%23cccccc'/%3E%3C/svg%3E") no-repeat center center;
+    border-left: 1px solid #e2e8f4;
+  }
+  .analytics-scrollbar::-webkit-scrollbar-button:single-button:horizontal:decrement {
+    background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='8' viewBox='0 0 4 8'%3E%3Cpath d='M4 0L0 4l4 4z' fill='%23cccccc'/%3E%3C/svg%3E") no-repeat center center;
+    border-top: 1px solid #e2e8f4;
+  }
+  .analytics-scrollbar::-webkit-scrollbar-button:single-button:horizontal:increment {
+    background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='8' viewBox='0 0 4 8'%3E%3Cpath d='M0 0l4 4-4 4z' fill='%23cccccc'/%3E%3C/svg%3E") no-repeat center center;
+    border-top: 1px solid #e2e8f4;
+  }
+  .analytics-scrollbar::-webkit-scrollbar-button:hover {
+    background-color: #f5f7fa;
+  }
 `;
 
 const tableCard = {
@@ -1351,7 +1388,7 @@ const QuestionItem = ({ q }) => {
     .toLowerCase()
     .replace(/\b\w/g, l => l.toUpperCase());
   return (
-    <div className="flex flex-col bg-[#F0F0F0] mb-0.5 last:mb-0 transition-colors hover:bg-[#E5E5E5]">
+    <div className="flex flex-col bg-[#ffffff] border-b border-black/5 last:border-b-0 transition-colors hover:bg-[#f8fafc]">
       <div
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer"
@@ -1811,7 +1848,7 @@ const MachineTable = ({ data = [] }) => {
       <div style={tableCard}>
         {rows.length === 0
           ? <div style={{ padding:'32px 16px', textAlign:'center', fontSize:12, color:P.muted, fontStyle:'italic' }}>No machines match the current filter.</div>
-          : <div style={{ overflowX:'auto' }}>
+          : <div className="analytics-scrollbar" style={{ overflowX:'auto' }}>
               <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
                 <colgroup>
                   <col style={{ width:'22%' }} />
@@ -1897,7 +1934,7 @@ const ErrorCodeTable = ({ codes = [] }) => (
           </tr>
         </thead>
       </table>
-      <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+      <div className="analytics-scrollbar" style={{ maxHeight: 240, overflowY: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
           <colgroup>
             <col style={{ width: '10%' }} />
@@ -2010,7 +2047,7 @@ const FailureLikelihood = ({ rows = [] }) => {
         <div style={sectionSub}>Poisson estimate from last 7 days of alerts</div>
       </div>
       <div style={tableCard}>
-        <div style={{ overflowX:'auto' }}>
+        <div className="analytics-scrollbar" style={{ overflowX:'auto' }}>
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
             <colgroup>
               <col style={{ width:'36%' }} />
@@ -2070,7 +2107,7 @@ const AssetDepreciation = ({ rows = [] }) => {
         <div style={sectionSub}>Straight-line, 12-month trailing</div>
       </div>
       <div style={tableCard}>
-        <div style={{ overflowX:'auto' }}>
+        <div className="analytics-scrollbar" style={{ overflowX:'auto' }}>
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
             <colgroup>
               <col style={{ width:'40%', minWidth:'160px' }} />
@@ -2418,7 +2455,7 @@ const AdminDashboard = () => {
                 {/* Brand eyebrow (preserved from the previous design). */}
                 <div className="absolute top-0 left-0 right-0 z-20 pt-6 pl-8">
                   <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.3em', color: '#0f172a', textTransform: 'uppercase' }}>
-                    Smartfix · Machine Registry
+                   
                   </span>
                 </div>
 
@@ -2441,11 +2478,8 @@ const AdminDashboard = () => {
                       thing. No onDelete prop so the trash button is hidden. */}
                   <MachineCard machine={previewMachine} />
 
-                  {/* PDF + ingestion status — reinforces the next action. */}
-                  <div
-                    className="rounded-2xl p-4"
-                    style={{ background: form.pdfFile ? '#ecfdf5' : '#f1f5f9', border: `1px solid ${form.pdfFile ? '#a7f3d0' : '#e2e8f0'}` }}
-                  >
+                  {/* PDF + ingestion status text content (no box container) */}
+                  <div style={{ marginTop: 20 }}>
                     <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: form.pdfFile ? '#047857' : '#64748b', marginBottom: 6 }}>
                       Manual
                     </p>
@@ -2470,7 +2504,7 @@ const AdminDashboard = () => {
               {/* ── RIGHT: light form ── */}
               <div
                 className="w-full md:w-1/2 px-10 py-6 relative z-10 overflow-y-auto"
-                style={{ background: '#f8fafc', borderLeft: '1px solid #e2e8f0', minHeight: 'calc(100vh - 60px)' }}
+                style={{ background: '#ffffff', minHeight: 'calc(100vh - 60px)' }}
               >
                 <form onSubmit={handleAddMachine} style={{ width: '100%' }}>
 
@@ -2516,7 +2550,7 @@ const AdminDashboard = () => {
                         <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Description</label>
                         <textarea
                           rows={3}
-                          placeholder="Brief description of this machine's diagnostic capabilities..."
+                          placeholder="Brief description of this machine's diagnostic capabilities"
                           value={form.description}
                           onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                           style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, padding: '10px 14px', color: '#0f172a', fontSize: 14, outline: 'none', resize: 'none', boxSizing: 'border-box' }}
@@ -2535,7 +2569,7 @@ const AdminDashboard = () => {
                               onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                               style={{ width: '100%', appearance: 'none', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 12, padding: '10px 36px 10px 14px', color: form.category ? '#0f172a' : '#94a3b8', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
                             >
-                              <option value="" style={{ background: '#ffffff', color: '#94a3b8' }}>Select a category…</option>
+                              <option value="" style={{ background: '#ffffff', color: '#94a3b8' }}>Select a category</option>
                               {CATEGORY_OPTIONS.map(c => (
                                 <option key={c} value={c} style={{ background: '#ffffff', color: '#0f172a' }}>{c}</option>
                               ))}
