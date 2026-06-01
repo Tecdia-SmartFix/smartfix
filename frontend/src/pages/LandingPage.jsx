@@ -181,10 +181,9 @@ const LandingPage = () => {
           <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black to-transparent" />
 
           <div className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-[1680px] flex-col justify-between pb-7 sm:min-h-[calc(100vh-6rem)]">
-            <div className="grid flex-1 items-center gap-8 lg:grid-cols-[minmax(0,0.98fr)_minmax(420px,520px)]">
-              <div className="max-w-5xl">
+            <div className="grid flex-1 items-center gap-8 lg:grid-cols-2">
+              <div className="max-w-5xl min-w-0">
                 <motion.div {...fadeUp(0.02)} className="mb-7 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.34em] text-white/60">
-                  <Sparkles size={16} />
                   {slide.kicker}
                 </motion.div>
                 <motion.h1
@@ -192,7 +191,7 @@ const LandingPage = () => {
                   initial={{ opacity: 0, y: 28 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                  className="max-w-5xl text-[clamp(4rem,9.5vw,9rem)] font-black uppercase leading-[0.88] tracking-normal text-white"
+                  className="max-w-5xl text-[clamp(3rem,5.5vw,7rem)] font-black uppercase leading-[0.88] tracking-normal text-white"
                 >
                   Tecdia
                   <span className="block text-white/55">SmartFix</span>
@@ -207,7 +206,7 @@ const LandingPage = () => {
                 className="bg-transparent py-4 lg:self-end"
               >
                 <div className="mb-6 flex flex-wrap items-center gap-x-7 gap-y-3">
-                  <div className="min-w-max whitespace-nowrap text-white text-[clamp(3.8rem,13vw,5.7rem)] font-black leading-none">{slide.metric}</div>
+                  <div className="min-w-max whitespace-nowrap text-white text-[clamp(3rem,5.5vw,7rem)] font-black leading-none">{slide.metric}</div>
                   <p className="min-w-0 text-base font-black uppercase leading-7 tracking-[0.22em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">{slide.label}</p>
                 </div>
                 <p className="mb-7 text-base font-semibold leading-8 text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.92)]">

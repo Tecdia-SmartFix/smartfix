@@ -4,21 +4,30 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Menu, X, User, LogOut, Moon, Sun } from 'lucide-react';
 import EndShiftModal from './EndShiftModal';
 import { useStartDiagnosing } from '../context/StartDiagnosingContext';
+import BrandMark from './BrandMark';
 import { useTheme } from '../context/ThemeContext';
-import tecdiaLogo from '../assets/cebu_F-Photoroom.png';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isEndShiftOpen, setIsEndShiftOpen] = useState(false);
+  // 'start' = pre-shift checklist, 'end' = end-of-shift log. Same modal,
+  // different copy + different phase tag in the POST body.
   const [shiftModalPhase, setShiftModalPhase] = useState('end');
   const [hoveredPath, setHoveredPath] = useState(null);
   const { open: openStartDiagnosing } = useStartDiagnosing();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const showCta = !location.pathname.startsWith('/chat') && !location.pathname.startsWith('/admin');
+  // Shift logging only makes sense from a machine chat — those URLs carry the
+  // ?machine= param the modal needs to render the right form. Hide both
+  // buttons on landing / admin / everywhere else so the navbar stays clean.
   const showShiftButtons = location.pathname.startsWith('/chat');
 
+  // Derive the active machine from the URL so the End-Shift modal opened
+  // from the navbar gets the same machineId as the one inside ChatPage.
+  // Falls through to undefined when no ?machine= is present (e.g. on /admin),
+  // and the modal will show its "no parameters configured" empty state.
   const navMachineParam = new URLSearchParams(location.search).get('machine');
   const navMachineId = navMachineParam
     ? navMachineParam.replace(/[^A-Za-z0-9]+/g, '_').toUpperCase()
@@ -38,29 +47,21 @@ const Navbar = () => {
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         className={`theme-nav w-full flex items-center justify-between transition-all duration-500 ${
           scrolled || location.pathname !== '/'
-            ? 'bg-black shadow-sm'
+            ? 'bg-black/[0.92] backdrop-blur-xl shadow-sm'
             : 'bg-black/10 backdrop-blur-[2px]'
         }`}
       >
         <div className="max-w-[1680px] mx-auto w-full px-5 sm:px-8 lg:px-10 h-[64px] flex items-center justify-between">
-
+          {/* Logo */}
           {/* Left Side: Logo & Primary Links */}
-          <div className="flex items-center gap-8 h-full">
-
-            {/* TECDIA Logo */}
-            <Link
-              to="/"
-              className="navbar-brand"
-              style={{ padding: '5px 0', display: 'inline-flex', alignItems: 'center' }}
-            >
-              <img
-                src={tecdiaLogo}
-                alt="Tecdia"
-                style={{ width: '74px', height: 'auto' }}
-              />
-            </Link>
-
+          <div className="flex items-center gap-10 h-full ml-6">
+            <BrandMark className="text-white" logoClassName="h-10 w-auto shrink-0" />
+            
             <div className="hidden md:flex items-center gap-8 h-full">
+              {/* Real routes only — the Products / Support / Technologies
+                  placeholders inherited from the Tecdia corporate template
+                  pointed nowhere, so they were removed and replaced with the
+                  actual SPA destinations that ship in this app. */}
               <Link to="/features"
                 onMouseEnter={() => setHoveredPath('/features')}
                 onMouseLeave={() => setHoveredPath(null)}
@@ -91,10 +92,11 @@ const Navbar = () => {
                   <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
                 )}
               </Link>
+              
             </div>
           </div>
-
-          {/* Right Side */}
+  
+          {/* Right Side: Secondary Links */}
           <div className="hidden md:flex items-center gap-7 h-full">
             {showShiftButtons && (
               <>
@@ -109,6 +111,7 @@ const Navbar = () => {
                     <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
                   )}
                 </button>
+
                 <button
                   onClick={() => { setShiftModalPhase('end'); setIsEndShiftOpen(true); }}
                   onMouseEnter={() => setHoveredPath('end-shift')}
@@ -120,20 +123,13 @@ const Navbar = () => {
                     <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
                   )}
                 </button>
+
                 <div className="h-4 w-px bg-white/20" />
               </>
             )}
 
-            <Link 
-              to="/admin/login" 
-              onMouseEnter={() => setHoveredPath('/admin/login')}
-              onMouseLeave={() => setHoveredPath(null)}
-              className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-white transition-colors duration-200 hover:text-white h-full mr-2"
-            >
+            <Link to="/admin/login" className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-white hover:text-white mr-2">
               <User size={14} /> Admin
-              {hoveredPath === '/admin/login' && (
-                <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
-              )}
             </Link>
             <button
               type="button"
@@ -144,7 +140,7 @@ const Navbar = () => {
             >
               {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
             </button>
-
+  
             {showCta && (
               <button
                 type="button"
@@ -160,7 +156,7 @@ const Navbar = () => {
               </button>
             )}
           </div>
-
+  
           {/* Mobile menu button */}
           <button
             className="md:hidden flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition-all duration-200"
@@ -183,6 +179,7 @@ const Navbar = () => {
             className="md:hidden absolute top-[76px] left-4 right-4 rounded-3xl p-6 flex flex-col gap-4 bg-black/[0.92] border border-white/15 shadow-xl backdrop-blur-xl"
           >
             <Link to="/features" onClick={() => setIsMenuOpen(false)} className="text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors">Features</Link>
+
             <hr className="border-white/15" />
             <button
               type="button"

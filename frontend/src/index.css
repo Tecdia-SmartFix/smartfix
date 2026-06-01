@@ -161,7 +161,7 @@
   }
 
   .light .theme-nav {
-    background: rgba(3, 20, 26, 0.92) !important;
+    background: #000000 !important;
     border-bottom: 1px solid rgba(16, 185, 210, 0.22);
     box-shadow: 0 16px 60px rgba(7, 159, 186, 0.14);
   }

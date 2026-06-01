@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, Mail, ArrowRight, MailCheck } from 'lucide-react';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { TecdiaWordmark } from '../components/BrandMark';
+import tecdiaLogo from '../assets/cebu_F-Photoroom.png';
 
 // Split-card sign-in page. Left half is the dark Tecdia/SmartFix brand
 // panel; right half is the form. Same shell renders both flow steps —
@@ -67,8 +68,8 @@ const AdminLogin = () => {
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.06] via-transparent to-white/[0.02]" />
 
           <div className="relative">
-            <TecdiaWordmark className="h-12 w-auto text-white" />
-            <div className="mt-3 text-[40px] font-black uppercase tracking-tight leading-none">
+            <img src={tecdiaLogo} alt="Tecdia" className="h-28 w-auto" />
+            <div className="-mt-4 text-[40px] font-black uppercase tracking-tight leading-none">
               SmartFix
             </div>
             <div className="mt-2 text-[11px] font-bold uppercase tracking-[0.28em] text-white/55">
@@ -180,7 +181,7 @@ const AdminLogin = () => {
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-[#0a0d11]/8 bg-[#f7faf9] px-4 py-3 text-[12px] text-[#0a0d11]/60 leading-relaxed">
+                <div className="border-y border-[#0a0d11]/10 py-4 text-[12px] text-[#0a0d11]/60 leading-relaxed">
                   The link expires in <strong className="text-[#0a0d11]">15 minutes</strong> and can only be used once.
                   If you don't see the email, check your spam folder.
                 </div>
