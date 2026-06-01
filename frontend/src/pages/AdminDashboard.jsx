@@ -9,6 +9,9 @@ import {
   HardDrive, Truck, FlaskConical, Pipette, BellRing, BarChart3, TrendingUp,
   AlertTriangle, RotateCw,
 } from 'lucide-react';
+import {
+  ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend,
+} from 'recharts';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useMachines } from '../context/MachineContext';
 import { useAlerts } from '../context/AlertContext';
@@ -2065,42 +2068,42 @@ const SeverityDonut = ({ distribution = {} }) => {
   const entries = Object.entries(distribution).sort((a, b) => Number(a[0]) - Number(b[0]));
   const total = entries.reduce((s, [, c]) => s + c, 0);
   if (!total) return null;
-  const r = 40, circ = 2 * Math.PI * r;
+  const r = 72, circ = 2 * Math.PI * r;
   let acc = 0;
   return (
     <div>
       <div style={sectionTitle}>Severity Distribution</div>
       <div style={{ height:4 }} />
-      <div style={{ display:'flex', alignItems:'center', gap:20, flexWrap:'wrap' }}>
-        <div style={{ position:'relative', width:100, height:100, flexShrink:0 }}>
-          <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%', transform:'rotate(-90deg)', overflow:'visible' }}>
-            <circle cx="50" cy="50" r={r} fill="none" stroke="#F0F0F0" strokeWidth="8"/>
+      <div style={{ display:'flex', alignItems:'center', gap:32, flexWrap:'wrap' }}>
+        <div style={{ position:'relative', width:200, height:200, flexShrink:0 }}>
+          <svg viewBox="0 0 200 200" style={{ width:'100%', height:'100%', transform:'rotate(-90deg)', overflow:'visible' }}>
+            <circle cx="100" cy="100" r={r} fill="none" stroke="#F0F0F0" strokeWidth="16"/>
             {entries.map(([sev, count]) => {
               const pct = count / total; if (!pct) return null;
               const dash = pct * circ, offset = -acc * circ; acc += pct;
               const isH = hovered === sev;
-              return <circle key={sev} cx="50" cy="50" r={r} fill="none" stroke={SEV_DONUT[sev]}
-                strokeWidth={isH ? 11 : 8} strokeDasharray={`${dash} ${circ}`} strokeDashoffset={offset} strokeLinecap="butt"
+              return <circle key={sev} cx="100" cy="100" r={r} fill="none" stroke={SEV_DONUT[sev]}
+                strokeWidth={isH ? 22 : 16} strokeDasharray={`${dash} ${circ}`} strokeDashoffset={offset} strokeLinecap="butt"
                 style={{ transition:'stroke-width .2s', cursor:'pointer' }}
                 onMouseEnter={() => setHovered(sev)} onMouseLeave={() => setHovered(null)}/>;
             })}
-            <circle cx="50" cy="50" r="34" fill="white"/>
+            <circle cx="100" cy="100" r="60" fill="white"/>
           </svg>
           <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-            <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:18, fontWeight:700, color:P.deep, lineHeight:1 }}>{total}</span>
-            <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'.15em', color:P.muted, marginTop:3 }}>Queries</span>
+            <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:38, fontWeight:700, color:P.deep, lineHeight:1 }}>{total}</span>
+            <span style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.18em', color:P.muted, marginTop:8 }}>Queries</span>
           </div>
         </div>
-        <div style={{ flex:1, display:'flex', flexDirection:'column', gap:10 }}>
+        <div style={{ flex:1, minWidth:180, display:'flex', flexDirection:'column', gap:12 }}>
           {entries.map(([sev, count]) => {
             const pct = Math.round((count / total) * 100), isH = hovered === sev;
             return (
               <div key={sev} onMouseEnter={() => setHovered(sev)} onMouseLeave={() => setHovered(null)}
                 style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', transform:isH?'translateX(4px)':'none', transition:'transform .15s' }}>
-                <span style={{ width:10, height:10, borderRadius:2, background:SEV_DONUT[sev], border:`1px solid ${SEV_BORDER[sev]}`, flexShrink:0 }}/>
-                <span style={{ flex:1, fontSize:11, fontWeight:isH?600:400, color:isH?P.deep:P.text, transition:'color .15s' }}>Lv{sev} — {SEV_LABEL[sev]}</span>
-                <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:11, fontWeight:700, color:P.deep, width:24, textAlign:'right' }}>{count}</span>
-                <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:10, color:P.muted, width:28, textAlign:'right' }}>{pct}%</span>
+                <span style={{ width:12, height:12, borderRadius:2, background:SEV_DONUT[sev], border:`1px solid ${SEV_BORDER[sev]}`, flexShrink:0 }}/>
+                <span style={{ flex:1, fontSize:12, fontWeight:isH?600:400, color:isH?P.deep:P.text, transition:'color .15s' }}>Lv{sev} — {SEV_LABEL[sev]}</span>
+                <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:12, fontWeight:700, color:P.deep, width:28, textAlign:'right' }}>{count}</span>
+                <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:11, color:P.muted, width:34, textAlign:'right' }}>{pct}%</span>
               </div>
             );
           })}
@@ -2188,105 +2191,187 @@ const riskColor = (pct, invert = false) => {
   return         { fill: '#c44d4d', track: '#f9e4e4', label: '#c44d4d' };   // critical
 };
 
-/* ─── 5. FailureLikelihood (visual) ────────────────────────────────── */
-const FailureLikelihood = ({ rows = [] }) => {
-  // Sort highest-risk first so the most urgent machines surface at the top.
-  const sorted = [...rows].sort((a, b) => (b.prob_7d_pct || 0) - (a.prob_7d_pct || 0));
+/* Distinct color palette for the multi-line charts. Lines cycle through
+   this when machine count exceeds palette length — fine for ≤8 machines. */
+const CHART_PALETTE = [
+  '#2D8CFF', '#5fb37c', '#d4a64a', '#c44d4d',
+  '#7a4dc4', '#4ab8c4', '#d4767a', '#0f1c3f',
+];
+
+const lineColorFor = (idx) => CHART_PALETTE[idx % CHART_PALETTE.length];
+
+/* Shared tooltip styling — matches the rest of the analytics page. */
+const ChartTooltip = ({ active, payload, label, suffix = '', formatter }) => {
+  if (!active || !payload || !payload.length) return null;
   return (
-    <div style={{ flex: 1 }}>
+    <div style={{
+      background: P.deep, color: '#fff', padding: '8px 12px',
+      borderRadius: 6, ...mono, fontSize: 11, fontWeight: 600,
+      boxShadow: '0 4px 12px rgba(15,28,63,.25)',
+    }}>
+      <div style={{ fontWeight: 700, marginBottom: 6, color: '#fff', letterSpacing: '.04em' }}>{label}</div>
+      {payload.map((p, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 2, background: p.color, flexShrink: 0 }} />
+          <span style={{ flex: 1, color: '#cbd6f0' }}>{p.name}</span>
+          <span style={{ fontWeight: 700, color: '#fff' }}>
+            {formatter ? formatter(p.value) : `${p.value}${suffix}`}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/* ─── 5. FailureLikelihood (line chart) ────────────────────────────── */
+/* X axis: time horizon (1d / 7d / 30d). Y axis: probability %.
+   One line per machine — each machine's trajectory shows how the
+   estimated failure probability grows as the time window stretches.   */
+const FailureLikelihood = ({ rows = [] }) => {
+  // Sort highest-risk first so the legend reads top-down by urgency.
+  const sorted = [...rows].sort((a, b) => (b.prob_7d_pct || 0) - (a.prob_7d_pct || 0));
+
+  // Shape required by recharts: one row per X-tick, one key per line.
+  const data = [
+    { horizon: '1 day',   ...Object.fromEntries(sorted.map(r => [r.display_name, r.prob_24h_pct || 0])) },
+    { horizon: '7 days',  ...Object.fromEntries(sorted.map(r => [r.display_name, r.prob_7d_pct  || 0])) },
+    { horizon: '30 days', ...Object.fromEntries(sorted.map(r => [r.display_name, r.prob_30d_pct || 0])) },
+  ];
+
+  return (
+    <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ marginBottom: 14 }}>
         <div style={sectionTitle}>Failure likelihood</div>
-        <div style={sectionSub}>7-day probability — Poisson estimate from recent alerts</div>
+        <div style={sectionSub}>Probability of ≥1 alert in the next window — Poisson estimate</div>
       </div>
-      <div style={{ ...sectionCard, padding: '18px 20px' }}>
+      <div style={{ ...sectionCard, padding: '20px 16px 16px' }}>
         {sorted.length === 0 ? (
           <div style={{ fontSize: 12, color: P.muted, fontStyle: 'italic', padding: '12px 0' }}>
             No alert history yet — every machine reads 0% until the first alert fires.
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {sorted.map(r => {
-              const pct = r.prob_7d_pct || 0;
-              const c = riskColor(pct);
-              return (
-                <div key={r.machine_id}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: P.deep }}>{r.display_name}</span>
-                    <span style={{ ...mono, fontWeight: 700, fontSize: 14, color: c.label, tabularNums: 'lining-nums' }}>
-                      {pct}<span style={{ fontSize: 10, marginLeft: 1, color: P.muted, fontWeight: 600 }}>%</span>
-                    </span>
-                  </div>
-                  {/* Track + fill */}
-                  <div style={{ position: 'relative', width: '100%', height: 8, borderRadius: 4, background: c.track, overflow: 'hidden' }}>
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${pct}%` }}
-                      transition={{ duration: 0.6, ease: 'easeOut' }}
-                      style={{ height: '100%', background: c.fill, borderRadius: 4 }}
-                    />
-                  </div>
-                  {/* Secondary metrics */}
-                  <div style={{ display: 'flex', gap: 12, marginTop: 6, ...mono, fontSize: 10, color: P.muted }}>
-                    <span>24h <span style={{ fontWeight: 600, color: P.deep }}>{r.prob_24h_pct}%</span></span>
-                    <span>30d <span style={{ fontWeight: 600, color: P.deep }}>{r.prob_30d_pct}%</span></span>
-                    <span>λ <span style={{ fontWeight: 600, color: P.deep }}>{(r.lambda_per_day ?? 0).toFixed(2)}/day</span></span>
-                    <span style={{ marginLeft: 'auto' }}>{r.alerts_7d ?? 0} alerts/7d</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
+              <CartesianGrid stroke={P.border} strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="horizon"
+                tick={{ fill: P.muted, fontSize: 11, fontFamily: "'IBM Plex Mono', monospace" }}
+                axisLine={{ stroke: P.border }}
+                tickLine={false}
+                padding={{ left: 20, right: 20 }}
+              />
+              <YAxis
+                domain={[0, 100]}
+                tick={{ fill: P.muted, fontSize: 11, fontFamily: "'IBM Plex Mono', monospace" }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={v => `${v}%`}
+                width={42}
+              />
+              <Tooltip
+                content={<ChartTooltip suffix="%" />}
+                cursor={{ stroke: P.border, strokeWidth: 1 }}
+              />
+              <Legend
+                verticalAlign="bottom"
+                wrapperStyle={{ paddingTop: 12, fontSize: 11, fontFamily: "'Inter', sans-serif" }}
+                iconType="circle"
+                iconSize={8}
+              />
+              {sorted.map((r, i) => (
+                <Line
+                  key={r.machine_id}
+                  type="monotone"
+                  dataKey={r.display_name}
+                  stroke={lineColorFor(i)}
+                  strokeWidth={2}
+                  dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
+                  activeDot={{ r: 6 }}
+                  isAnimationActive
+                  animationDuration={700}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
         )}
       </div>
     </div>
   );
 };
 
-/* ─── 6. AssetDepreciation (visual) ────────────────────────────────── */
+/* ─── 6. AssetDepreciation (line chart) ────────────────────────────── */
+/* X axis: months from now (0–24). Y axis: projected asset value in lakhs.
+   One line per machine. Straight-line forecast using monthly_loss.       */
 const AssetDepreciation = ({ rows = [] }) => {
-  const fmt = n => `₹${(n / 100000).toFixed(1)}L`;
-  // Sort by least-remaining so machines nearing end-of-life surface first.
   const sorted = [...rows].sort((a, b) => (a.pct_remaining || 0) - (b.pct_remaining || 0));
+
+  // 0, 3, 6 … 24 months out. Floor at zero so fully-depreciated assets
+  // flatline rather than going negative.
+  const months = [0, 3, 6, 9, 12, 15, 18, 21, 24];
+  const data = months.map(m => {
+    const row = { month: m === 0 ? 'now' : `+${m}mo` };
+    for (const r of sorted) {
+      const v = Math.max(0, (r.current_value || 0) - m * (r.monthly_loss || 0));
+      row[r.display_name] = +(v / 100000).toFixed(2); // lakhs, 2 decimals
+    }
+    return row;
+  });
+
+  const fmt = v => `₹${v.toFixed(1)}L`;
+
   return (
-    <div style={{ flex: 1 }}>
+    <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ marginBottom: 14 }}>
         <div style={sectionTitle}>Asset depreciation</div>
-        <div style={sectionSub}>Remaining useful life — straight-line, 12-month trailing</div>
+        <div style={sectionSub}>Projected book value over the next 24 months — straight-line</div>
       </div>
-      <div style={{ ...sectionCard, padding: '18px 20px' }}>
+      <div style={{ ...sectionCard, padding: '20px 16px 16px' }}>
         {sorted.length === 0 ? (
           <div style={{ fontSize: 12, color: P.muted, fontStyle: 'italic', padding: '12px 0' }}>
             No machine assets configured.
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {sorted.map(r => {
-              const pct = r.pct_remaining || 0;
-              const c = riskColor(pct, /* invert */ true);
-              return (
-                <div key={r.machine_id}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: P.deep }}>{r.display_name}</span>
-                    <span style={{ ...mono, fontWeight: 700, fontSize: 14, color: P.deep }}>
-                      {fmt(r.current_value)}
-                    </span>
-                  </div>
-                  <div style={{ position: 'relative', width: '100%', height: 8, borderRadius: 4, background: c.track, overflow: 'hidden' }}>
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${pct}%` }}
-                      transition={{ duration: 0.6, ease: 'easeOut' }}
-                      style={{ height: '100%', background: c.fill, borderRadius: 4 }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', gap: 12, marginTop: 6, ...mono, fontSize: 10, color: P.muted }}>
-                    <span><span style={{ fontWeight: 600, color: c.label }}>{pct}%</span> remaining life</span>
-                    <span style={{ marginLeft: 'auto' }}>−{fmt(r.monthly_loss)}/mo</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
+              <CartesianGrid stroke={P.border} strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="month"
+                tick={{ fill: P.muted, fontSize: 11, fontFamily: "'IBM Plex Mono', monospace" }}
+                axisLine={{ stroke: P.border }}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fill: P.muted, fontSize: 11, fontFamily: "'IBM Plex Mono', monospace" }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={v => `₹${v}L`}
+                width={50}
+              />
+              <Tooltip
+                content={<ChartTooltip formatter={fmt} />}
+                cursor={{ stroke: P.border, strokeWidth: 1 }}
+              />
+              <Legend
+                verticalAlign="bottom"
+                wrapperStyle={{ paddingTop: 12, fontSize: 11, fontFamily: "'Inter', sans-serif" }}
+                iconType="circle"
+                iconSize={8}
+              />
+              {sorted.map((r, i) => (
+                <Line
+                  key={r.machine_id}
+                  type="monotone"
+                  dataKey={r.display_name}
+                  stroke={lineColorFor(i)}
+                  strokeWidth={2}
+                  dot={{ r: 3, strokeWidth: 2, fill: '#fff' }}
+                  activeDot={{ r: 6 }}
+                  isAnimationActive
+                  animationDuration={700}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
         )}
       </div>
     </div>
