@@ -2464,12 +2464,6 @@ const AdminDashboard = () => {
                     <p style={{ fontSize: 11, fontWeight: 700, color: '#2563eb', letterSpacing: '0.16em', textTransform: 'uppercase' }}>
                       Live preview
                     </p>
-                    <h3 style={{ marginTop: 6, color: '#0f172a', fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 18, letterSpacing: '-0.01em' }}>
-                      How it will appear in All Machines
-                    </h3>
-                    <p style={{ marginTop: 4, color: '#64748b', fontSize: 12, lineHeight: 1.55 }}>
-                      Updates as you fill out the form. Click into the card to see the expanded admin view.
-                    </p>
                   </div>
 
                   {/* The card — sized at its natural ~440px width. Uses the
