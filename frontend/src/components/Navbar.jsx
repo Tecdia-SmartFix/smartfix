@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Menu, X, User, LogOut, Moon, Sun } from 'lucide-react';
+import { ArrowRight, Menu, X, User, LogOut } from 'lucide-react';
 import EndShiftModal from './EndShiftModal';
 import { useStartDiagnosing } from '../context/StartDiagnosingContext';
-import { useTheme } from '../context/ThemeContext';
 import tecdiaLogo from '../assets/cebu_F-Photoroom.png';
 
 const Navbar = () => {
@@ -14,7 +13,6 @@ const Navbar = () => {
   const [shiftModalPhase, setShiftModalPhase] = useState('end');
   const [hoveredPath, setHoveredPath] = useState(null);
   const { open: openStartDiagnosing } = useStartDiagnosing();
-  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const showCta = !location.pathname.startsWith('/chat') && !location.pathname.startsWith('/admin');
   const showShiftButtons = location.pathname.startsWith('/chat');
@@ -135,16 +133,6 @@ const Navbar = () => {
                 <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
               )}
             </Link>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="relative flex h-8 w-8 items-center justify-center rounded-full border border-white/15 text-white transition hover:bg-white/10 hover:text-white"
-              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-            >
-              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-            </button>
-
             {showCta && (
               <button
                 type="button"
@@ -184,14 +172,6 @@ const Navbar = () => {
           >
             <Link to="/features" onClick={() => setIsMenuOpen(false)} className="text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors">Features</Link>
             <hr className="border-white/15" />
-            <button
-              type="button"
-              onClick={() => { toggleTheme(); }}
-              className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#79ddeb] transition-colors text-left"
-            >
-              {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
-              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-            </button>
             {showShiftButtons && (
               <>
                 <button

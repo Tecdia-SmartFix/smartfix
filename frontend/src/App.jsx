@@ -6,7 +6,6 @@ import { AdminAuthProvider } from './context/AdminAuthContext';
 import { MachineProvider } from './context/MachineContext';
 import { AlertProvider } from './context/AlertContext';
 import { StartDiagnosingProvider } from './context/StartDiagnosingContext';
-import { ThemeProvider } from './context/ThemeContext';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 import Navbar from './components/Navbar';
 import BackgroundAnimation from './components/BackgroundAnimation';
@@ -77,24 +76,22 @@ const AnimatedRoutes = () => {
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <AdminAuthProvider>
-          <MachineProvider>
-            <AlertProvider>
-              <Router>
-                <div className="theme-app min-h-screen relative transition-colors duration-500 text-tecdia-text bg-tecdia-background">
-                  <BackgroundAnimation />
-                  <div className="relative z-10">
-                    <AnimatedRoutes />
-                  </div>
+    <AuthProvider>
+      <AdminAuthProvider>
+        <MachineProvider>
+          <AlertProvider>
+            <Router>
+              <div className="min-h-screen relative text-tecdia-text bg-tecdia-background">
+                <BackgroundAnimation />
+                <div className="relative z-10">
+                  <AnimatedRoutes />
                 </div>
-              </Router>
-            </AlertProvider>
-          </MachineProvider>
-        </AdminAuthProvider>
-      </AuthProvider>
-    </ThemeProvider>
+              </div>
+            </Router>
+          </AlertProvider>
+        </MachineProvider>
+      </AdminAuthProvider>
+    </AuthProvider>
   );
 }
 

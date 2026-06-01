@@ -58,7 +58,6 @@ Read the table as: "if this directory or file breaks, who is the first person to
 | `context/AuthContext.jsx` / `AdminAuthContext.jsx` | Vijay | — | Session state. |
 | `context/MachineContext.jsx` | Vijay | — | Machine list + CRUD wrappers. |
 | `context/AlertContext.jsx` | Vijay | — | Alert list + ack + snooze. |
-| `context/ThemeContext.jsx` | Eshita | — | Light/dark toggle. |
 | `context/StartDiagnosingContext.jsx` | Eshita | — | Modal open state. |
 | `hooks/useChatHistory.js` | Vijay | — | Per-machine chat persistence (localStorage). |
 | `hooks/useWorkstation.js` | Vijay | — | Workstation-binding fetch. |

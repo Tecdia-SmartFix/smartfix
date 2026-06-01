@@ -18,19 +18,6 @@
     --theme-blue: #2b8cff;
   }
 
-  html.light {
-    --theme-bg: #f6feff;
-    --theme-page: #f4fbfd;
-    --theme-text: #061217;
-    --theme-ink: #061217;
-    --theme-muted: rgba(6,18,23,0.62);
-    --theme-panel: rgba(255,255,255,0.96);
-    --theme-card: #ffffff;
-    --theme-card-border: rgba(7,159,186,0.18);
-    --theme-cyan: #079fba;
-    --theme-blue: #2b8cff;
-  }
-
   html {
     scroll-behavior: smooth;
   }
@@ -61,12 +48,6 @@
     background: #050816;
   }
 
-  html.light body {
-    color: #061217;
-    background:
-      radial-gradient(circle at 80% 8%, rgba(16, 185, 210, 0.18), transparent 28%),
-      linear-gradient(180deg, #ffffff 0%, #f4fbfd 100%);
-  }
 
   /* Main Hero Heading */
   h1 {
@@ -158,131 +139,6 @@
   .theme-page {
     background: var(--theme-page);
     color: var(--theme-ink);
-  }
-
-  .light .theme-nav {
-    background: #000000 !important;
-    border-bottom: 1px solid rgba(16, 185, 210, 0.22);
-    box-shadow: 0 16px 60px rgba(7, 159, 186, 0.14);
-  }
-
-  .light .theme-landing-hero,
-  .light .theme-public-hero {
-    background: #f6feff !important;
-    color: #061217 !important;
-  }
-
-  .light .theme-landing-hero .theme-hero-overlay {
-    background: linear-gradient(90deg, rgba(246,254,255,0.96) 0%, rgba(246,254,255,0.86) 42%, rgba(16,185,210,0.18) 72%, rgba(255,255,255,0.72) 100%) !important;
-  }
-
-  .light .theme-landing-hero .theme-hero-wash {
-    background: rgba(255,255,255,0.14) !important;
-  }
-
-  .light .theme-public-hero > .absolute.inset-0 {
-    background: radial-gradient(circle at 78% 18%, rgba(16,185,210,0.22), transparent 32%), linear-gradient(135deg, #ffffff 0%, #f6feff 52%, #dff8fd 100%) !important;
-  }
-
-  .light .theme-landing-hero h1,
-  .light .theme-public-hero h1,
-  .light .theme-content h1,
-  .light .theme-content h2,
-  .light .theme-content h3 {
-    color: #061217 !important;
-  }
-
-  .light .theme-landing-hero p,
-  .light .theme-public-hero p,
-  .light .theme-content p {
-    color: rgba(6,18,23,0.66) !important;
-    text-shadow: none !important;
-  }
-
-  /* Use attribute-contains so we catch every text-white/N variant the hero
-     uses (eg. /55 for the SmartFix ghost text, /76 for the body paragraph,
-     /62 for kickers). Earlier explicit list only covered /70 /76 /62 and
-     left /55 invisible on light bg. */
-  .light .theme-landing-hero [class*="text-white"],
-  .light .theme-public-hero [class*="text-white"] {
-    color: #061217 !important;
-  }
-
-  /* Same trick for the white-tinted hairlines that draw the section divider
-     and the outlined "View Equipment" button. border-white/15 and /25 used
-     to disappear against the light hero. */
-  .light .theme-landing-hero [class*="border-white"],
-  .light .theme-public-hero [class*="border-white"] {
-    border-color: rgba(6,18,23,0.18) !important;
-  }
-
-  .light .theme-dark-band {
-    background: linear-gradient(135deg, #ffffff 0%, #e8fbff 100%) !important;
-    color: #061217 !important;
-    border-block: 1px solid rgba(7,159,186,0.14);
-  }
-
-  .light .theme-dark-band h2,
-  .light .theme-dark-band h3,
-  .light .theme-dark-band div,
-  .light .theme-dark-band p {
-    color: #061217 !important;
-  }
-
-  /* .theme-card is a generic light surface (not currently used by any
-     component, kept for future plain-white cards). */
-  .light .theme-card {
-    background: #ffffff !important;
-    border-color: rgba(7,159,186,0.18) !important;
-    box-shadow: 0 24px 90px rgba(7,159,186,0.12) !important;
-  }
-
-  /* MachineCard + LandingPage capability cards were designed dark-first
-     (white text on near-black surface, subtle dark borders, branded image
-     gradients). Previous light-mode overrides forced a white background,
-     which:
-       • washed the blue image gradient into a pale blob,
-       • only re-colored <h3>/<span>/<div> text — every <p> kept text-white
-         and turned invisible,
-       • added a 105deg white wash on capability cards that hid content.
-     Keep them dark on a light page (premium-tile pattern). A cyan-tinted
-     soft drop shadow + tighter border gives separation against the bright
-     page background without any color flip. */
-  .light .theme-machine-card,
-  .light .theme-capability-card {
-    border-color: rgba(7,159,186,0.22) !important;
-    box-shadow:
-      0 20px 60px rgba(7,159,186,0.14),
-      0 2px 8px rgba(0,0,0,0.05) !important;
-  }
-
-  .light .theme-modal-panel {
-    background: rgba(255,255,255,0.97) !important;
-    color: #061217 !important;
-    border-color: rgba(7,159,186,0.22) !important;
-    box-shadow: 0 32px 110px rgba(7,159,186,0.22) !important;
-  }
-
-  .light .theme-modal-panel h2,
-  .light .theme-modal-panel h3,
-  .light .theme-modal-panel label,
-  .light .theme-modal-panel p,
-  .light .theme-modal-panel span,
-  .light .theme-modal-panel div {
-    color: #061217;
-  }
-
-  .light .theme-modal-panel input,
-  .light .theme-modal-panel textarea,
-  .light .theme-modal-panel button:not([class*="from-[#2b8cff]"]) {
-    background-color: rgba(255,255,255,0.92) !important;
-    border-color: rgba(7,159,186,0.2) !important;
-    color: #061217 !important;
-  }
-
-  .light .theme-modal-panel [class*="text-[#70dceb]"],
-  .light .theme-modal-panel [class*="text-tecdia-accent"] {
-    color: #079fba !important;
   }
 
   .tecdia-surface {
