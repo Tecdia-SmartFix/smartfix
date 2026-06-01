@@ -2,13 +2,16 @@
 
 AI-powered fault diagnostics for industrial machinery. Workers describe a symptom in plain English; SmartFix retrieves the relevant pages from indexed manuals, an LLM (Groq Llama-3.1-70B) explains what's happening, and a severity-weighted alert fires to managers when the issue is critical. Admin dashboard for machine management, shift logging, alerts, analytics, and audit.
 
-> **Looking for the handover docs?** They're in [`docs/`](docs/). Start with the README below or jump straight to any of them:
-> 1. [API Documentation](docs/01_API_DOCS.md)
-> 2. [Database Schema (ER + tables)](docs/02_DATABASE_SCHEMA.md)
-> 3. [System Design](docs/03_SYSTEM_DESIGN.md)
-> 4. [Routes & Endpoints](docs/04_ROUTES_AND_ENDPOINTS.md)
-> 5. [Tech & Dependencies](docs/05_TECH_AND_DEPENDENCIES.md)
-> 6. [Codebase Ownership](docs/06_CODEBASE_OWNERSHIP.md)
+> **Looking for the handover docs?** Markdown sources in [`docs/`](docs/), pre-built PDFs in [`docs/pdf/`](docs/pdf/).
+> 1. [API Documentation](docs/01_API_DOCS.md) · [PDF](docs/pdf/01_API_DOCS.pdf)
+> 2. [Database Schema (ER + tables)](docs/02_DATABASE_SCHEMA.md) · [PDF](docs/pdf/02_DATABASE_SCHEMA.pdf)
+> 3. [System Design](docs/03_SYSTEM_DESIGN.md) · [PDF](docs/pdf/03_SYSTEM_DESIGN.pdf)
+> 4. [Routes & Endpoints](docs/04_ROUTES_AND_ENDPOINTS.md) · [PDF](docs/pdf/04_ROUTES_AND_ENDPOINTS.pdf)
+> 5. [Tech & Dependencies](docs/05_TECH_AND_DEPENDENCIES.md) · [PDF](docs/pdf/05_TECH_AND_DEPENDENCIES.pdf)
+> 6. [Codebase Ownership](docs/06_CODEBASE_OWNERSHIP.md) · [PDF](docs/pdf/06_CODEBASE_OWNERSHIP.pdf)
+>
+> Regenerate PDFs after editing markdown:
+> `npm install --no-save @mermaid-js/mermaid-cli mdpdf && python3 scripts/build_docs_pdf.py`
 
 ---
 
