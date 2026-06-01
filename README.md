@@ -1,29 +1,33 @@
 # Tecdia SmartFix
 
-AI-powered fault diagnostics for industrial machinery. Workers describe a symptom in plain English; SmartFix retrieves the relevant pages from indexed manuals, an LLM explains what's happening, and a severity-weighted alert fires to managers when the issue is critical.
+AI-powered fault diagnostics for industrial machinery. Workers describe a symptom in plain English; SmartFix retrieves the relevant pages from indexed manuals, an LLM (Groq Llama-3.1-70B) explains what's happening, and a severity-weighted alert fires to managers when the issue is critical. Admin dashboard for machine management, shift logging, alerts, analytics, and audit.
 
-The system is a Retrieval-Augmented Generation (RAG) pipeline behind a FastAPI service, paired with a React control panel for workers and admins.
+> **Looking for the handover docs?** They're in [`docs/`](docs/). Start with the README below or jump straight to any of them:
+> 1. [API Documentation](docs/01_API_DOCS.md)
+> 2. [Database Schema (ER + tables)](docs/02_DATABASE_SCHEMA.md)
+> 3. [System Design](docs/03_SYSTEM_DESIGN.md)
+> 4. [Routes & Endpoints](docs/04_ROUTES_AND_ENDPOINTS.md)
+> 5. [Tech & Dependencies](docs/05_TECH_AND_DEPENDENCIES.md)
+> 6. [Codebase Ownership](docs/06_CODEBASE_OWNERSHIP.md)
 
 ---
 
-## Tech stack
+## Quick start (dev)
 
-**Backend** (`src/`)
-- **FastAPI** — single-file app at [src/api.py](src/api.py), uvicorn on port 8000
-- **ChromaDB** — persistent local vector store at `./chroma_db`
-- **sentence-transformers** — `all-MiniLM-L6-v2` for query/chunk embeddings
-- **Groq** — `llama-3.3-70b-versatile` for answer generation
-- **Pydantic v2** — request/response schemas
+```bash
+# Backend
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env  # fill GROQ_API_KEY, RESEND_API_KEY, ADMIN_EMAILS
+python3 -m uvicorn src.api:app --host 0.0.0.0 --port 8000
 
-**Frontend** ([frontend/](frontend/))
-- **React 19** + **Vite 8** (no TypeScript)
-- **Tailwind CSS 3.4** + `@tailwindcss/typography`
-- **react-router-dom 7** — client-side routing
-- **framer-motion** — page transitions
-- **lucide-react** — icon set
-- **react-markdown** + **remark-gfm** — render AI answers
+# Frontend (in another shell)
+cd frontend
+npm install
+npm run dev   # serves http://localhost:5173 with proxy to :8000
+```
 
-**Auth** — cookie-based sessions (`worker_session`, `stub_session`); HttpOnly, SameSite=Lax. Magic-link admin login is stubbed for development.
+Open `http://localhost:5173`. To seed the admin dashboard with demo data: sign in, go to Analytics, click **Populate Demo Data**.
 
 ---
 
@@ -31,314 +35,76 @@ The system is a Retrieval-Augmented Generation (RAG) pipeline behind a FastAPI s
 
 ```
 smartfix/
-├── src/                       # FastAPI backend
-│   ├── api.py                 # All routes (auth, /query, /machines, /admin/*)
-│   ├── rag_pipeline.py        # Orchestrates retrieve → prompt → LLM → severity parse
-│   ├── retriever.py           # Embed query, ChromaDB similarity search
-│   ├── prompt_builder.py      # System + user prompt assembly, severity rubric
-│   ├── llm_client.py          # Lazy Groq client
-│   ├── db.py                  # ChromaDB collection (CHROMA_PATH, COLLECTION_NAME)
-│   └── ingestion/
-│       └── parser_chunker.py  # PDF → JSON chunks (unified)
-│
-├── scripts/
-│   ├── build_index.py         # Index ./data/processed/*.json into ChromaDB
-│   └── demo.py                # Self-contained pipeline demo (no real PDFs needed)
-│
+├── src/                              # FastAPI backend
+│   ├── api.py                        # All routes
+│   ├── store.py                      # SQLite schema + helpers
+│   ├── retriever.py / rag_pipeline.py / prompt_builder.py / llm_client.py
+│   ├── audit.py / mailer.py / workstations.py / db.py
+│   └── ingestion/parser_chunker.py   # PDF → chunks
+├── frontend/                         # React + Vite SPA
+│   ├── src/pages/                    # Landing, Admin, Chat, …
+│   ├── src/components/               # MachineCard, modals, banners
+│   ├── src/context/                  # Auth, Machines, Alerts, Theme
+│   ├── nginx.conf                    # Prod reverse proxy
+│   └── Dockerfile                    # 2-stage Node build → nginx alpine
 ├── data/
-│   ├── uploads/               # Source PDFs
-│   └── processed/             # Chunked JSON output from parser_chunker
-│
-├── chroma_db/                 # Vector store (persistent, gitignored)
-│
-frontend/
-├── node_modules/           # Installed npm dependencies (not checked into git)
-├── public/                 # Public static assets
-├── src/                    # Main source code directory
-│   ├── api/                # API communication logic
-│   │   └── apiClient.js
-│   ├── assets/             # Images, fonts, and other static files
-│   │   ├── logo.png
-│   │   └── robot.webm
-│   ├── components/         # Reusable UI components
-│   │   ├── BackgroundAnimation.jsx
-│   │   ├── ChromaKeyVideo.jsx
-│   │   ├── Footer.jsx
-│   │   ├── MessageContent.jsx
-│   │   ├── Navbar.jsx
-│   │   ├── ProtectedAdminRoute.jsx
-│   │   └── Sidebar.jsx
-│   ├── context/            # React context providers for global state
-│   │   ├── AdminAuthContext.jsx
-│   │   ├── AlertContext.jsx
-│   │   ├── AuthContext.jsx
-│   │   └── MachineContext.jsx
-│   ├── hooks/              # Custom React hooks
-│   │   ├── useChatHistory.js
-│   │   ├── useChatSession.js
-│   │   └── useWorkstation.js
-│   ├── pages/              # Full page components and routes
-│   │   ├── AdminDashboard.jsx
-│   │   ├── AdminLogin.jsx
-│   │   ├── ChatPage.jsx
-│   │   ├── CompanyPolicy.jsx
-│   │   ├── FeaturesPage.jsx
-│   │   ├── IntegrationsPage.jsx
-│   │   ├── LandingPage.jsx
-│   │   ├── LegalNotice.jsx
-│   │   ├── MachinesPage.jsx
-│   │   └── PrivacyPolicy.jsx
-│   ├── App.css             # Main application styling
-│   ├── App.jsx             # Root React component (Routing setup)
-│   ├── index.css           # Global CSS (includes Tailwind directives)
-│   └── main.jsx            # React application entry point
-├── .gitignore              # Files and folders ignored by Git
-├── eslint.config.js        # ESLint linting configuration
-├── index.html              # Main HTML template
-├── package-lock.json       # Exact versions of installed dependencies
-├── package.json            # Dependencies and npm scripts
-├── postcss.config.js       # PostCSS config (used by Tailwind)
-├── tailwind.config.js      # Tailwind CSS configuration
-└── vite.config.js          # Vite bundler configuration
-│
-├── postman/                   # Executable API examples (collection v2.1)
-├── API_CONTRACT.md            # ★ Authoritative API contract (read this first)
-├── BACKEND_SETUP.md           # Backend onboarding walkthrough
-├── CHANGELOG_API_CHANGES.md   # Contract changelog
-├── CLAUDE.md                  # Project instructions for Claude Code
+│   ├── uploads/                      # archived machine PDFs (gitignored)
+│   │   └── icons/                    # admin-uploaded custom icons
+│   ├── workstations.json             # IP → machine bindings
+│   └── audit.jsonl                   # append-only audit log
+├── chroma_db/                        # vector index (gitignored)
+├── smartfix.db                       # SQLite store (gitignored)
+├── scripts/
+│   ├── backup_sqlite.sh              # nightly SQLite backup
+│   ├── build_index.py                # offline ingestion
+│   └── demo.py                       # self-contained demo
+├── postman/SmartFix.postman_collection.json
+├── design/                           # design brief + factory hierarchy
+├── docs/                             # ← handover docs
+├── Dockerfile                        # backend image
+├── docker-compose.yml                # backend + frontend + named volumes
 ├── requirements.txt
-├── verify_pipeline.py         # Pipeline sanity check
-└── README.md                  # this file
+└── README.md
 ```
 
 ---
 
-## Prerequisites
+## Production deploy
 
-- **Python 3.10+**
-- **Node.js 18+** (for the frontend)
-- **Groq API key** — get one at [console.groq.com](https://console.groq.com)
+```bash
+docker compose build
+docker compose up -d
+# frontend on host :80; backend internal-only on the docker network
+```
+
+Three named volumes (`chroma_db`, `data`, `sqlite_store`) persist state across container rebuilds. See [`docs/03_SYSTEM_DESIGN.md`](docs/03_SYSTEM_DESIGN.md) for the full architecture diagram.
 
 ---
 
-## Quick start
-
-All commands run from the **project root** so relative paths (`./chroma_db`, `./data/processed`) resolve correctly.
-
-### 1. Backend
+## Useful one-liners
 
 ```bash
-# Install Python deps
-python3 -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+# Inspect the SQLite store
+sqlite3 smartfix.db ".tables"
+sqlite3 smartfix.db "SELECT machine_id, phase, severity, created_at FROM shift_logs ORDER BY id DESC LIMIT 10;"
 
-# Set the Groq key
-cp .env.example .env
-# edit .env and paste your GROQ_API_KEY
+# Tail the audit log
+tail -f data/audit.jsonl | python3 -m json.tool --no-ensure-ascii
 
-# Build the vector index from ./data/processed/*.json
+# Manually back up SQLite
+STORE_PATH=./smartfix.db BACKUP_DIR=./backups ./scripts/backup_sqlite.sh
+
+# Re-build the vector index from local JSONL chunks (cache/*.jsonl)
 python3 -m scripts.build_index
-
-# Start the API
-python3 -m uvicorn src.api:app --host 0.0.0.0 --port 8000 --reload
-```
-
-The API is now at `http://localhost:8000`. Swagger UI: `http://localhost:8000/docs`. Health check: `http://localhost:8000/health`.
-
-> No PDFs yet? Run `python3 -m scripts.demo` for a self-contained smoke test of the retrieve → LLM flow.
-
-### 2. Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-The React app is now at `http://localhost:5173`. Vite proxies API paths (`/auth`, `/admin/machines|jobs|alerts`, `/query`, `/health`, `/machines`) to the backend — see [frontend/vite.config.js](frontend/vite.config.js).
-
-### 3. Try it
-
-- Worker flow: open [http://localhost:5173](http://localhost:5173) → pick a domain → choose a machine → ask a diagnostic question.
-- Admin flow: open [http://localhost:5173/admin](http://localhost:5173/admin) (the magic-link login is stubbed in dev — see `STUB_ROLE` in [src/api.py](src/api.py)).
-
----
-
-## Query flow
-
-```
-POST /query
-  │
-  ├─► retriever.py       embed question + ChromaDB similarity search
-  │                      (optional where={"machine": machine_filter})
-  │                      drops chunks below RELEVANCE_THRESHOLD
-  │
-  ├─► rag_pipeline.py    decides response shape:
-  │                      • no chunks pass threshold      → status: "not_found"
-  │                      • LLM RuntimeError              → status: "error"
-  │                      • otherwise                     → status: "success"
-  │
-  ├─► prompt_builder.py  system prompt + last 8 history turns + retrieved excerpts
-  │                      LLM appends "SEVERITY: <1-5>" → parsed & stripped server-side
-  │
-  └─► llm_client.py      Groq llama-3.3-70b-versatile, temp 0.1, max_tokens 512
-                         raises "rate_limit" | "connection_error" | "api_error:NNN"
-```
-
-Response is shaped by Pydantic in [src/api.py](src/api.py):
-
-```json
-{
-  "status": "success",
-  "answer": "Error E-04 indicates the clamping force…",
-  "sources": [{"document": "INJECTION_MOLDING_MACHINE.pdf", "page": 5}],
-  "severity_level": 4,
-  "alert_score": 20,
-  "machine_significance": 5,
-  "alert_fired": true
-}
-```
-
-### Alert scoring
-
-`alert_score = severity_level × machine_significance`, both on a 1–5 scale. When `alert_score ≥ ALERT_THRESHOLD` (default 12) and the response is a success, a record is appended to `_alerts` and surfaced in the admin dashboard.
-
----
-
-## API surface (summary)
-
-The authoritative reference is **[API_CONTRACT.md](API_CONTRACT.md)** (v2). Quick map:
-
-| Group | Endpoint | Notes |
-|---|---|---|
-| Health | `GET /health` | No auth |
-| Auth — worker | `POST /auth/worker-session` | Body `{domain}`, sets `worker_session` cookie |
-| Auth — admin | `POST /auth/request-link`, `GET /auth/verify?token=…` | Magic link, stubbed |
-| Auth — both | `GET /auth/me`, `POST /auth/logout` | Single source of truth for session state |
-| Worker | `GET /machines` | Lists indexed machines (filtered by role) |
-| Worker | `POST /query` | Body `{question, machine_filter?, history?}` |
-| Admin | `GET/POST /admin/machines`, `DELETE /admin/machines/{id}` | Multipart upload returns `{job_id}` |
-| Admin | `GET /admin/jobs/{job_id}` | Poll every ~2s |
-| Admin | `GET/DELETE /admin/alerts`, `POST /admin/alerts/test` | Alert history + test injection |
-
-Allowed worker domains: `General`, `Manufacturing`, `Additive Manufacturing`, `Fabrication`, `Automation`, `Heavy Machinery`, `All Access`. "All Access" bypasses per-machine category checks.
-
-Error envelope (all non-2xx):
-
-```json
-{"detail": "human-readable message", "code": "machine_readable_code"}
 ```
 
 ---
 
-## Input data format
+## Status
 
-Chunked JSON files live in `./data/processed/`. The parser+chunker writes one chunk per record:
+- **Director's 3 features** (pre-shift checklist, end-of-shift parameter log, handoff banner): ✅ shipped end-to-end.
+- **Admin power** (edit machines, void logs, ack/snooze alerts, runtime config, re-ingest, custom icons): ✅ shipped.
+- **Analytics** (machine / category / severity / shift / time range / date range filters): ✅ shipped.
+- **Production hardening** (alert persistence to SQLite, session-expiry handler, broader backup, tests): ⏳ P1 work, not started.
 
-```json
-{
-  "id": "IMM-750_p12_c03",
-  "text": "Error code E-04 indicates that clamping force has not been reached…",
-  "metadata": {
-    "machine": "INJECTION_MOLDING_MACHINE",
-    "document": "INJECTION_MOLDING_MACHINE.pdf",
-    "page": 12,
-    "section": "troubleshooting"
-  }
-}
-```
-
-The `machine` field maps directly to `machine_filter` in `POST /query`.
-
----
-
-## Key constants
-
-| File | Constant | Default | Purpose |
-|---|---|---|---|
-| [src/retriever.py](src/retriever.py) | `RELEVANCE_THRESHOLD` | `0.35` | Min cosine similarity to pass to the LLM |
-| [src/retriever.py](src/retriever.py) | `TOP_K` | `5` | Max chunks per query |
-| [src/llm_client.py](src/llm_client.py) | `MODEL` | `llama-3.3-70b-versatile` | Groq model |
-| [src/db.py](src/db.py) | `CHROMA_PATH` | `./chroma_db` | Vector store on disk |
-| [src/db.py](src/db.py) | `COLLECTION_NAME` | `machine_docs` | ChromaDB collection |
-| [src/api.py](src/api.py) | `ALERT_THRESHOLD` | `12` (env-overridable) | Min `alert_score` to fire |
-| [src/api.py](src/api.py) | `DEFAULT_SIGNIFICANCE` | `3` | Used when `machine_significance` isn't set |
-| [src/prompt_builder.py](src/prompt_builder.py) | `HISTORY_TURN_LIMIT` | `8` | Max history turns sent to LLM |
-
----
-
-## Environment variables
-
-```env
-# .env (see .env.example)
-GROQ_API_KEY=gsk_…           # required
-ALERT_THRESHOLD=12           # optional, integer
-```
-
----
-
-## Currently indexed machines
-
-Seeded in `_machine_metadata` ([src/api.py](src/api.py)):
-
-| ID | Category | Significance | Manual |
-|---|---|---|---|
-| `INJECTION_MOLDING_MACHINE` | Manufacturing | 5 | IMM-750 series |
-| `LASER_CUTTING_MACHINE` | Fabrication | 4 | LC-2040 series |
-
-Add more via `POST /admin/machines` (multipart) — see [API_CONTRACT.md §4.3](API_CONTRACT.md).
-
-### Error codes covered (IMM-750)
-
-`E-01` Barrel zone temperature deviation · `E-02` Hydraulic oil temperature high · `E-03` Injection pressure not reached · `E-04` Clamping force not reached · `E-05` Screw rotation fault · `E-06` Hydraulic system pressure fault · `E-07` Cooling water flow fault
-
----
-
-## Architecture notes
-
-- **`src/api.py`** uses FastAPI `lifespan` to pre-load the embedding model and ChromaDB collection into `ml_models` once at startup. Both are passed explicitly into `run_query` — nothing is initialized inside route handlers.
-- **CORS** is set to `allow_origin_regex=r"http://localhost(:\d+)?"` with `allow_credentials=True` (any localhost port). Tighten for deployment.
-- **In-memory stores** — `_worker_sessions`, `_jobs`, `_alerts`, `_machine_metadata` — are reset on every server restart. These are placeholders for proper persistence (Postgres/Redis) when auth is hardened.
-- **Severity parsing** — the LLM is instructed to append `SEVERITY: <1-5>` to its answer. [src/rag_pipeline.py](src/rag_pipeline.py) regex-extracts it and strips it from the user-facing answer before returning.
-- **Domain access control** — only enforced for active `worker_session` cookies. Admin and unauthenticated callers (curl, Postman) bypass the check.
-
----
-
-## Verifying the pipeline
-
-```bash
-# Spin up the API, then in another shell:
-python3 verify_pipeline.py
-```
-
-For Postman / Bruno users, import [postman/SmartFix.postman_collection.json](postman/SmartFix.postman_collection.json) — it covers every endpoint in demo order.
-
----
-
-## Documentation index
-
-- **[API_CONTRACT.md](API_CONTRACT.md)** — every request/response shape, error code, and stability guarantee
-- **[BACKEND_SETUP.md](BACKEND_SETUP.md)** — backend onboarding for new contributors
-- **[CHANGELOG_API_CHANGES.md](CHANGELOG_API_CHANGES.md)** — what changed between contract revisions
-- **[CLAUDE.md](CLAUDE.md)** — project context for Claude Code
-
----
-
-## Contributing
-
-1. Branch from `dev`.
-2. Run the backend (`uvicorn src.api:app --reload`) and frontend (`npm run dev`) side-by-side.
-3. Match the existing patterns in [src/api.py](src/api.py) — every error is raised through `APIError(status, detail, code)` so it goes through the contract's error envelope.
-4. Update [API_CONTRACT.md](API_CONTRACT.md) and [CHANGELOG_API_CHANGES.md](CHANGELOG_API_CHANGES.md) if you change any request/response shape.
-5. Open a PR against `dev`.
-
----
-
-## License
-
-Proprietary — Tecdia SmartFix.
-
-## Support
-
-- Issues: <https://github.com/Tecdia-SmartFix/smartfix/issues>
+See [`docs/06_CODEBASE_OWNERSHIP.md`](docs/06_CODEBASE_OWNERSHIP.md) for who to ping about which area.
