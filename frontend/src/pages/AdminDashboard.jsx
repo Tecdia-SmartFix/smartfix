@@ -2544,9 +2544,9 @@ const AdminDashboard = () => {
 
       {/* ── Tab Bar — sticky at top, always visible when scrolled ── */}
       <div className="sticky left-0 right-0 top-0 z-50 border-b border-white/10 bg-black">
-        <div className="mx-auto flex h-14 max-w-[1680px] w-full items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
+        <div className="mx-auto flex flex-wrap min-h-[56px] max-w-[1680px] w-full items-center justify-between gap-x-4 gap-y-1 px-5 sm:px-8 lg:px-10 py-1">
           {/* Logo & Tabs */}
-          <div className="flex items-center overflow-x-auto scrollbar-hide h-full">
+          <div className="flex items-center flex-wrap gap-y-1 h-full">
             
             {/* Admin Panel Logo */}
             <div className="mr-5 flex h-[34px] shrink-0 items-center gap-3">
@@ -2554,7 +2554,7 @@ const AdminDashboard = () => {
             </div>
 
             {/* Tabs */}
-            <div className="flex items-center gap-4 shrink-0 h-full">
+            <div className="flex items-center gap-3 flex-wrap h-full">
               {[
                 { id: 'machines',  label: 'All Machines' },
               { id: 'add',       label: 'Add Machine' },
@@ -2565,7 +2565,7 @@ const AdminDashboard = () => {
               { id: 'settings',  label: 'Settings' },
             ].map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className="relative flex items-center gap-1.5 text-xs font-medium transition-colors duration-200 text-white h-full"
+                className="relative flex items-center gap-1.5 text-xs font-medium transition-colors duration-200 text-white/60 hover:text-white whitespace-nowrap py-2"
               >
                 {tab.label}
                 {tab.count > 0 && (
@@ -2587,7 +2587,7 @@ const AdminDashboard = () => {
           </div>
 
           {/* Stats Badges */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center flex-wrap gap-2">
             {(() => {
               const defaultCount = machines.filter(m => isDefault(m.id)).length;
               return [
@@ -2667,7 +2667,7 @@ const AdminDashboard = () => {
                   4-photo collage; same wrapper classes so the right-side
                   form lays out unchanged. */}
               <div
-                className="hidden md:flex w-1/2 sticky top-[60px] overflow-hidden flex-col items-center justify-center px-10 py-12"
+                className="hidden md:flex w-1/2 sticky top-[60px] overflow-hidden flex-col items-center justify-start px-10 pt-6"
                 style={{ height: 'calc(100vh - 60px)', background: '#ffffff' }}
               >
                 {/* Brand eyebrow (preserved from the previous design). */}
