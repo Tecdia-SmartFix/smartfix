@@ -622,9 +622,9 @@ const ChatPage = () => {
                   placeholder={`Ask about your ${machineLabel}…`}
                   rows={1}
                   disabled={isLoading}
-                  className="flex-1 bg-transparent border-none py-2.5 px-1 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-0 resize-none max-h-[200px] text-[15px] disabled:opacity-50 leading-relaxed"
+                  className="flex-1 min-w-0 bg-transparent border-none py-2.5 px-1 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-0 resize-none max-h-[200px] text-[15px] disabled:opacity-50 leading-relaxed"
                 />
-                <div className="flex items-center gap-1 mb-1">
+                <div className="flex items-center gap-1 mb-1 shrink-0">
                   <button
                     type="button"
                     onClick={toggleMic}

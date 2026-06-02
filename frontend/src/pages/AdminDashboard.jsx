@@ -1405,46 +1405,40 @@ const ANALYTICS_CSS = `
 
   /* Custom scrollbar for analytics tables to match the light theme */
   .analytics-scrollbar::-webkit-scrollbar {
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
   }
   .analytics-scrollbar::-webkit-scrollbar-track {
     background: #ffffff;
-    border-left: 1px solid #e2e8f4;
-    border-top: 1px solid #e2e8f4;
   }
   .analytics-scrollbar::-webkit-scrollbar-thumb {
-    background: #dbdbdb;
+    background: #888888;
     border: 3px solid #ffffff;
-    border-radius: 7px;
+    border-radius: 6px;
   }
   .analytics-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #c0c0c0;
+    background: #666666;
   }
   .analytics-scrollbar::-webkit-scrollbar-button {
     background-color: #ffffff;
     display: block;
-    height: 14px;
-    width: 14px;
+    height: 12px;
+    width: 12px;
   }
   .analytics-scrollbar::-webkit-scrollbar-button:single-button:vertical:decrement {
-    background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='4' viewBox='0 0 8 4'%3E%3Cpath d='M4 0L8 4H0z' fill='%23cccccc'/%3E%3C/svg%3E") no-repeat center center;
-    border-left: 1px solid #e2e8f4;
+    background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'%3E%3Cpath d='M4 0L8 6H0z' fill='%23888888'/%3E%3C/svg%3E") no-repeat center center;
   }
   .analytics-scrollbar::-webkit-scrollbar-button:single-button:vertical:increment {
-    background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='4' viewBox='0 0 8 4'%3E%3Cpath d='M0 0h8L4 4z' fill='%23cccccc'/%3E%3C/svg%3E") no-repeat center center;
-    border-left: 1px solid #e2e8f4;
+    background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'%3E%3Cpath d='M0 0h8L4 6z' fill='%23888888'/%3E%3C/svg%3E") no-repeat center center;
   }
   .analytics-scrollbar::-webkit-scrollbar-button:single-button:horizontal:decrement {
-    background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='8' viewBox='0 0 4 8'%3E%3Cpath d='M4 0L0 4l4 4z' fill='%23cccccc'/%3E%3C/svg%3E") no-repeat center center;
-    border-top: 1px solid #e2e8f4;
+    background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='8' viewBox='0 0 6 8'%3E%3Cpath d='M6 0L0 4l6 4z' fill='%23888888'/%3E%3C/svg%3E") no-repeat center center;
   }
   .analytics-scrollbar::-webkit-scrollbar-button:single-button:horizontal:increment {
-    background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='8' viewBox='0 0 4 8'%3E%3Cpath d='M0 0l4 4-4 4z' fill='%23cccccc'/%3E%3C/svg%3E") no-repeat center center;
-    border-top: 1px solid #e2e8f4;
+    background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='8' viewBox='0 0 6 8'%3E%3Cpath d='M0 0l6 4-6 4z' fill='%23888888'/%3E%3C/svg%3E") no-repeat center center;
   }
   .analytics-scrollbar::-webkit-scrollbar-button:hover {
-    background-color: #f5f7fa;
+    background-color: #f5f5f5;
   }
 `;
 
