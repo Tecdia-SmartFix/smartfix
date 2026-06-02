@@ -478,15 +478,10 @@ const ChatPage = () => {
 
                 {isLoading && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-                    <div className="flex gap-3">
-                      <div className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
-                        <Bot size={14} className="text-gray-500" />
-                      </div>
-                      <div className="bg-white border border-gray-100 shadow-sm rounded-2xl px-4 py-3 flex gap-1.5 items-center">
-                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" />
-                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                      </div>
+                    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl px-4 py-3 flex gap-1.5 items-center">
+                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" />
+                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
                     </div>
                   </motion.div>
                 )}

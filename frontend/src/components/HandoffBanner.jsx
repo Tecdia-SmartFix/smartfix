@@ -113,6 +113,14 @@ const HandoffBanner = ({ machineId }) => {
           Previous shift: all clear
           {log.worker_label && <span className="text-emerald-600/70 font-normal">· {log.worker_label}</span>}
           {when && <span className="text-emerald-600/70 font-normal">· {when}</span>}
+          <button
+            onClick={() => setDismissed(true)}
+            className="ml-1 flex items-center gap-1 text-emerald-600/60 hover:text-emerald-700 transition-colors"
+            title="Dismiss"
+          >
+            <X size={11} strokeWidth={3} />
+            Dismiss
+          </button>
         </div>
       </motion.div>
     );
