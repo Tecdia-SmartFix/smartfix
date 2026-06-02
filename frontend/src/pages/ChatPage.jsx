@@ -40,102 +40,10 @@ const InlineSidebar = ({
   chats, currentChatId, onSelectChat, onNewChat, onDeleteChat, isOpen, onClose,
 }) => {
   const [search, setSearch] = useState('');
-  const scrollContainerRef = useRef(null);
-  const scrollTrackRef = useRef(null);
-  const scrollThumbRef = useRef(null);
-  const isDragging = useRef(false);
-  const startY = useRef(0);
-  const startScrollTop = useRef(0);
-
-  const [thumbHeight, setThumbHeight] = useState(140);
-  const [thumbTop, setThumbTop] = useState(0);
 
   const filtered = (chats || []).filter(c =>
     !search || c.title?.toLowerCase().includes(search.toLowerCase())
   );
-
-  const updateThumbPosition = useCallback(() => {
-    if (!scrollContainerRef.current || !scrollTrackRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
-    const trackHeight = scrollTrackRef.current.clientHeight;
-
-    if (scrollHeight <= clientHeight) {
-      setThumbHeight(0);
-      return;
-    }
-
-    const computedThumbHeight = Math.max((clientHeight / scrollHeight) * trackHeight, 30);
-    const maxScrollTop = scrollHeight - clientHeight;
-    const maxThumbTop = trackHeight - computedThumbHeight;
-    const computedThumbTop = (scrollTop / maxScrollTop) * maxThumbTop;
-
-    setThumbHeight(computedThumbHeight);
-    setThumbTop(computedThumbTop);
-  }, []);
-
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (container) {
-      container.addEventListener('scroll', updateThumbPosition);
-      const observer = new ResizeObserver(updateThumbPosition);
-      observer.observe(container);
-      return () => {
-        container.removeEventListener('scroll', updateThumbPosition);
-        observer.disconnect();
-      };
-    }
-  }, [updateThumbPosition, filtered]);
-
-  const dragState = useRef({
-    isDragging: false,
-    startY: 0,
-    startScrollTop: 0,
-    thumbHeight: 0
-  });
-
-  const handleMouseDown = (e) => {
-    e.preventDefault();
-    dragState.current.isDragging = true;
-    dragState.current.startY = e.clientY;
-    dragState.current.startScrollTop = scrollContainerRef.current.scrollTop;
-    dragState.current.thumbHeight = thumbHeight;
-    document.body.style.userSelect = 'none';
-  };
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!dragState.current.isDragging) return;
-      if (!scrollContainerRef.current || !scrollTrackRef.current) return;
-      
-      const deltaY = e.clientY - dragState.current.startY;
-      const { scrollHeight, clientHeight } = scrollContainerRef.current;
-      const trackHeight = scrollTrackRef.current.clientHeight;
-
-      const maxScrollTop = scrollHeight - clientHeight;
-      const maxThumbTop = trackHeight - dragState.current.thumbHeight;
-
-      if (maxThumbTop <= 0) return;
-
-      const thumbDeltaTop = (deltaY / maxThumbTop) * maxScrollTop;
-      scrollContainerRef.current.scrollTop = dragState.current.startScrollTop + thumbDeltaTop;
-    };
-
-    const handleMouseUp = () => {
-      if (dragState.current.isDragging) {
-        dragState.current.isDragging = false;
-        document.body.style.userSelect = 'auto';
-      }
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.userSelect = 'auto';
-    };
-  }, []);
 
   return (
     <>
@@ -157,22 +65,6 @@ const InlineSidebar = ({
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         pt-[76px] md:pt-0
       `}>
-        <div 
-          ref={scrollTrackRef}
-          className="absolute right-0 top-[140px] bottom-4 w-[18px] border-l border-gray-50 flex flex-col items-center select-none"
-        >
-          {thumbHeight > 0 && (
-            <div
-              ref={scrollThumbRef}
-              onMouseDown={handleMouseDown}
-              className="w-[8px] rounded-full bg-gray-200 hover:bg-gray-300 transition-colors cursor-grab active:cursor-grabbing absolute"
-              style={{
-                height: `${thumbHeight}px`,
-                top: `${thumbTop}px`,
-              }}
-            />
-          )}
-        </div>
 
         <button
           onClick={onClose}
@@ -217,9 +109,7 @@ const InlineSidebar = ({
           </span>
 
           <div 
-            ref={scrollContainerRef}
-            className="flex-1 overflow-y-auto space-y-1 pr-1 scrollbar-none"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            className="flex-1 overflow-y-auto space-y-1 pr-1"
           >
             {filtered.length === 0 ? (
               <p className="text-[12px] text-gray-400 text-center py-8">
@@ -622,7 +512,8 @@ const ChatPage = () => {
                   placeholder={`Ask about your ${machineLabel}…`}
                   rows={1}
                   disabled={isLoading}
-                  className="flex-1 min-w-0 bg-transparent border-none py-2.5 px-1 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-0 resize-none max-h-[200px] text-[15px] disabled:opacity-50 leading-relaxed"
+                  className="flex-1 min-w-0 bg-transparent border-none py-2.5 px-1 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-0 resize-none max-h-[200px] text-[15px] disabled:opacity-50 leading-relaxed scrollbar-none"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 />
                 <div className="flex items-center gap-1 mb-1 shrink-0">
                   <button
