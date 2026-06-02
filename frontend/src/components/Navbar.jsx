@@ -34,11 +34,7 @@ const Navbar = () => {
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className={`theme-nav w-full flex items-center justify-between transition-all duration-500 ${
-          scrolled || location.pathname !== '/'
-            ? 'bg-black shadow-sm'
-            : 'bg-black/10 backdrop-blur-[2px]'
-        }`}
+        className={`theme-nav w-full flex items-center justify-between transition-all duration-500 bg-black shadow-sm`}
       >
         <div className="max-w-[1680px] mx-auto w-full px-5 sm:px-8 lg:px-10 h-[64px] flex items-center justify-between">
 
@@ -66,7 +62,7 @@ const Navbar = () => {
               >
                 Features
                 {hoveredPath === '/features' && (
-                  <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
+                  <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#2b8cff] to-[#10b9d2]" />
                 )}
               </Link>
               <Link to="/machines"
@@ -76,24 +72,14 @@ const Navbar = () => {
               >
                 Machines
                 {hoveredPath === '/machines' && (
-                  <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
-                )}
-              </Link>
-              <Link to="/integrations"
-                onMouseEnter={() => setHoveredPath('/integrations')}
-                onMouseLeave={() => setHoveredPath(null)}
-                className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors duration-200 text-white hover:text-white h-full"
-              >
-                Integrations
-                {hoveredPath === '/integrations' && (
-                  <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
+                  <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#2b8cff] to-[#10b9d2]" />
                 )}
               </Link>
             </div>
           </div>
 
           {/* Right Side */}
-          <div className="hidden md:flex items-center gap-7 h-full">
+          <div className="hidden md:flex items-center gap-8 h-full">
             {showShiftButtons && (
               <>
                 <button
@@ -104,7 +90,7 @@ const Navbar = () => {
                 >
                   <ArrowRight size={14} /> Start Shift
                   {hoveredPath === 'start-shift' && (
-                    <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
+                    <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#2b8cff] to-[#10b9d2]" />
                   )}
                 </button>
                 <button
@@ -115,12 +101,23 @@ const Navbar = () => {
                 >
                   <LogOut size={14} /> End Shift
                   {hoveredPath === 'end-shift' && (
-                    <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
+                    <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#2b8cff] to-[#10b9d2]" />
                   )}
                 </button>
                 <div className="h-4 w-px bg-white/20" />
               </>
             )}
+
+            <Link to="/integrations"
+              onMouseEnter={() => setHoveredPath('/integrations')}
+              onMouseLeave={() => setHoveredPath(null)}
+              className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition-colors duration-200 text-white hover:text-white h-full"
+            >
+              Integrations
+              {hoveredPath === '/integrations' && (
+                <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#2b8cff] to-[#10b9d2]" />
+              )}
+            </Link>
 
             <Link 
               to="/admin/login" 
@@ -130,7 +127,7 @@ const Navbar = () => {
             >
               <User size={14} /> Admin
               {hoveredPath === '/admin/login' && (
-                <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
+                <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#2b8cff] to-[#10b9d2]" />
               )}
             </Link>
             {showCta && (
@@ -143,7 +140,7 @@ const Navbar = () => {
               >
                 Start Diagnosing <ArrowRight size={14} />
                 {hoveredPath === 'start-diagnosing' && (
-                  <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-white" />
+                  <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#2b8cff] to-[#10b9d2]" />
                 )}
               </button>
             )}

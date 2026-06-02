@@ -2550,12 +2550,12 @@ const AdminDashboard = () => {
 
       {/* ── Tab Bar — sticky at top, always visible when scrolled ── */}
       <div className="sticky left-0 right-0 top-0 z-50 border-b border-white/10 bg-black">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
+        <div className="mx-auto flex h-14 max-w-[1680px] w-full items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
           {/* Logo & Tabs */}
           <div className="flex items-center overflow-x-auto scrollbar-hide h-full">
             
             {/* Admin Panel Logo */}
-            <div className="mr-5 flex h-[34px] shrink-0 items-center gap-3 border-r border-white/10 pr-5">
+            <div className="mr-5 flex h-[34px] shrink-0 items-center gap-3">
               <span className="text-[11px] font-black uppercase tracking-[0.22em] text-white">SmartFix Admin</span>
             </div>
 
@@ -2613,7 +2613,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className={`mx-auto max-w-6xl px-5 sm:px-8 lg:px-10 ${activeTab === 'add' ? 'pb-0' : 'pb-10'}`}>
+      <div className={`mx-auto max-w-[1680px] w-full px-5 sm:px-8 lg:px-10 ${activeTab === 'add' ? 'pb-0' : 'pb-10'}`}>
 
         {/* ── Global ingestion progress bar ──
             Wrapped in mt-10 so the panel doesn't sit flush against the
