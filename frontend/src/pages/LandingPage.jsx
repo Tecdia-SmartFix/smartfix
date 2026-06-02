@@ -2,10 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import {
+  ArrowLeft,
   ArrowRight,
   BellRing,
   BookOpen,
   CheckCircle,
+  ChevronLeft,
   ChevronRight,
   Gauge,
   MessageSquare,
@@ -124,27 +126,19 @@ const LandingPage = () => {
   const { open: openStartDiagnosing } = useStartDiagnosing();
   const [machines, setMachines] = useState([]);
   const [activeHero, setActiveHero] = useState(0);
-  // Scroll-hijack carousel: as the user scrolls past the machines section,
-  // the section pins (sticky inside an oversized parent) and the card strip
-  // slides horizontally based on scrollYProgress. See the JSX block below
-  // for the actual mount.
-  // Offset is locked to ["start start", "end end"] so progress starts at 0
-  // only when the section's top reaches the viewport's top (the same moment
-  // the sticky pin engages). Without this, the default offset starts
-  // progress as soon as the section *enters* the viewport from the bottom
-  // — meaning the cards would start translating while the user was still
-  // mid-hero, which feels broken.
   const carouselRef = useRef(null);
-  const { scrollYProgress: carouselProgress } = useScroll({
-    target: carouselRef,
-    offset: ['start start', 'end end'],
-  });
-  // Translate range tuned for ~4–6 cards at lg widths. The strip moves from
-  // 1% (slight inset so the first card edge isn't flush) to roughly -65%
-  // of its own width, which on a 1680px container scrolls past the last
-  // card. Bump the second value if more machines are added and the last
-  // card never reaches the left edge.
-  const carouselX = useTransform(carouselProgress, [0, 1], ['1%', '-65%']);
+
+  const scrollLeft = () => {
+    if (carouselRef.current) {
+      carouselRef.current.scrollBy({ left: -window.innerWidth * 0.4, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (carouselRef.current) {
+      carouselRef.current.scrollBy({ left: window.innerWidth * 0.4, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -270,28 +264,8 @@ const LandingPage = () => {
 
 
         {machines.length > 0 && (
-          // Scroll-hijack carousel. The outer ref'd section is taller than
-          // the viewport so scroll progress can advance from 0→1 while the
-          // inner sticky child is pinned at top:0. The heading lives INSIDE
-          // the pinned child so the user sees the title and the cards
-          // together — no whitespace strip between them — and the cards
-          // sit in the remaining vertical space (flex-1) rather than
-          // floating in the middle of an empty h-screen.
-          // Height ~250vh gives ~150vh of pinned scroll travel (250 − 100).
-          // Bump it if you add many more machines.
-          <section
-            ref={carouselRef}
-            // Match the next section's page bg (theme-page) so any
-            // post-unstick scroll between the cards and the next heading
-            // reads as ambient page color instead of a stark white block.
-            className="theme-light-band relative h-[160vh] bg-[var(--theme-page)]"
-          >
-            {/* Sticky child sized to its content (heading + cards) with a
-                little bottom breathing room — not h-screen — so there's no
-                tall empty bottom dragging through the viewport when the
-                sticky child unsticks and scrolls up. */}
-            <div className="sticky top-0 flex flex-col overflow-hidden pt-10 pb-8">
-              {/* ── Heading (stays pinned with the cards) ── */}
+          <section className="theme-light-band relative bg-[var(--theme-page)] pt-10 pb-8">
+            <div className="flex flex-col overflow-hidden">
               <div className="mx-auto w-full max-w-[1680px] px-5 sm:px-8 lg:px-10">
                 <div className="mb-3 text-xs font-bold uppercase tracking-[0.28em] text-black/40">
                   Connected equipment
@@ -299,26 +273,37 @@ const LandingPage = () => {
                 <h2 className="text-[clamp(2.4rem,5.5vw,5rem)] font-black uppercase leading-[0.9] tracking-normal text-black">
                   Machines
                 </h2>
-                <p className="mt-3 text-[12px] font-bold uppercase tracking-[0.22em] text-black/35">
-                  Scroll to browse →
-                </p>
               </div>
 
-              {/* Cards sit directly below the heading (mt-8 gap, no flex-1
-                  centering). On a tall viewport, the empty space ends up
-                  below the cards instead of between them and the heading
-                  — much less visually jarring. */}
-              <div className="mt-8 overflow-hidden">
-                <motion.div style={{ x: carouselX }} className="flex gap-6 pl-5 sm:pl-8 lg:pl-10">
+              <div className="mt-8 relative group mx-auto w-full max-w-[1680px]">
+                <div 
+                  ref={carouselRef}
+                  className="flex gap-6 px-5 sm:px-8 lg:px-10 overflow-x-auto snap-x snap-mandatory pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                >
                   {machines.map((machine) => (
                     <div
                       key={machine.id}
-                      className="w-[320px] shrink-0 sm:w-[380px] md:w-[440px] lg:w-[480px]"
+                      className="w-[320px] shrink-0 sm:w-[380px] md:w-[440px] lg:w-[480px] snap-center"
                     >
                       <MachineCard machine={machine} />
                     </div>
                   ))}
-                </motion.div>
+                </div>
+
+                <button 
+                  onClick={scrollLeft}
+                  className="absolute left-4 sm:left-6 lg:left-8 top-1/2 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-full border border-[#333] bg-[#0a0a0a] text-white shadow-md transition hover:bg-black z-10"
+                  aria-label="Scroll left"
+                >
+                  <ChevronLeft size={22} strokeWidth={1.5} />
+                </button>
+                <button 
+                  onClick={scrollRight}
+                  className="absolute right-4 sm:right-6 lg:right-8 top-1/2 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-full border border-[#333] bg-[#0a0a0a] text-white shadow-md transition hover:bg-black z-10"
+                  aria-label="Scroll right"
+                >
+                  <ChevronRight size={22} strokeWidth={1.5} />
+                </button>
               </div>
             </div>
           </section>

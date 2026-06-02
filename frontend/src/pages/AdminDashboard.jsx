@@ -18,7 +18,7 @@ import { useAlerts } from '../context/AlertContext';
 import { fetchApi } from '../api/apiClient';
 import ShiftLogsPanel from '../components/ShiftLogsPanel';
 import bbImg from '../assets/bb.jpg';
-import addMachineImg from '../assets/addmachine.png';
+
 import laserImg from '../assets/laser.png';
 import injectionImg from '../assets/injection.jpeg';
 import printerImg from '../assets/printer.png';

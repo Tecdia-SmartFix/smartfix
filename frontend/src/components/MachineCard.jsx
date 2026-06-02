@@ -107,12 +107,7 @@ const MachineCard = ({
           </div>
         )}
 
-        {/* Expand/collapse chevron — visual affordance the card is clickable */}
-        <div className="absolute bottom-3 right-3 rounded-full bg-black/35 p-1.5 backdrop-blur-sm">
-          <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.25 }}>
-            <ChevronDown size={14} className="text-white/70" />
-          </motion.div>
-        </div>
+
       </motion.div>
 
       {/* ── Body ── */}
