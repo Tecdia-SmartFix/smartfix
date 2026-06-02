@@ -146,7 +146,7 @@ const EndShiftModal = ({ isOpen, onClose, machineId, machineName, phase = 'end' 
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="theme-modal-panel relative z-10 max-h-[90vh] w-full max-w-[720px] overflow-y-auto rounded-[28px] border border-white/12 bg-[#080b0d]/95 p-7 text-white shadow-2xl shadow-black/60 sm:p-8"
+            className="theme-modal-panel relative z-10 max-h-[90vh] w-full max-w-[480px] overflow-y-auto rounded-[28px] border border-white/12 bg-[#080b0d]/95 p-7 text-white shadow-2xl shadow-black/60 sm:p-8"
           >
             <button
               onClick={onClose}
@@ -180,13 +180,56 @@ const EndShiftModal = ({ isOpen, onClose, machineId, machineName, phase = 'end' 
               </div>
             ) : (
               <form onSubmit={handleSubmit}>
+                {parameters.visual_checks.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="mb-3 text-sm font-black uppercase tracking-[0.18em] text-white">Visual checks</h3>
+                    <div className="space-y-3">
+                      {parameters.visual_checks.map(c => {
+                        const isAnomaly = visualChecks[c.key] === c.anomaly_when;
+                        // Anomaly-trigger checks render orange when "ticked into the
+                        // anomaly state"; normal-state checks render green when OK.
+                        const boxClasses = isAnomaly
+                          ? 'bg-[#ff6b00] border-[#ff6b00]'
+                          : c.anomaly_when === false && visualChecks[c.key]
+                            ? 'bg-[#10b981] border-[#10b981]'
+                            : visualChecks[c.key]
+                              ? 'bg-[#2b8cff] border-[#2b8cff]'
+                              : 'border-white/24 group-hover:border-[#70dceb]';
+                        return (
+                          <label key={c.key} className="flex items-center gap-3 cursor-pointer group">
+                            <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors ${boxClasses}`}>
+                              {visualChecks[c.key] && (
+                                isAnomaly
+                                  ? <AlertCircle size={14} className="text-white" strokeWidth={2.5} />
+                                  : <Check size={14} className="text-white" strokeWidth={3} />
+                              )}
+                            </div>
+                            <span className="text-[14px] text-white/82">{c.label}</span>
+                            {isAnomaly && (
+                              <span className="ml-2 px-2 py-0.5 rounded text-[11px] font-bold text-[#ff6b00] border border-[#ff6b00] bg-orange-50">
+                                Will flag
+                              </span>
+                            )}
+                            <input
+                              type="checkbox"
+                              checked={!!visualChecks[c.key]}
+                              onChange={() => toggleCheck(c.key)}
+                              className="hidden"
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {parameters.numeric_readings.length > 0 && (
                   <div className="mb-6">
                     <h3 className="mb-1 text-sm font-black uppercase tracking-[0.18em] text-white">Readings</h3>
                     <p className="mb-4 text-[13px] font-medium text-white/48">
                       {copy.readingsHint}
                     </p>
-                    <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+                    <div className="space-y-4">
                       {parameters.numeric_readings.map(r => {
                         const range = (r.expected_min != null || r.expected_max != null)
                           ? `expected ${r.expected_min ?? '—'}${r.expected_max != null ? `–${r.expected_max}` : ''}${r.unit ? ` ${r.unit}` : ''}`
@@ -228,49 +271,6 @@ const EndShiftModal = ({ isOpen, onClose, machineId, machineName, phase = 'end' 
                               </div>
                             )}
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {parameters.visual_checks.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="mb-3 text-sm font-black uppercase tracking-[0.18em] text-white">Visual checks</h3>
-                    <div className="space-y-3">
-                      {parameters.visual_checks.map(c => {
-                        const isAnomaly = visualChecks[c.key] === c.anomaly_when;
-                        // Anomaly-trigger checks render orange when "ticked into the
-                        // anomaly state"; normal-state checks render green when OK.
-                        const boxClasses = isAnomaly
-                          ? 'bg-[#ff6b00] border-[#ff6b00]'
-                          : c.anomaly_when === false && visualChecks[c.key]
-                            ? 'bg-[#10b981] border-[#10b981]'
-                            : visualChecks[c.key]
-                              ? 'bg-[#2b8cff] border-[#2b8cff]'
-                              : 'border-white/24 group-hover:border-[#70dceb]';
-                        return (
-                          <label key={c.key} className="flex items-center gap-3 cursor-pointer group">
-                            <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors ${boxClasses}`}>
-                              {visualChecks[c.key] && (
-                                isAnomaly
-                                  ? <AlertCircle size={14} className="text-white" strokeWidth={2.5} />
-                                  : <Check size={14} className="text-white" strokeWidth={3} />
-                              )}
-                            </div>
-                            <span className="text-[14px] text-white/82">{c.label}</span>
-                            {isAnomaly && (
-                              <span className="ml-2 px-2 py-0.5 rounded text-[11px] font-bold text-[#ff6b00] border border-[#ff6b00] bg-orange-50">
-                                Will flag
-                              </span>
-                            )}
-                            <input
-                              type="checkbox"
-                              checked={!!visualChecks[c.key]}
-                              onChange={() => toggleCheck(c.key)}
-                              className="hidden"
-                            />
-                          </label>
                         );
                       })}
                     </div>

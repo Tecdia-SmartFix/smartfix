@@ -191,6 +191,44 @@ def seed_machine_parameters(seeds: dict[str, dict]) -> None:
             )
 
 
+def backfill_default_visual_checks(seeds: dict[str, dict]) -> None:
+    """Append any default visual_check keys missing from existing rows.
+
+    Counterpart to ``seed_machine_parameters``: that runs only when the row
+    doesn't exist; this runs against rows that already do, so a new default
+    check added in code reaches existing installs. Strictly additive — never
+    removes, reorders, or relabels checks already in the row. Admin-added
+    checks survive untouched; admin-deleted defaults stay deleted (we only
+    add keys that have never been present).
+
+    No-op for numeric_readings because those carry expected ranges that an
+    admin may have tightened, and silently re-introducing one would surface
+    as a confusing extra row in the form.
+    """
+    conn = _conn()
+    with conn:
+        for machine_id, spec in seeds.items():
+            default_checks = spec.get("visual_checks") or []
+            if not default_checks:
+                continue
+            row = conn.execute(
+                "SELECT visual_checks FROM machine_parameters WHERE machine_id = ?",
+                (machine_id,),
+            ).fetchone()
+            if not row:
+                continue
+            current = json.loads(row["visual_checks"]) or []
+            current_keys = {c.get("key") for c in current if c.get("key")}
+            missing = [c for c in default_checks if c.get("key") not in current_keys]
+            if not missing:
+                continue
+            conn.execute(
+                "UPDATE machine_parameters SET visual_checks = ?, updated_at = ? "
+                "WHERE machine_id = ?",
+                (json.dumps(current + missing), _now_iso(), machine_id),
+            )
+
+
 # ── shift_logs ─────────────────────────────────────────────────────────────
 
 

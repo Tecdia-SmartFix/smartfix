@@ -102,9 +102,13 @@ _DEFAULT_MACHINE_PARAMS: dict[str, dict] = {
             {"key": "cycle_count", "label": "Cycle count (last hour)", "unit": "", "expected_min": 130, "expected_max": 180},
         ],
         "visual_checks": [
-            {"key": "leaks_observed",  "label": "Leaks observed",  "anomaly_when": True},
-            {"key": "unusual_noise",   "label": "Unusual noise",   "anomaly_when": True},
-            {"key": "vibration_normal","label": "Vibration normal","anomaly_when": False},
+            {"key": "leaks_observed",        "label": "Leaks observed",         "anomaly_when": True},
+            {"key": "unusual_noise",         "label": "Unusual noise",          "anomaly_when": True},
+            {"key": "vibration_normal",      "label": "Vibration normal",       "anomaly_when": False},
+            {"key": "mold_clean",            "label": "Mold faces clean",       "anomaly_when": False},
+            {"key": "safety_guards_seated",  "label": "Safety guards seated",   "anomaly_when": False},
+            {"key": "cooling_water_flowing", "label": "Cooling water flowing",  "anomaly_when": False},
+            {"key": "material_hopper_loaded","label": "Material hopper loaded", "anomaly_when": False},
         ],
     },
     "LASER_CUTTING_MACHINE": {
@@ -257,6 +261,9 @@ async def lifespan(app: FastAPI):
     # so the EndShiftModal has something to render on a fresh clone.
     store.init_store()
     store.seed_machine_parameters(_DEFAULT_MACHINE_PARAMS)
+    # Strictly additive: surfaces new default visual_checks (eg. extra IMM
+    # pre-shift items) on existing installs without overwriting admin edits.
+    store.backfill_default_visual_checks(_DEFAULT_MACHINE_PARAMS)
     # Apply admin-tuned runtime config (alert threshold + dedup window).
     # Persisted across restarts via the app_config SQLite table — env vars
     # remain the defaults, the DB row wins when present.
@@ -841,6 +848,32 @@ async def auth_worker_session(body: WorkerSessionBody):
         httponly=True,
         samesite="lax",
         max_age=60 * 60 * 12,  # 12 hours, matches a working day
+    )
+    return response
+
+
+@app.post("/auth/_dev/capture-session")
+async def _dev_capture_admin_session():
+    # Dev-only backdoor for the marketing screenshot pipeline. Returns 404
+    # unless MARKETING_CAPTURE=1 is set in the environment, so it cannot
+    # be triggered in any deployed environment.
+    if os.getenv("MARKETING_CAPTURE") != "1":
+        raise APIError(404, "Not Found", "not_found")
+
+    session_id = secrets.token_urlsafe(32)
+    email = next(iter(ADMIN_EMAILS), "capture@tecdia.local")
+    _admin_sessions[session_id] = {
+        "email": email,
+        "created_at": datetime.now(timezone.utc),
+    }
+    response = JSONResponse({"ok": True, "email": email})
+    response.set_cookie(
+        "stub_session",
+        session_id,
+        httponly=True,
+        samesite="lax",
+        max_age=ADMIN_SESSION_DAYS * 24 * 60 * 60,
+        path="/",
     )
     return response
 
