@@ -71,7 +71,7 @@ const FeaturesPage = () => (
     <div className="relative min-h-screen overflow-hidden">
       <PublicHero
         eyebrow="Workflow"
-        title="How SmartFix"
+        title="How Tecdia SmartFix"
         accent="Works"
         description="A precise, workstation-aware flow for moving from machine symptoms to verified fixes and escalation."
       />

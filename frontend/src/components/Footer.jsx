@@ -7,7 +7,7 @@ const Footer = () => (
 
       {/* Brand */}
       <div className="col-span-1 md:col-span-2">
-        <h3 className="mb-6 text-lg font-black uppercase tracking-[0.24em] text-black">SmartFix</h3>
+        <h3 className="mb-6 text-lg font-black uppercase tracking-[0.24em] text-black">Tecdia SmartFix</h3>
         <p className="mb-6 max-w-sm text-sm leading-7 text-black/60">
           AI-powered industrial diagnostics for precision manufacturing lines, machine manuals, and severity-aware shift support.
         </p>

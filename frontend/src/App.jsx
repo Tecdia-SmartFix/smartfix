@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useSearchParams } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './context/AuthContext';
@@ -44,6 +44,16 @@ const ChatRoute = () => {
 // (machineKeyFromParam is intentionally not exported — keeping App.jsx
 // component-only so Vite fast-refresh stays happy.)
 
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+};
+
 const AnimatedRoutes = () => {
   const location = useLocation();
   return (
@@ -81,6 +91,7 @@ function App() {
         <MachineProvider>
           <AlertProvider>
             <Router>
+              <ScrollToTop />
               <div className="min-h-screen relative text-tecdia-text bg-tecdia-background">
                 <BackgroundAnimation />
                 <div className="relative z-10">

@@ -57,7 +57,6 @@ const IntegrationsPage = () => (
         eyebrow="System"
         title="Platform"
         accent="Integrations"
-        description="The core services behind SmartFix diagnostic retrieval, alerting, and shift-ready operation."
       />
       <ContentShell>
         <div className="mx-auto max-w-6xl">

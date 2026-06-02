@@ -35,7 +35,7 @@ export const PublicHero = ({ eyebrow, title, accent, description, align = 'left'
           )}
           <h1 className="max-w-5xl text-[clamp(3.4rem,8vw,8.75rem)] font-black uppercase leading-[0.88] tracking-normal text-white">
             {title}
-            {accent && <span className="block bg-gradient-to-r from-[#30c7df] to-[#2b8cff] bg-clip-text text-transparent">{accent}</span>}
+            {accent && <span className="block"><span className="inline-block pr-2 bg-gradient-to-r from-[#30c7df] to-[#2b8cff] bg-clip-text text-transparent">{accent}</span></span>}
           </h1>
         </div>
         {description && (
