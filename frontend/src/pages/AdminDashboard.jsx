@@ -845,7 +845,7 @@ const SettingsPanel = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45 }}
       >
-        <div className="stg-header-eyebrow">Admin Console</div>
+
         <h1 className="stg-page-title">System Settings</h1>
         <p className="stg-page-desc">Runtime overrides take effect immediately and survive restart.</p>
       </motion.header>
@@ -981,8 +981,97 @@ const BADGE_MAP = {
   'machine.ingest_failed':   'Ingest Failed',
 };
 
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
 const fmtTs = (ts) => {
-  try { return new Date(ts).toISOString().replace('T', ' ').slice(0, 19); } catch { return ts; }
+  if (!ts) return '—';
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return ts;
+  const dd   = String(d.getDate()).padStart(2, '0');
+  const mon  = MONTH_NAMES[d.getMonth()];
+  const yyyy = d.getFullYear();
+  const hhmm = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+  return `${dd}-${mon}-${yyyy} ${hhmm}`;
+};
+
+const AUDIT_COLUMNS = [
+  { key: 'ts',       label: 'Timestamp' },
+  { key: 'event',    label: 'Event' },
+  { key: 'actor',    label: 'Principal' },
+  { key: 'resource', label: 'Resource' },
+  { key: 'ip',       label: 'Origin IP' },
+  { key: 'status',   label: 'Status' },
+  { key: 'payload',  label: 'Payload' }
+];
+
+const DEFAULT_VISIBLE = ['ts', 'event', 'actor', 'resource', 'ip', 'status', 'payload'];
+
+const SelectColumnsModal = ({ visible, draft, onToggle, onUpdate, onClose, ALL_COLUMNS }) => {
+  if (!visible) return null;
+  return (
+    <>
+      <div onClick={onClose} style={m.backdrop} />
+      <div style={m.modal}>
+        <div style={m.header}>
+          <span style={m.title}>Select columns to be displayed:</span>
+          <button onClick={onClose} style={m.closeBtn}>✕</button>
+        </div>
+        <div style={m.body}>
+          {ALL_COLUMNS.map(col => (
+            <label key={col.key} style={m.checkRow}>
+              <input
+                type="checkbox"
+                checked={draft.includes(col.key)}
+                onChange={() => onToggle(col.key)}
+                style={m.checkbox}
+              />
+              <span style={m.checkLabel}>{col.label}</span>
+            </label>
+          ))}
+        </div>
+        <div style={m.noteBox}>
+          <div style={m.noteHeader}>
+            <svg width="14" height="14" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="10" fill="#5a72a0"/>
+              <text x="12" y="16" textAnchor="middle" fill="#fff" fontSize="13" fontWeight="bold">i</text>
+            </svg>
+            <span style={m.noteTitle}>Note</span>
+          </div>
+          <p style={m.noteText}>Hidden columns won't appear in the table. You can show them again at any time.</p>
+        </div>
+        <div style={m.footer}>
+          <button onClick={onUpdate} style={m.updateBtn}>Update</button>
+          <span style={m.pipe}>|</span>
+          <button onClick={onClose} style={m.footerCloseBtn}>Close</button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+const m = {
+  backdrop: { position: 'fixed', inset: 0, background: 'rgba(15,28,63,0.18)', zIndex: 1000 },
+  modal: {
+    position: 'fixed', top: '50%', left: '50%',
+    transform: 'translate(-50%, -50%)', zIndex: 1001,
+    background: '#fff', border: '1px solid #9fb3d0', borderRadius: 6,
+    width: 300, boxShadow: '0 8px 32px rgba(15,28,63,0.16)', overflow: 'hidden',
+  },
+  header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px 10px', borderBottom: '1px solid #dbe6f4' },
+  title: { fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 700, color: '#1A53A1' },
+  closeBtn: { background: 'none', border: '1px solid #9fb3d0', borderRadius: 3, color: '#5a72a0', fontSize: 11, fontWeight: 700, width: 20, height: 20, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 },
+  body: { padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 },
+  checkRow: { display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' },
+  checkbox: { width: 14, height: 14, accentColor: '#5a72a0', cursor: 'pointer', flexShrink: 0 },
+  checkLabel: { fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#0f1c3f' },
+  noteBox: { margin: '4px 14px 10px', background: '#eef3fb', border: '1px solid #9fb3d0', borderRadius: 4, padding: '8px 10px' },
+  noteHeader: { display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 4 },
+  noteTitle: { fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, color: '#2b446b' },
+  noteText: { fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#4a6080', margin: 0, lineHeight: 1.5 },
+  footer: { borderTop: '1px solid #dbe6f4', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
+  updateBtn: { background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#1A53A1', padding: 0 },
+  pipe: { color: '#9fb3d0', fontSize: 12 },
+  footerCloseBtn: { background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#1A53A1', padding: 0 },
 };
 
 const AuditPanel = () => {
@@ -992,6 +1081,26 @@ const AuditPanel = () => {
   const [filter, setFilter]     = useState('all');
   const [expanded, setExpanded] = useState(new Set());
   const [syncing, setSyncing]   = useState(false);
+
+  // Column visibility
+  const [colModalVisible, setColModalVisible] = useState(false);
+  const [visibleColumns, setVisibleColumns]   = useState(DEFAULT_VISIBLE);
+  const [draftColumns, setDraftColumns]       = useState(DEFAULT_VISIBLE);
+
+  const openColModal = () => {
+    setDraftColumns(visibleColumns);
+    setColModalVisible(true);
+  };
+  
+  const toggleCol = (k) => setDraftColumns(p => p.includes(k) ? p.filter(x => x !== k) : [...p, k]);
+  
+  const applyCols = () => {
+    if (draftColumns.length === 0) return alert('Select at least one column.');
+    setVisibleColumns(AUDIT_COLUMNS.filter(c => draftColumns.includes(c.key)).map(c => c.key));
+    setColModalVisible(false);
+  };
+
+  const colVisible = (k) => visibleColumns.includes(k);
 
   const load = useCallback(async (f = filter) => {
     setLoading(true);
@@ -1032,9 +1141,18 @@ const AuditPanel = () => {
     <div style={s.root}>
       <style>{CSS}</style>
 
+      <SelectColumnsModal
+        visible={colModalVisible}
+        draft={draftColumns}
+        onToggle={toggleCol}
+        onUpdate={applyCols}
+        onClose={() => setColModalVisible(false)}
+        ALL_COLUMNS={AUDIT_COLUMNS}
+      />
+
       {/* Header */}
       <div style={s.pageHeader}>
-        <div style={s.eyebrow}>Admin Console</div>
+
         <h1 style={s.pageTitle}>Audit Log</h1>
         <p style={s.pageDesc}>Append-only security record · last 200 events</p>
       </div>
@@ -1043,26 +1161,33 @@ const AuditPanel = () => {
       <div style={s.controls}>
         <div style={s.filterWrap}>
           {[
-            { id: 'all',     label: 'All activity' },
-            { id: 'auth',    label: 'Authentication' },
-            { id: 'machine', label: 'Machine events' },
+            { id: 'all',     label: 'All activity',    icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z"/></svg> },
+            { id: 'auth',    label: 'Authentication',   icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> },
+            { id: 'machine', label: 'Machine events',   icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> },
           ].map(f => (
             <button
               key={f.id}
               onClick={() => { setFilter(f.id); setExpanded(new Set()); }}
-              style={{ ...s.pill, ...(filter === f.id ? s.pillActive : {}) }}
-              className="pill-btn"
+              style={s.linkBtn}
             >
-              {f.label}
+              <div style={{ ...s.linkIconBox, background: filter === f.id ? '#0f1c3f' : '#2D8CFF' }}>
+                {f.icon}
+              </div>
+              <span style={{ ...s.linkText, fontWeight: filter === f.id ? 700 : 400 }}>{f.label}</span>
             </button>
           ))}
         </div>
-        <button onClick={handleSync} style={s.syncBtn} className="sync-btn">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transition: 'transform 0.6s', transform: syncing ? 'rotate(360deg)' : 'none' }}>
-            <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-          </svg>
-          Sync
-        </button>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          <button onClick={openColModal} style={s.linkBtn}>
+            <div style={s.linkIconBox}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+              </svg>
+            </div>
+            <span style={s.linkText}>Select columns</span>
+          </button>
+        </div>
       </div>
 
       {/* Error */}
@@ -1092,13 +1217,13 @@ const AuditPanel = () => {
             <table style={s.table}>
               <thead>
                 <tr style={s.theadRow}>
-                  <th style={s.th}>Timestamp <span style={s.thMono}>(utc)</span></th>
-                  <th style={s.th}>Event</th>
-                  <th style={s.th}>Principal</th>
-                  <th style={s.th}>Resource</th>
-                  <th style={s.th}>Origin IP</th>
-                  <th style={s.th}>Status</th>
-                  <th style={{ ...s.th, textAlign: 'right' }}>Payload</th>
+                  {colVisible('ts') && <th style={s.th}>Timestamp <span style={s.thMono}>(utc)</span></th>}
+                  {colVisible('event') && <th style={s.th}>Event</th>}
+                  {colVisible('actor') && <th style={s.th}>Principal</th>}
+                  {colVisible('resource') && <th style={s.th}>Resource</th>}
+                  {colVisible('ip') && <th style={s.th}>Origin IP</th>}
+                  {colVisible('status') && <th style={s.th}>Status</th>}
+                  {colVisible('payload') && <th style={{ ...s.th, textAlign: 'right' }}>Payload</th>}
                 </tr>
               </thead>
               <tbody>
@@ -1117,65 +1242,79 @@ const AuditPanel = () => {
                         className="audit-row"
                       >
                         {/* Timestamp */}
-                        <td style={s.td}>
-                          <span style={{ ...s.monoSm, color: isOpen ? 'rgb(45,140,255)' : '#6b7a9e', fontWeight: isOpen ? 500 : 400 }}>
-                            {fmtTs(e.ts)}
-                          </span>
-                        </td>
+                        {colVisible('ts') && (
+                          <td style={s.td}>
+                            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: isOpen ? '#2D8CFF' : '#0f1c3f', fontWeight: isOpen ? 600 : 400 }}>
+                              {fmtTs(e.ts)}
+                            </span>
+                          </td>
+                        )}
 
                         {/* Event badge — only 2 variants: default and failure */}
-                        <td style={s.td}>
-                          <span style={isFail ? s.badgeFail : s.badgeDefault}>
-                            {label}
-                          </span>
-                        </td>
+                        {colVisible('event') && (
+                          <td style={s.td}>
+                            <span style={isFail ? s.badgeFail : s.badgeDefault}>
+                              {label}
+                            </span>
+                          </td>
+                        )}
 
                         {/* Principal */}
-                        <td style={s.td}>
-                          <div style={s.actorWrap}>
-                            <div style={s.avatar}>{initials}</div>
-                            <span style={s.actorName}>{e.actor || 'Anonymous'}</span>
-                          </div>
-                        </td>
+                        {colVisible('actor') && (
+                          <td style={s.td}>
+                            <div style={s.actorWrap}>
+                              <div style={s.avatar}>{initials}</div>
+                              <span style={s.actorName}>{e.actor || 'Anonymous'}</span>
+                            </div>
+                          </td>
+                        )}
 
                         {/* Resource */}
-                        <td style={s.td}>
-                          <span style={s.monoChip}>{e.target || '*'}</span>
-                        </td>
+                        {colVisible('resource') && (
+                          <td style={s.td}>
+                            <span style={s.monoChip}>{e.target || '*'}</span>
+                          </td>
+                        )}
 
                         {/* IP */}
-                        <td style={s.td}>
-                          <span style={s.monoSm}>{e.ip || '—'}</span>
-                        </td>
+                        {colVisible('ip') && (
+                          <td style={s.td}>
+                            <span style={s.monoSm}>{e.ip || '—'}</span>
+                          </td>
+                        )}
 
                         {/* Status — text only, no dot */}
-                        <td style={s.td}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: isFail ? '#e03b3b' : 'rgb(45,140,255)', fontFamily: "'Inter', sans-serif", letterSpacing: '0.04em' }}>
-                            {isFail ? 'REJECTED' : 'SUCCESS'}
-                          </span>
-                        </td>
+                        {colVisible('status') && (
+                          <td style={s.td}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: isFail ? '#e03b3b' : 'rgb(45,140,255)', fontFamily: "'Inter', sans-serif", letterSpacing: '0.04em' }}>
+                              {isFail ? 'REJECTED' : 'SUCCESS'}
+                            </span>
+                          </td>
+                        )}
 
                         {/* Expand */}
-                        <td style={{ ...s.td, textAlign: 'right' }}>
-                          {hasDetail && (
-                            <button
-                              onClick={ev => { ev.stopPropagation(); toggleExpanded(i); }}
-                              style={{ ...s.expandBtn, ...(isOpen ? s.expandBtnOpen : {}) }}
-                              className="expand-btn"
-                              aria-label={isOpen ? 'Collapse payload' : 'Expand payload'}
-                            >
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-                                <polyline points="6 9 12 15 18 9"/>
-                              </svg>
-                            </button>
-                          )}
-                        </td>
+                        {colVisible('payload') && (
+                          <td style={{ ...s.td, textAlign: 'right' }}>
+                            {hasDetail && (
+                              <button
+                                onClick={ev => { ev.stopPropagation(); toggleExpanded(i); }}
+                                style={{ ...s.expandBtn, ...(isOpen ? s.expandBtnOpen : {}) }}
+                                className="expand-btn"
+                                aria-label={isOpen ? 'Collapse payload' : 'Expand payload'}
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                                  <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                              </button>
+                            )}
+                          </td>
+                        )}
                       </tr>
 
                       {/* Payload drawer */}
                       {isOpen && hasDetail && (
                         <tr>
-                          <td colSpan={7} style={{ padding: 0 }}>
+                          <td colSpan={visibleColumns.length} style={{ padding: 0 }}>
                             <div style={s.payloadWrap}>
                               <div style={s.payloadLabel}>Event payload</div>
                               <pre style={s.payloadPre}>{JSON.stringify(e.details, null, 2)}</pre>
@@ -1191,12 +1330,7 @@ const AuditPanel = () => {
           </div>
         )}
 
-        {/* Footer */}
-        <div style={s.footer}>
-          <span style={s.footerLeft}>
-            Showing {filtered.length} log {filtered.length === 1 ? 'entry' : 'entries'}
-          </span>
-        </div>
+
       </div>
     </div>
   );
@@ -1209,7 +1343,7 @@ const s = {
     background: '#ffffff',
     color: '#0f1c3f',
     minHeight: '100vh',
-    padding: '40px 32px',
+    padding: '0 24px 28px',
     maxWidth: 1100,
     margin: '0 auto',
   },
@@ -1227,24 +1361,21 @@ const s = {
 
   controls: { 
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-    background: '#ffffff', border: '1px solid #e2e8f4', borderRadius: 12, 
-    padding: '6px', marginBottom: 20,
-    boxShadow: '0 2px 8px rgba(15,28,63,0.04)' 
+    background: 'none', border: 'none', borderRadius: 0, 
+    padding: '0', marginBottom: 20, boxShadow: 'none'
   },
-  filterWrap: { display: 'flex', gap: 4 },
-  pill: {
-    fontSize: 12, fontWeight: 700, padding: '8px 16px', borderRadius: 8,
-    cursor: 'pointer', border: 'none', background: 'transparent',
-    color: '#6b7a9e', fontFamily: "'Inter', sans-serif", transition: 'all 0.2s',
-  },
-  pillActive: { background: '#0f1c3f', color: '#ffffff' },
-  syncBtn: {
+  filterWrap: { display: 'flex', gap: 16, alignItems: 'center' },
+  linkBtn: {
     display: 'flex', alignItems: 'center', gap: 6,
-    fontSize: 11, fontWeight: 700, fontFamily: "'Inter', sans-serif",
-    padding: '8px 16px', borderRadius: 8,
-    border: 'none', background: 'transparent',
-    color: '#6b7a9e', cursor: 'pointer', transition: 'all 0.2s',
-    letterSpacing: '0.04em',
+    background: 'none', border: 'none', cursor: 'pointer', padding: 0, outline: 'none',
+  },
+  linkIconBox: {
+    background: '#2D8CFF', color: '#fff', padding: '3px 4px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 2,
+  },
+  linkText: {
+    fontSize: 14, color: '#888', textDecoration: 'underline',
+    fontFamily: "'Inter', sans-serif",
   },
 
   errorBox: {
@@ -1255,8 +1386,8 @@ const s = {
   },
 
   card: {
-    background: '#fff', border: '1px solid #e2e8f4', borderRadius: 16,
-    boxShadow: '0 2px 12px rgba(15,28,63,0.06)', overflow: 'hidden',
+    background: '#fff', border: '1px solid #b0b0b0', borderRadius: 0,
+    boxShadow: 'none', overflow: 'hidden',
     position: 'relative',
   },
 
@@ -1264,34 +1395,29 @@ const s = {
   emptyState: { padding: '48px 24px', textAlign: 'center' },
 
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 12 },
-  theadRow: { borderBottom: '1px solid #e2e8f4', background: '#ffffff' },
+  theadRow: { background: '#5a72a0' },
   th: {
     padding: '11px 16px', textAlign: 'left',
     fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
-    textTransform: 'uppercase', color: '#0f1c3f',
+    textTransform: 'uppercase', color: '#ffffff',
     fontFamily: "'Inter', sans-serif",
+    borderRight: '1px solid #b0b0b0',
   },
-  thMono: { fontFamily: "'DM Mono', monospace", fontSize: 9, textTransform: 'lowercase', letterSpacing: 0 },
+  thMono: { fontFamily: "'DM Mono', monospace", fontSize: 9, textTransform: 'lowercase', letterSpacing: 0, color: 'rgba(255,255,255,0.7)' },
 
-  tr: { borderBottom: '1px solid #e2e8f4', cursor: 'pointer', transition: 'background 0.14s' },
+  tr: { borderBottom: '1px solid #b0b0b0', cursor: 'pointer', transition: 'background 0.14s', background: '#ffffff' },
   trOpen: { background: '#e8f3ff', borderLeft: '2px solid rgb(45,140,255)' },
-  td: { padding: '10px 16px', verticalAlign: 'middle' },
+  td: { padding: '10px 16px', verticalAlign: 'middle', borderRight: '1px solid #b0b0b0' },
 
   /* Badges — just 2: default (neutral) and fail (red) */
   badgeDefault: {
-    display: 'inline-block',
-    fontSize: 10, fontWeight: 700,
-    padding: '3px 9px', borderRadius: 6,
-    background: '#ffffff', color: '#0f1c3f',
-    border: '1px solid #e2e8f4',
+    fontSize: 11, fontWeight: 700,
+    color: '#0f1c3f',
     fontFamily: "'Inter', sans-serif", letterSpacing: '0.02em',
   },
   badgeFail: {
-    display: 'inline-block',
-    fontSize: 10, fontWeight: 700,
-    padding: '3px 9px', borderRadius: 6,
-    background: '#fff5f5', color: '#e03b3b',
-    border: '1px solid #fcd5d5',
+    fontSize: 11, fontWeight: 700,
+    color: '#e03b3b',
     fontFamily: "'Inter', sans-serif", letterSpacing: '0.02em',
   },
 
@@ -1305,9 +1431,9 @@ const s = {
   },
   actorName: { fontSize: 12, fontWeight: 600, color: '#0f1c3f' },
 
-  monoSm: { fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#6b7a9e' },
+  monoSm: { fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#0f1c3f' },
   monoChip: {
-    fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#6b7a9e',
+    fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#0f1c3f',
     display: 'inline-block',
   },
 
@@ -1862,7 +1988,7 @@ const AnalyticsPanel = () => {
         {/* Failure-likelihood + depreciation are both per-machine bar
             stacks, so side-by-side reads naturally and uses screen real
             estate well. Drops to a single column below 980px. */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 24, marginBottom: 36 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginBottom: 36 }}>
           <FailureLikelihood rows={filteredFailures} />
           <AssetDepreciation rows={filteredDeprec} />
         </div>
@@ -1919,77 +2045,76 @@ const MachineTable = ({ data = [] }) => {
 
   return (
     <div>
-      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:16, marginBottom:24, paddingBottom:20, borderBottom:`1px solid ${P.border}` }}>
-        <div>
-          <div style={{ fontSize:10, fontWeight:700, letterSpacing:'.2em', textTransform:'uppercase', color:P.blue, marginBottom:4 }}>Analytics</div>
-          <h2 style={{ fontSize:22, fontWeight:700, color:P.deep, letterSpacing:'-.02em', margin:'0 0 4px' }}>Per-machine activity</h2>
-          <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:11, color:P.muted }}>Query &amp; alert breakdown across all machines</div>
+      <div style={{ marginBottom: 16 }}>
+        <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 'clamp(20px,3vw,28px)', fontWeight: 700, color: '#000000', letterSpacing: '-0.02em', margin: '0' }}>
+          Per-machine activity
+        </h2>
+      </div>
+
+      <div style={{ background: '#f4f8fc', border: '1px solid #9fb3d0', padding: '8px 12px', marginBottom: 20 }}>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: '#2b446b', marginBottom: 6, paddingBottom: 6, borderBottom: '1px solid #c9d8ee' }}>
+          Query & alert breakdown across all machines
         </div>
-        <div style={{ display:'flex', gap:32 }}>
-          {[['Queries',totalQ],['Alerts',totalA],['Machines',rows.length]].map(([l,n]) => (
-            <div key={l}>
-              <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:22, fontWeight:700, lineHeight:1, color:P.blue }}>{n}</div>
-              <div style={{ fontSize:9, fontWeight:600, textTransform:'uppercase', letterSpacing:'.12em', color:P.muted, marginTop:5 }}>{l}</div>
-            </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          {[
+            { num: totalQ, lbl: 'Queries:' },
+            { num: totalA, lbl: 'Alerts:' },
+            { num: rows.length, lbl: 'Machines:' },
+          ].map((s2, i, arr) => (
+            <React.Fragment key={i}>
+              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: '#1a1d21' }}>{s2.lbl}</span>
+                <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 600, lineHeight: 1, color: '#1A53A1' }}>{s2.num}</span>
+              </div>
+              {i < arr.length - 1 && <span style={{ color: '#9fb3d0', fontSize: 12 }}>|</span>}
+            </React.Fragment>
           ))}
         </div>
       </div>
 
-      <div style={{ height: 20 }}></div>
-
-      <div style={tableCard}>
+      <div style={{ background: '#fff', border: '1px solid #b0b0b0', borderRadius: 0, boxShadow: 'none', overflow: 'hidden' }}>
         {rows.length === 0
           ? <div style={{ padding:'32px 16px', textAlign:'center', fontSize:12, color:P.muted, fontStyle:'italic' }}>No machines match the current filter.</div>
           : <div className="analytics-scrollbar" style={{ overflowX:'auto' }}>
-              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
-                <colgroup>
-                  <col style={{ width:'22%' }} />
-                  <col style={{ width:'9%' }} />
-                  <col style={{ width:'8%' }} />
-                  <col style={{ width:'9%' }} />
-                  <col style={{ width:'12%' }} />
-                  <col style={{ width:'40%' }} />
-                </colgroup>
+              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12, tableLayout: 'fixed' }}>
                 <thead>
-                  <tr style={{ borderBottom:`1px solid ${P.border}`, background:'#fafbfd' }}>
-                    <th style={TH(undefined,'left','140px')}>Machine</th>
-                    <th style={TH(undefined,'right','64px')}>Queries</th>
-                    <th style={TH(undefined,'right','56px')}>Alerts</th>
-                    <th style={TH(undefined,'right','56px')}>Rate</th>
-                    <th style={TH(undefined,'right','88px')}>Avg Severity</th>
-                    <th style={TH(undefined,'left','180px')}>Top Alarm Codes</th>
+                  <tr style={{ background: '#5a72a0' }}>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#ffffff', fontFamily: "'Inter', sans-serif", borderRight: '1px solid #b0b0b0' }}>Machine</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#ffffff', fontFamily: "'Inter', sans-serif", borderRight: '1px solid #b0b0b0' }}>Queries</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#ffffff', fontFamily: "'Inter', sans-serif", borderRight: '1px solid #b0b0b0' }}>Alerts</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#ffffff', fontFamily: "'Inter', sans-serif", borderRight: '1px solid #b0b0b0' }}>Rate</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#ffffff', fontFamily: "'Inter', sans-serif", borderRight: '1px solid #b0b0b0' }}>Avg Severity</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#ffffff', fontFamily: "'Inter', sans-serif", borderRight: 'none' }}>Top Alarm Codes</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map(m => {
+                  {rows.map((m, rowIdx) => {
+                    const isEven = rowIdx % 2 === 0;
                     const isActive = activeId === m.machine_id;
+                    const aText = (!m.most_asked_codes || m.most_asked_codes.length === 0) 
+                      ? 'No codes' 
+                      : m.most_asked_codes.slice(0, 3).map(([c, n]) => c).join(', ');
+
                     return (
                       <tr key={m.machine_id} className="sl-row" onClick={() => setActiveId(isActive ? null : m.machine_id)}
-                        style={{ borderBottom:`1px solid ${P.border}`, cursor:'pointer', borderLeft:isActive?`3px solid ${P.blue}`:'3px solid transparent' }}>
-                        <td style={{ ...TD(), background: isActive ? P.activeB : '#fff' }}>
-                          <span style={{ fontSize:12, fontWeight:600, color:P.deep }}>{m.display_name}</span>
+                        style={{ borderBottom: '1px solid #b0b0b0', cursor: 'pointer', transition: 'background 0.1s', background: isActive ? '#deeeff' : '#ffffff', borderLeft: isActive ? '3px solid #2D8CFF' : '3px solid transparent' }}>
+                        <td style={{ padding: '9px 14px', verticalAlign: 'middle', borderRight: '1px solid #b0b0b0' }}>
+                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: isActive ? 600 : 400, color: isActive ? '#2D8CFF' : '#0f1c3f' }}>{m.display_name}</span>
                         </td>
-                        <td style={{ ...TD('right'), background: isActive ? P.activeB : '#fff' }}>
-                          <span style={{ ...mono, color:P.deep }}>{m.query_count}</span>
+                        <td style={{ padding: '9px 14px', verticalAlign: 'middle', borderRight: '1px solid #b0b0b0' }}>
+                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 400, color: '#2e4e40' }}>{m.query_count}</span>
                         </td>
-                        <td style={{ ...TD('right'), background: isActive ? P.activeB : '#fff' }}>
-                          <span style={{ ...mono, fontWeight:600, color:P.deep }}>{m.alert_count}</span>
+                        <td style={{ padding: '9px 14px', verticalAlign: 'middle', borderRight: '1px solid #b0b0b0' }}>
+                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#2e4e40' }}>{m.alert_count}</span>
                         </td>
-                        <td style={{ ...TD('right'), background: isActive ? P.activeB : '#fff' }}>
-                          <span style={{ ...mono, color:P.muted }}>{m.alert_rate_pct?.toFixed(1)}%</span>
+                        <td style={{ padding: '9px 14px', verticalAlign: 'middle', borderRight: '1px solid #b0b0b0' }}>
+                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 400, color: '#2e4e40' }}>{m.alert_rate_pct?.toFixed(1)}%</span>
                         </td>
-                        <td style={{ ...TD('right'), background: isActive ? P.activeB : '#fff' }}>
-                          <SevPill value={m.avg_severity} />
+                        <td style={{ padding: '9px 14px', verticalAlign: 'middle', borderRight: '1px solid #b0b0b0' }}>
+                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#2e4e40' }}>{m.avg_severity ? m.avg_severity.toFixed(1) : '0.0'}</span>
                         </td>
-                        <td style={{ ...TD(), background: isActive ? P.activeB : '#fff' }}>
-                          <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                            {!m.most_asked_codes || m.most_asked_codes.length === 0
-                              ? <span style={{ fontSize:11, color:'#a0acc8', fontStyle:'italic' }}>No codes</span>
-                              : m.most_asked_codes.slice(0, 3).map(([c, n]) => (
-                                  <CodeCountPill key={c} code={c} n={n} />
-                                ))
-                            }
-                          </div>
+                        <td style={{ padding: '9px 14px', verticalAlign: 'middle', borderRight: 'none' }}>
+                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 400, color: (!m.most_asked_codes || m.most_asked_codes.length === 0) ? '#6b7a9e' : '#844d4d' }}>{aText}</span>
                         </td>
                       </tr>
                     );

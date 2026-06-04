@@ -10,18 +10,121 @@ const SEVERITY_STYLES = {
   5: { label: '5 — Safety',   color: '#4a1515', bg: '#f4d2d2', border: '#dc9b9b' },
 };
 
+const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+// ── All available columns ─────────────────────────────────────────────────────
+const ALL_COLUMNS = [
+  { key: 'time',      label: 'Time'      },
+  { key: 'phase',     label: 'Phase'     },
+  { key: 'machine',   label: 'Machine'   },
+  { key: 'worker',    label: 'Worker'    },
+  { key: 'severity',  label: 'Severity'  },
+  { key: 'anomalies', label: 'Anomalies' },
+];
+
+const DEFAULT_VISIBLE = ['time', 'phase', 'machine', 'worker', 'severity', 'anomalies'];
+
 const fmtTs = (iso) => {
   if (!iso) return '—';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  const now = new Date();
+  const dd   = String(d.getDate()).padStart(2, '0');
+  const mon  = MONTH_NAMES[d.getMonth()];
+  const yyyy = d.getFullYear();
   const hhmm = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
-  if (d.toDateString() === now.toDateString()) return `Today ${hhmm}`;
-  const yest = new Date(now); yest.setDate(now.getDate() - 1);
-  if (d.toDateString() === yest.toDateString()) return `Yesterday ${hhmm}`;
-  return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${hhmm}`;
+  return `${dd}-${mon}-${yyyy} ${hhmm}`;
 };
 
+// ── Select Columns Modal ──────────────────────────────────────────────────────
+const SelectColumnsModal = ({ visible, draft, onToggle, onUpdate, onClose }) => {
+  if (!visible) return null;
+  return (
+    <>
+      <div onClick={onClose} style={m.backdrop} />
+      <div style={m.modal}>
+        <div style={m.header}>
+          <span style={m.title}>Select columns to be displayed:</span>
+          <button onClick={onClose} style={m.closeBtn}>✕</button>
+        </div>
+        <div style={m.body}>
+          {ALL_COLUMNS.map(col => (
+            <label key={col.key} style={m.checkRow}>
+              <input
+                type="checkbox"
+                checked={draft.includes(col.key)}
+                onChange={() => onToggle(col.key)}
+                style={m.checkbox}
+              />
+              <span style={m.checkLabel}>{col.label}</span>
+            </label>
+          ))}
+        </div>
+        <div style={m.noteBox}>
+          <div style={m.noteHeader}>
+            <svg width="14" height="14" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="10" fill="#5a72a0"/>
+              <text x="12" y="16" textAnchor="middle" fill="#fff" fontSize="13" fontWeight="bold">i</text>
+            </svg>
+            <span style={m.noteTitle}>Note</span>
+          </div>
+          <p style={m.noteText}>Hidden columns won't appear in the table. You can show them again at any time.</p>
+        </div>
+        <div style={m.footer}>
+          <button onClick={onUpdate} style={m.updateBtn}>Update</button>
+          <span style={m.pipe}>|</span>
+          <button onClick={onClose} style={m.footerCloseBtn}>Close</button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+const m = {
+  backdrop: { position: 'fixed', inset: 0, background: 'rgba(15,28,63,0.18)', zIndex: 1000 },
+  modal: {
+    position: 'fixed', top: '50%', left: '50%',
+    transform: 'translate(-50%, -50%)', zIndex: 1001,
+    background: '#fff', border: '1px solid #9fb3d0', borderRadius: 6,
+    width: 300, boxShadow: '0 8px 32px rgba(15,28,63,0.16)', overflow: 'hidden',
+  },
+  header: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '12px 14px 10px', borderBottom: '1px solid #dbe6f4',
+  },
+  title: { fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 700, color: '#1A53A1' },
+  closeBtn: {
+    background: 'none', border: '1px solid #9fb3d0', borderRadius: 3,
+    color: '#5a72a0', fontSize: 11, fontWeight: 700,
+    width: 20, height: 20, cursor: 'pointer', lineHeight: 1,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+  },
+  body: { padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 },
+  checkRow: { display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' },
+  checkbox: { width: 14, height: 14, accentColor: '#5a72a0', cursor: 'pointer', flexShrink: 0 },
+  checkLabel: { fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#0f1c3f' },
+  noteBox: {
+    margin: '4px 14px 10px', background: '#eef3fb',
+    border: '1px solid #9fb3d0', borderRadius: 4, padding: '8px 10px',
+  },
+  noteHeader: { display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 4 },
+  noteTitle: { fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, color: '#2b446b' },
+  noteText: { fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#4a6080', margin: 0, lineHeight: 1.5 },
+  footer: {
+    borderTop: '1px solid #dbe6f4', padding: '8px 14px',
+    display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8,
+  },
+  updateBtn: {
+    background: 'none', border: 'none', cursor: 'pointer',
+    fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#1A53A1', padding: 0,
+  },
+  pipe: { color: '#9fb3d0', fontSize: 12 },
+  footerCloseBtn: {
+    background: 'none', border: 'none', cursor: 'pointer',
+    fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#1A53A1', padding: 0,
+  },
+};
+
+// ── Main Component ────────────────────────────────────────────────────────────
 const ShiftLogsPanel = () => {
   const { machines } = useMachines();
 
@@ -36,9 +139,22 @@ const ShiftLogsPanel = () => {
   const [voidReason, setVoidReason]       = useState('');
   const [syncing, setSyncing]             = useState(false);
 
+  // Column visibility
+  const [visibleCols, setVisibleCols]   = useState(DEFAULT_VISIBLE);
+  const [colModalOpen, setColModalOpen] = useState(false);
+  const [draftCols, setDraftCols]       = useState(DEFAULT_VISIBLE);
+
+  const openColModal   = () => { setDraftCols(visibleCols); setColModalOpen(true); };
+  const closeColModal  = () => setColModalOpen(false);
+  const toggleDraft    = (key) => setDraftCols(prev =>
+    prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+  );
+  const applyColUpdate = () => { setVisibleCols(draftCols); setColModalOpen(false); };
+  const colVisible     = (key) => visibleCols.includes(key);
+
   const machineNameFor = useCallback((id) => {
-    const m = machines.find(x => x.id === id);
-    return m?.display_name || m?.name || id.replaceAll('_', ' ');
+    const mx = machines.find(x => x.id === id);
+    return mx?.display_name || mx?.name || id.replaceAll('_', ' ');
   }, [machines]);
 
   const load = useCallback(async () => {
@@ -61,11 +177,7 @@ const ShiftLogsPanel = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleSync = async () => {
-    setSyncing(true);
-    await load();
-    setSyncing(false);
-  };
+  const handleSync = async () => { setSyncing(true); await load(); setSyncing(false); };
 
   const filtered = useMemo(() => {
     if (!search.trim()) return logs;
@@ -91,10 +203,8 @@ const ShiftLogsPanel = () => {
   }, [logs]);
 
   const handleAcknowledge = async (id) => {
-    try {
-      await fetchApi(`/admin/shifts/${id}/acknowledge`, { method: 'POST' });
-      load();
-    } catch (e) { setError(e.message); }
+    try { await fetchApi(`/admin/shifts/${id}/acknowledge`, { method: 'POST' }); load(); }
+    catch (e) { setError(e.message); }
   };
 
   const handleVoid = async (id) => {
@@ -109,23 +219,34 @@ const ShiftLogsPanel = () => {
     <div style={s.root}>
       <style>{CSS}</style>
 
-      <div style={s.topbar}>
-        <div>
-          <div style={s.eyebrow}>Admin Console</div>
-          <h1 style={s.pageTitle}>Shift Logs</h1>
-          <div style={s.pageSub}>End-of-shift machine condition records · anomalies flagged automatically</div>
-        </div>
-        <div style={s.statsRow}>
+      <SelectColumnsModal
+        visible={colModalOpen}
+        draft={draftCols}
+        onToggle={toggleDraft}
+        onUpdate={applyColUpdate}
+        onClose={closeColModal}
+      />
+
+      <div style={s.headerSection}>
+        <h1 style={s.pageTitle}>Shift Logs</h1>
+      </div>
+
+      <div style={s.statsContainerBox}>
+        <div style={s.pageSubInsideBox}>Track machine conditions and automatically detect issues</div>
+        <div style={s.statsRowInner}>
           {[
-            { num: stats.thisWeek, lbl: 'This week'  },
-            { num: stats.anomalies, lbl: 'Anomalies'  },
-            { num: stats.highSev,   lbl: 'Sev ≥ 4'    },
-            { num: stats.total,      lbl: 'Total'       },
-          ].map((s2, i) => (
-            <div key={i} style={s.statBox}>
-              <div style={{ ...s.statNum, color: '#2D8CFF' }}>{s2.num}</div>
-              <div style={s.statLbl}>{s2.lbl}</div>
-            </div>
+            { num: stats.thisWeek,  lbl: 'Logs this week:'  },
+            { num: stats.anomalies, lbl: 'Issues found:'    },
+            { num: stats.highSev,   lbl: 'Critical alerts:' },
+            { num: stats.total,     lbl: 'Total logs:'      },
+          ].map((s2, i, arr) => (
+            <React.Fragment key={i}>
+              <div style={s.statItem}>
+                <span style={s.statLbl}>{s2.lbl}</span>
+                <span style={{ ...s.statNum, color: '#1A53A1' }}>{s2.num}</span>
+              </div>
+              {i < arr.length - 1 && <span style={s.statSeparator}>|</span>}
+            </React.Fragment>
           ))}
         </div>
       </div>
@@ -136,7 +257,7 @@ const ShiftLogsPanel = () => {
             <div style={s.selectLabel}>Machine</div>
             <select value={machineFilter} onChange={e => setMachineFilter(e.target.value)} style={s.select} className="sl-select">
               <option value="">All machines</option>
-              {machines.map(m => <option key={m.id} value={m.id}>{m.display_name || m.name}</option>)}
+              {machines.map(mx => <option key={mx.id} value={mx.id}>{mx.display_name || mx.name}</option>)}
             </select>
           </div>
           <div style={s.selectWrap}>
@@ -162,13 +283,29 @@ const ShiftLogsPanel = () => {
             </div>
           </div>
         </div>
-        <button onClick={handleSync} style={s.syncBtn} className="sl-sync-btn">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-            style={{ flexShrink: 0, transition: 'transform 0.6s', transform: syncing ? 'rotate(360deg)' : 'none' }}>
-            <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-          </svg>
-          Sync
-        </button>
+
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+          {/* ── Select Columns button ── */}
+          <button onClick={openColModal} style={s.linkBtn} className="sl-col-btn">
+            <div style={s.linkIconBox}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+              </svg>
+            </div>
+            <span style={s.linkText}>Select columns</span>
+          </button>
+
+          <button onClick={handleSync} style={s.linkBtn} className="sl-sync-btn">
+            <div style={s.linkIconBox}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                style={{ flexShrink: 0, transition: 'transform 0.6s', transform: syncing ? 'rotate(360deg)' : 'none' }}>
+                <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+            </div>
+            <span style={s.linkText}>Refresh</span>
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -181,7 +318,6 @@ const ShiftLogsPanel = () => {
       )}
 
       <div style={s.mainLayout}>
-
         <div style={s.card}>
           {loading && logs.length === 0 ? (
             <div style={s.loadState}>
@@ -197,19 +333,20 @@ const ShiftLogsPanel = () => {
               <table style={s.table}>
                 <thead>
                   <tr style={s.theadRow}>
-                    <th style={s.th}>Time <span style={s.thMono}>(local)</span></th>
-                    <th style={s.th}>Phase</th>
-                    <th style={s.th}>Machine</th>
-                    <th style={s.th}>Worker</th>
-                    <th style={s.th}>Severity</th>
-                    <th style={s.th}>Anomalies</th>
+                    {colVisible('time')      && <th style={s.th}>Time</th>}
+                    {colVisible('phase')     && <th style={s.th}>Phase</th>}
+                    {colVisible('machine')   && <th style={s.th}>Machine</th>}
+                    {colVisible('worker')    && <th style={s.th}>Worker</th>}
+                    {colVisible('severity')  && <th style={s.th}>Severity</th>}
+                    {colVisible('anomalies') && <th style={s.th}>Anomalies</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map(log => {
+                  {filtered.map((log, rowIdx) => {
                     const isVoid = !!log.void_at;
                     const isOpen = selectedLog?.id === log.id;
                     const aText  = log.anomalies?.length ? log.anomalies.map(a => a.title).join(', ') : '—';
+                    const isEven = rowIdx % 2 === 0;
 
                     return (
                       <tr
@@ -217,48 +354,55 @@ const ShiftLogsPanel = () => {
                         onClick={() => setSelectedId(log.id)}
                         style={{
                           ...s.tr,
-                          ...(isOpen ? s.trOpen : {}),
-                          ...(isVoid ? s.trVoid : {}),
+                          background: isOpen ? '#deeeff' : '#ffffff',
+                          borderLeft: isOpen ? '3px solid #2D8CFF' : '3px solid transparent',
+                          opacity: isVoid ? 0.55 : 1,
                         }}
                         className="sl-row"
                       >
-                        <td style={s.td}>
-                          <span style={{ ...s.monoSm, color: isOpen ? '#2D8CFF' : '#6b7a9e', fontWeight: isOpen ? 500 : 400 }}>
-                            {fmtTs(log.created_at)}
-                          </span>
-                        </td>
-
-                        <td style={s.td}>
-                          {isVoid
-                            ? <span style={s.badgeFail}>Void</span>
-                            : <span style={s.badgeDefault}>{log.phase === 'start' ? 'Pre-shift' : 'End of shift'}</span>
-                          }
-                        </td>
-
-                        <td style={s.td}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#0f1c3f' }}>
-                            {machineNameFor(log.machine_id)}
-                          </span>
-                        </td>
-
-                        <td style={s.td}>
-                          <div style={s.actorWrap}>
-                            <div style={s.avatar}>{(log.worker_label || '?').charAt(0).toUpperCase()}</div>
-                            <span style={s.actorName}>{log.worker_label || '—'}</span>
-                          </div>
-                        </td>
-
-                        <td style={s.td}>
-                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 600, color: '#0f1c3f' }}>
-                            {log.severity}
-                          </span>
-                        </td>
-
-                        <td style={s.td}>
-                          <span style={{ ...s.monoSm, color: '#0f1c3f', fontWeight: log.anomalies?.length ? 500 : 400 }}>
-                            {aText}
-                          </span>
-                        </td>
+                        {colVisible('time') && (
+                          <td style={s.td}>
+                            <span style={{ ...s.cellText, color: isOpen ? '#2D8CFF' : '#0f1c3f', fontWeight: isOpen ? 600 : 400 }}>
+                              {fmtTs(log.created_at)}
+                            </span>
+                          </td>
+                        )}
+                        {colVisible('phase') && (
+                          <td style={s.td}>
+                            <span style={s.cellText}>
+                              {isVoid ? 'Void' : log.phase === 'start' ? 'Pre-shift' : 'End of shift'}
+                            </span>
+                          </td>
+                        )}
+                        {colVisible('machine') && (
+                          <td style={s.td}>
+                            <span style={{ ...s.cellText, fontWeight: 600, color: '#0f1c3f' }}>
+                              {machineNameFor(log.machine_id)}
+                            </span>
+                          </td>
+                        )}
+                        {colVisible('worker') && (
+                          <td style={s.td}>
+                            <div style={s.actorWrap}>
+                              <div style={s.avatar}>{(log.worker_label || '?').charAt(0).toUpperCase()}</div>
+                              <span style={{ ...s.cellText, fontWeight: 600, color: '#0f1c3f' }}>{log.worker_label || '—'}</span>
+                            </div>
+                          </td>
+                        )}
+                        {colVisible('severity') && (
+                          <td style={s.td}>
+                            <span style={{ ...s.cellText, fontWeight: 600, color: '#0f1c3f' }}>
+                              {log.severity}
+                            </span>
+                          </td>
+                        )}
+                        {colVisible('anomalies') && (
+                          <td style={s.td}>
+                            <span style={{ ...s.cellText, color: log.anomalies?.length ? '#844d4d' : '#6b7a9e' }}>
+                              {aText}
+                            </span>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -266,14 +410,6 @@ const ShiftLogsPanel = () => {
               </table>
             </div>
           )}
-
-          <div style={s.tableFooter}>
-            <span style={s.footerLeft}>Showing {filtered.length} of {logs.length} {logs.length === 1 ? 'entry' : 'entries'}</span>
-            <span style={s.footerRight}>
-              <span style={s.liveDot} className="sl-live-dot" />
-              Real-time sync active
-            </span>
-          </div>
         </div>
 
         {selectedLog && (() => {
@@ -401,29 +537,20 @@ const ShiftLogsPanel = () => {
 };
 
 const s = {
-  root: {
-    fontFamily: "'Inter', sans-serif",
-    background: '#ffffff', color: '#2e4e40',
-    minHeight: '100vh', padding: '28px 24px',
-  },
-
-  topbar: {
-    display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
-    flexWrap: 'wrap', gap: 16, marginBottom: 24,
-    paddingBottom: 20, borderBottom: '1px solid #e5e7eb',
-  },
-  eyebrow:   { fontFamily: "'Sora', sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#2D8CFF', marginBottom: 4 },
-  pageTitle: { fontFamily: "'Sora', sans-serif", fontSize: 'clamp(20px,3vw,28px)', fontWeight: 700, color: '#2e4e40', letterSpacing: '-0.02em', margin: '0 0 4px' },
-  pageSub:   { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#6d7c74' },
-  statsRow:  { display: 'flex', gap: 32 },
-  statBox:   { minWidth: 60 },
-  statNum:   { fontFamily: "'Sora', sans-serif", fontSize: 22, fontWeight: 700, lineHeight: 1 },
-  statLbl:   { fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6d7c74', marginTop: 5 },
-
-  controls:     { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
+  root: { fontFamily: "'Inter', sans-serif", background: '#ffffff', color: '#2e4e40', minHeight: '100vh', padding: '0 24px 28px' },
+  headerSection: { marginBottom: 16 },
+  statsContainerBox: { background: '#f4f8fc', border: '1px solid #9fb3d0', padding: '8px 12px', marginBottom: 20 },
+  pageSubInsideBox: { fontFamily: "'Inter', sans-serif", fontSize: 14, color: '#2b446b', marginBottom: 6, paddingBottom: 6, borderBottom: '1px solid #c9d8ee' },
+  statsRowInner: { display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' },
+  statItem: { display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statSeparator: { color: '#9fb3d0', fontSize: 12 },
+  pageTitle: { fontFamily: "'Sora', sans-serif", fontSize: 'clamp(20px,3vw,28px)', fontWeight: 700, color: '#000000', letterSpacing: '-0.02em', margin: '0' },
+  statNum: { fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 600, lineHeight: 1 },
+  statLbl: { fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: '#1a1d21' },
+  controls: { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
   leftControls: { display: 'flex', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' },
-  selectWrap:   { display: 'flex', flexDirection: 'column', gap: 6 },
-  selectLabel:  { fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6d7c74' },
+  selectWrap: { display: 'flex', flexDirection: 'column', gap: 6 },
+  selectLabel: { fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6d7c74' },
   select: {
     fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500,
     padding: '6px 24px 6px 0px', border: 'none', borderBottom: '1px solid #e5e7eb',
@@ -437,162 +564,94 @@ const s = {
     padding: '6px 10px 6px 24px', border: 'none', borderBottom: '1px solid #e5e7eb',
     background: '#fff', color: '#2e4e40', outline: 'none', width: 200,
   },
-  syncBtn: {
+  linkBtn: {
     display: 'flex', alignItems: 'center', gap: 6,
-    fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600,
-    padding: '6px 12px', border: '1px solid #2D8CFF', borderRadius: 4,
-    background: '#fff', color: '#2D8CFF', cursor: 'pointer', transition: 'all 0.12s',
+    background: 'none', border: 'none', cursor: 'pointer', padding: 0, outline: 'none',
   },
-
+  linkIconBox: {
+    background: '#2D8CFF', color: '#fff', padding: '3px 4px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 2,
+  },
+  linkText: {
+    fontSize: 14, color: '#888', textDecoration: 'underline',
+    fontFamily: "'Inter', sans-serif",
+  },
   errorBox: {
-    display: 'flex', alignItems: 'center', gap: 10,
-    padding: '10px 14px', borderRadius: 4,
-    background: '#fef2f2', border: '1px solid #dc9b9b',
-    color: '#844d4d', fontSize: 12, fontWeight: 600, marginBottom: 14,
+    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 4,
+    background: '#fef2f2', border: '1px solid #dc9b9b', color: '#844d4d', fontSize: 12, fontWeight: 600, marginBottom: 14,
   },
-
   mainLayout: { display: 'flex', alignItems: 'flex-start', gap: 24 },
-
   card: {
     flex: 1,
-    background: '#fff', border: '1px solid #e2e8f4', borderRadius: 16,
-    boxShadow: '0 2px 12px rgba(15,28,63,0.06)', overflow: 'hidden',
+    background: '#fff', border: '1px solid #b0b0b0', borderRadius: 0,
+    boxShadow: 'none', overflow: 'hidden',
   },
-  loadState:  { padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 },
+  loadState: { padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 },
   emptyState: { padding: '40px 24px', textAlign: 'center' },
-
-  table:    { width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' },
-  theadRow: { borderBottom: '1px solid #e2e8f4', background: '#ffffff' },
+  table: { width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' },
+  theadRow: { background: '#5a72a0' },
   th: {
-    padding: '11px 16px', textAlign: 'left',
-    fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
-    textTransform: 'uppercase', color: '#0f1c3f',
-    fontFamily: "'Sora', sans-serif",
+    padding: '10px 14px', textAlign: 'left',
+    fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
+    textTransform: 'uppercase', color: '#ffffff',
+    fontFamily: "'Inter', sans-serif",
+    borderRight: '1px solid #b0b0b0',
   },
-  thMono: { fontFamily: "'DM Mono', monospace", fontSize: 9, textTransform: 'lowercase', letterSpacing: 0 },
-  tr:       { borderBottom: '1px solid #e2e8f4', cursor: 'pointer', transition: 'background 0.14s' },
-  trOpen: { background: '#e8f3ff', borderLeft: '3px solid #2D8CFF' },
-  trVoid: {},
-  td:       { padding: '10px 16px', verticalAlign: 'middle' },
-
-  monoSm: { fontFamily: "'DM Mono', monospace", fontSize: 11 },
-
-  badgeDefault: {
-    display: 'inline-block', fontSize: 10, fontWeight: 700,
-    padding: '3px 9px', borderRadius: 6,
-    background: '#ffffff', color: '#000000', border: '1px solid #e2e8f4',
-    fontFamily: "'Inter', sans-serif", letterSpacing: '0.02em',
+  tr: {
+    borderBottom: '1px solid #b0b0b0',
+    cursor: 'pointer',
+    transition: 'background 0.1s',
   },
-  badgeFail: {
-    display: 'inline-block', fontSize: 10, fontWeight: 700,
-    padding: '3px 9px', borderRadius: 6,
-    background: '#ffffff', color: '#000000', border: '1px solid #e2e8f4',
-    fontFamily: "'Inter', sans-serif", letterSpacing: '0.02em',
-  },
-
+  td: { padding: '9px 14px', verticalAlign: 'middle', borderRight: '1px solid #b0b0b0' },
+  cellText: { fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 400, color: '#2e4e40' },
   actorWrap: { display: 'flex', alignItems: 'center', gap: 8 },
   avatar: {
-    width: 24, height: 24, borderRadius: '50%',
-    background: '#e8f3ff', border: '1px solid #c9d5ee',
+    width: 22, height: 22, borderRadius: '50%', background: '#e8f3ff', border: '1px solid #c9d5ee',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 10, fontWeight: 700, color: '#2D8CFF', flexShrink: 0,
-    fontFamily: "'Sora', sans-serif",
+    fontSize: 10, fontWeight: 700, color: '#2D8CFF', flexShrink: 0, fontFamily: "'Sora', sans-serif",
   },
-  actorName: { fontSize: 12, fontWeight: 600, color: '#0f1c3f' },
-
-  tableFooter: {
-    borderTop: '1px solid #e2e8f4',
-    padding: '11px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-  },
-  footerLeft:  { fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 700, color: '#a0acc8', letterSpacing: '0.1em', textTransform: 'uppercase' },
-  footerRight: { fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 600, color: '#2D8CFF', display: 'flex', alignItems: 'center', gap: 5 },
-  liveDot:     { width: 6, height: 6, borderRadius: '50%', background: '#2D8CFF', display: 'inline-block' },
-
-  detailPanel: {
-    width: 280, flexShrink: 0,
-    background: '#fff', padding: '0 8px',
-  },
-  detailHeader:      { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 },
+  detailPanel: { width: 280, flexShrink: 0, background: '#fff', padding: '0 8px' },
+  detailHeader: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 },
   detailHeaderLeft: { display: 'flex', flexDirection: 'column' },
-  detailMachine:    { fontFamily: "'Sora', sans-serif", fontSize: 15, fontWeight: 600, color: '#2e4e40', lineHeight: 1.2 },
-  unackBadge: {
-    fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, fontWeight: 600,
-    color: '#2D8CFF', letterSpacing: '0.04em', marginTop: 2,
-  },
-  divider:  { height: 1, background: '#e5e7eb', margin: '14px 0' },
-  metaRow:  { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', gap: 8 },
-  metaKey:  { fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6d7c74' },
-  metaVal:  { fontSize: 12, fontWeight: 500, color: '#2e4e40' },
-  sectionLabel: {
-    fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, fontWeight: 600,
-    letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6d7c74',
-    margin: '14px 0 6px',
-  },
+  detailMachine: { fontFamily: "'Sora', sans-serif", fontSize: 15, fontWeight: 600, color: '#2e4e40', lineHeight: 1.2 },
+  unackBadge: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, fontWeight: 600, color: '#2D8CFF', letterSpacing: '0.04em', marginTop: 2 },
+  divider: { height: 1, background: '#e5e7eb', margin: '14px 0' },
+  metaRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', gap: 8 },
+  metaKey: { fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6d7c74' },
+  metaVal: { fontSize: 12, fontWeight: 500, color: '#2e4e40' },
+  sectionLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6d7c74', margin: '14px 0 6px' },
   readingsBlock: { display: 'flex', flexDirection: 'column' },
-  readingRow: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '4px 0', borderBottom: '1px dashed #f2f4f7',
-  },
-  readingKey:   { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#6d7c74' },
-  readingVal:   { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#2e4e40' },
-  notesBlock:   { fontSize: 12, color: '#4e5a52', fontStyle: 'italic', lineHeight: 1.5, padding: '4px 0' },
+  readingRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px dashed #f2f4f7' },
+  readingKey: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#6d7c74' },
+  readingVal: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 600, color: '#2e4e40' },
+  notesBlock: { fontSize: 12, color: '#4e5a52', fontStyle: 'italic', lineHeight: 1.5, padding: '4px 0' },
   anomalyBlock: { padding: '4px 0' },
-  anomalyItem:  { marginBottom: 8 },
+  anomalyItem: { marginBottom: 8 },
   anomalyTitle: { fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#844d4d' },
-  anomalyDetail:{ fontSize: 11, color: '#6d5335', fontStyle: 'italic' },
-  voidBlock:    { padding: '4px 0' },
-  voidBy:       { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: '#6d7c74' },
-
-  sevBadge: {
-    display: 'inline-block', fontFamily: "'IBM Plex Mono', monospace",
-    fontSize: 10, fontWeight: 600, padding: '2px 6px',
-    borderRadius: 2, border: '1px solid',
-  },
-
-  ackBtn: {
-    flex: 1, fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600,
-    padding: '8px 0', border: 'none', borderRadius: 4,
-    background: '#2D8CFF', color: '#ffffff', cursor: 'pointer', transition: 'all 0.12s',
-  },
-  voidBtn: {
-    fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600,
-    padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 4,
-    background: '#fff', color: '#6d7c74', cursor: 'pointer', transition: 'all 0.12s',
-  },
-  voidInput: {
-    width: '100%', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11,
-    padding: '6px 0', border: 'none', borderBottom: '1px solid #dc9b9b',
-    background: '#fff', color: '#2e4e40', outline: 'none',
-  },
-  cancelBtn: {
-    flex: 1, fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600,
-    padding: '8px 0', border: '1px solid #e5e7eb', borderRadius: 4,
-    background: '#fff', color: '#6d7c74', cursor: 'pointer',
-  },
-  confirmBtn: {
-    flex: 1, fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600,
-    padding: '8px 0', border: 'none', borderRadius: 4,
-    background: '#dc9b9b', color: '#fff', cursor: 'pointer',
-  },
+  anomalyDetail: { fontSize: 11, color: '#6d5335', fontStyle: 'italic' },
+  voidBlock: { padding: '4px 0' },
+  voidBy: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: '#6d7c74' },
+  sevBadge: { display: 'inline-block', fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 2, border: '1px solid' },
+  ackBtn: { flex: 1, fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, padding: '8px 0', border: 'none', borderRadius: 4, background: '#2D8CFF', color: '#ffffff', cursor: 'pointer', transition: 'all 0.12s' },
+  voidBtn: { fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 4, background: '#fff', color: '#6d7c74', cursor: 'pointer', transition: 'all 0.12s' },
+  voidInput: { width: '100%', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, padding: '6px 0', border: 'none', borderBottom: '1px solid #dc9b9b', background: '#fff', color: '#2e4e40', outline: 'none' },
+  cancelBtn: { flex: 1, fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, padding: '8px 0', border: '1px solid #e5e7eb', borderRadius: 4, background: '#fff', color: '#6d7c74', cursor: 'pointer' },
+  confirmBtn: { flex: 1, fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, padding: '8px 0', border: 'none', borderRadius: 4, background: '#dc9b9b', color: '#fff', cursor: 'pointer' },
 };
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&family=DM+Mono:wght@400;500&display=swap');
-  .sl-row:hover { background: #f8faff !important; }
-  .sl-sync-btn:hover { background: #2D8CFF !important; color: #fff !important; }
+  .sl-row:hover { background: #eef4ff !important; }
   .sl-ack-btn:hover:not(:disabled) { background: #1A75E8 !important; }
   .sl-void-btn:hover { border-color: #dc9b9b !important; color: #844d4d !important; }
   .sl-cancel-btn:hover { background: #f2f4f7 !important; }
-  .sl-input:focus { border-bottom-color: #2D8CFF !important; }
+  .sl-input:focus  { border-bottom-color: #2D8CFF !important; }
   .sl-select:focus { border-bottom-color: #2D8CFF !important; }
-  .sl-spinner {
-    width: 20px; height: 20px;
-    border: 2px solid #e2e8f4; border-top-color: #2D8CFF;
-    border-radius: 50%; animation: sl-spin 0.7s linear infinite;
-  }
-  .sl-live-dot { }
+  .sl-spinner { width: 20px; height: 20px; border: 2px solid #e2e8f4; border-top-color: #2D8CFF; border-radius: 50%; animation: sl-spin 0.7s linear infinite; }
   @keyframes sl-spin  { to { transform: rotate(360deg); } }
   @keyframes sl-pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+  thead th:last-child { border-right: none !important; }
+  tbody td:last-child { border-right: none !important; }
 `;
 
 export default ShiftLogsPanel;
