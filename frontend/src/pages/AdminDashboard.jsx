@@ -378,12 +378,13 @@ const SETTINGS_CSS = `
   }
 
   .stg-root .stg-page-title { font-family: 'Sora', sans-serif;
-    font-size: clamp(30px, 5vw, 46px);
-    font-weight: 800;
-    letter-spacing: -0.03em;
+    font-size: clamp(20px, 3vw, 28px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
     line-height: 1.06;
     color: var(--stg-text);
     margin-bottom: 10px;
+    margin-top: 0;
   }
 
   .stg-root .stg-page-desc {
@@ -1353,9 +1354,10 @@ const s = {
     textTransform: 'uppercase', color: 'rgb(45,140,255)', marginBottom: 8,
   },
   pageTitle: {
-    fontSize: 'clamp(26px,4vw,38px)', fontWeight: 800,
-    letterSpacing: '-0.03em', lineHeight: 1.06,
-    color: '#0f1c3f', marginBottom: 6,
+    fontFamily: "'Sora', sans-serif",
+    fontSize: 'clamp(20px,3vw,28px)', fontWeight: 700,
+    letterSpacing: '-0.02em', lineHeight: 1.06,
+    color: '#0f1c3f', marginBottom: 6, marginTop: 0,
   },
   pageDesc: { fontSize: 13, color: '#6b7a9e' },
 
@@ -2123,7 +2125,7 @@ const MachineTable = ({ data = [] }) => {
               </table>
             </div>
         }
-        <TableFooter shown={rows.length} total={data.length} unit="machines" />
+
       </div>
     </div>
   );
@@ -3097,13 +3099,31 @@ const AdminDashboard = () => {
         {/* ══════════════ TAB: Alerts ══════════════ */}
         {activeTab === 'alerts' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-            {alertThreshold && (
-              <p className="text-sm font-inter text-slate-500 mb-4">
-                Alerts fire when score ≥ {alertThreshold} of 25.
-                {dedupSeconds > 0 && (
-                  <> Repeats for the same machine + code within {Math.round(dedupSeconds / 60)} min are auto-deduped.</>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h2 style={s.pageTitle}>
+                Critical Fault Alerts
+              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                <button onClick={handleTestAlert} style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Inter', sans-serif", color: '#5a72a0', background: 'none', border: 'none', cursor: 'pointer' }}>
+                  Inject Test Alert
+                </button>
+                {alerts.length > 0 && (
+                  <button onClick={handleClearAlerts} style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Inter', sans-serif", color: '#9fb3d0', background: 'none', border: 'none', cursor: 'pointer' }}>
+                    Clear All History
+                  </button>
                 )}
-              </p>
+              </div>
+            </div>
+
+            {alertThreshold && (
+              <div style={{ background: '#f4f8fc', border: '1px solid #9fb3d0', padding: '8px 12px', marginBottom: 20 }}>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: '#2b446b' }}>
+                  Alerts fire when score ≥ {alertThreshold} of 25.
+                  {dedupSeconds > 0 && (
+                    <> Repeats for the same machine + code within {Math.round(dedupSeconds / 60)} min are auto-deduped.</>
+                  )}
+                </div>
+              </div>
             )}
 
             {Object.keys(snoozes).length > 0 && (
@@ -3123,22 +3143,6 @@ const AdminDashboard = () => {
                 ))}
               </div>
             )}
-
-            <div className="flex items-center justify-between mb-10">
-              <h2 className="text-3xl md:text-4xl font-bold font-sora text-slate-800 tracking-tight flex items-center gap-3">
-                Critical Fault Alerts
-              </h2>
-              <div className="flex items-center gap-6 mr-48">
-                <button onClick={handleTestAlert} className="text-sm font-bold font-inter text-slate-500 hover:text-slate-700 transition-colors">
-                  Inject Test Alert
-                </button>
-                {alerts.length > 0 && (
-                  <button onClick={handleClearAlerts} className="text-sm font-bold font-inter text-slate-400 hover:text-slate-600 transition-colors">
-                    Clear All History
-                  </button>
-                )}
-              </div>
-            </div>
 
             {alerts.length === 0 ? (
               <div className="bg-white border border-landing-border rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-sm">

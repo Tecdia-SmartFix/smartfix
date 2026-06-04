@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import { fetchApi } from '../api/apiClient';
 import { useMachines } from '../context/MachineContext';
 
@@ -417,8 +418,11 @@ const ShiftLogsPanel = () => {
           const readings = Object.entries(selectedLog.readings || {});
           const isVoid = !!selectedLog.void_at;
 
-          return (
-            <div style={s.detailPanel}>
+          return ReactDOM.createPortal(
+            <>
+              <div onClick={() => setSelectedId(null)} style={s.modalBackdrop} />
+              <div style={s.detailPanel}>
+                <button onClick={() => setSelectedId(null)} style={s.detailCloseBtn}>✕</button>
               <div style={s.detailHeader}>
                 <div style={s.detailHeaderLeft}>
                   <span style={{ ...s.sevBadge, color: sev.color, background: sev.bg, borderColor: sev.border, marginBottom: 8, display: 'inline-block' }}>
@@ -427,7 +431,7 @@ const ShiftLogsPanel = () => {
                   <div style={s.detailMachine}>{machineNameFor(selectedLog.machine_id)}</div>
                 </div>
                 {!selectedLog.acknowledged && !isVoid && (
-                  <span style={s.unackBadge}>Unacknowledged</span>
+                  <span ></span>
                 )}
               </div>
 
@@ -529,7 +533,8 @@ const ShiftLogsPanel = () => {
                 </div>
               )}
             </div>
-          );
+            </>
+          , document.body);
         })()}
       </div>
     </div>
@@ -610,7 +615,17 @@ const s = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 10, fontWeight: 700, color: '#2D8CFF', flexShrink: 0, fontFamily: "'Sora', sans-serif",
   },
-  detailPanel: { width: 280, flexShrink: 0, background: '#fff', padding: '0 8px' },
+  modalBackdrop: { position: 'fixed', inset: 0, background: 'rgba(15,28,63,0.18)', zIndex: 1000 },
+  detailPanel: {
+    position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+    width: 800, background: '#fff', padding: '32px 40px', borderRadius: 12,
+    boxShadow: '0 8px 32px rgba(15,28,63,0.16)', zIndex: 1001, maxHeight: '90vh', overflowY: 'auto'
+  },
+  detailCloseBtn: {
+    position: 'absolute', top: 24, right: 24, background: '#fff', border: '1px solid #9fb3d0', borderRadius: 3,
+    color: '#5a72a0', fontSize: 11, fontWeight: 700, width: 24, height: 24, cursor: 'pointer', lineHeight: 1,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, zIndex: 10
+  },
   detailHeader: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 },
   detailHeaderLeft: { display: 'flex', flexDirection: 'column' },
   detailMachine: { fontFamily: "'Sora', sans-serif", fontSize: 15, fontWeight: 600, color: '#2e4e40', lineHeight: 1.2 },
