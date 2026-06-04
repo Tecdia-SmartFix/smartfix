@@ -2105,6 +2105,7 @@ async def admin_seed_analytics(
         alert_fired = alert_score >= ALERT_THRESHOLD
 
         codes = sorted({m.upper() for m in _QUERY_CODE_RE.findall(question)})
+        machine_cat = (_machine_metadata.get(mid) or {}).get("category", "General")
         _query_log.append({
             "query_id":       f"q_seed_{uuid.uuid4().hex[:8]}",
             "machine_id":     mid,
@@ -2117,6 +2118,8 @@ async def admin_seed_analytics(
             "status":         "success",
             "asked_at":       asked_at.isoformat(),
             "workstation_ip": None,
+            "domain":         machine_cat,
+            "shift":          _get_shift(asked_at),
         })
         injected += 1
         if alert_fired:
