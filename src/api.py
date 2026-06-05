@@ -15,12 +15,12 @@ from dotenv import load_dotenv
 from fastapi import Cookie, Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr, Field
 from sentence_transformers import SentenceTransformer
 
-from . import audit, mailer, store, workstations
+from . import audit, exports, mailer, store, workstations
 from .db import get_chroma_collection
 from .rag_pipeline import run_query
 
@@ -221,8 +221,10 @@ APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:5173").rstrip("/")
 _magic_tokens: dict[str, dict] = {}
 MAGIC_TOKEN_TTL_MINUTES = 15
 
-# admin session_id → {email, created_at}. Cookie value is the session_id.
-_admin_sessions: dict[str, dict] = {}
+# Admin sessions are persisted in SQLite (`admin_sessions` table) so they
+# survive uvicorn restarts. See store.create_admin_session /
+# store.get_admin_session / store.delete_admin_session. Cookie value is the
+# session_id.
 ADMIN_SESSION_DAYS = 30
 
 # Archive location for uploaded PDFs. Each new machine is stored as
@@ -387,8 +389,8 @@ def _resolve_admin_email(stub_session: Optional[str]) -> Optional[str]:
     """Return the admin email behind a `stub_session` cookie, or None."""
     if not stub_session:
         return None
-    s = _admin_sessions.get(stub_session)
-    return s.get("email") if s else None
+    s = store.get_admin_session(stub_session)
+    return s["email"] if s else None
 
 
 def require_admin(stub_session: Optional[str] = Cookie(default=None)) -> str:
@@ -802,10 +804,7 @@ async def auth_verify_confirm(request: Request, token: str = Form(...)):
         )
 
     session_id = secrets.token_urlsafe(32)
-    _admin_sessions[session_id] = {
-        "email": entry["email"],
-        "created_at": datetime.now(timezone.utc),
-    }
+    store.create_admin_session(session_id, entry["email"], ADMIN_SESSION_DAYS)
     response = RedirectResponse(url=f"{APP_BASE_URL}/admin", status_code=302)
     response.set_cookie(
         "stub_session",      # cookie name kept for FE compat (AdminAuthContext)
@@ -862,10 +861,7 @@ async def _dev_capture_admin_session():
 
     session_id = secrets.token_urlsafe(32)
     email = next(iter(ADMIN_EMAILS), "capture@tecdia.local")
-    _admin_sessions[session_id] = {
-        "email": email,
-        "created_at": datetime.now(timezone.utc),
-    }
+    store.create_admin_session(session_id, email, ADMIN_SESSION_DAYS)
     response = JSONResponse({"ok": True, "email": email})
     response.set_cookie(
         "stub_session",
@@ -888,18 +884,16 @@ async def auth_me(
     # signed in as admin." Without this ordering, a stale worker_session
     # would mask the admin login and ProtectedAdminRoute would bounce
     # the user back to /admin/login forever.
-    if stub_session and stub_session in _admin_sessions:
-        s = _admin_sessions[stub_session]
+    admin = store.get_admin_session(stub_session) if stub_session else None
+    if admin:
         return {
             "authenticated": True,
             "role": "admin",
             "domain": "All Access",
-            "email": s["email"],
+            "email": admin["email"],
             "machine_id": None,
             "workstation_ip": None,
-            "session_expires_at": (
-                s["created_at"] + timedelta(days=ADMIN_SESSION_DAYS)
-            ).isoformat(),
+            "session_expires_at": admin["expires_at"].isoformat(),
         }
 
     # Worker (domain-selector or workstation-bound) session
@@ -932,8 +926,7 @@ async def auth_logout(
     if worker_session:
         _worker_sessions.pop(worker_session, None)
     if stub_session:
-        admin_email = _admin_sessions.get(stub_session, {}).get("email")
-        _admin_sessions.pop(stub_session, None)
+        admin_email = store.delete_admin_session(stub_session)
         if admin_email:
             audit.append("auth.admin_logout", actor=admin_email, ip=_caller_ip(request))
     response = JSONResponse({"ok": True})
@@ -1531,6 +1524,168 @@ async def admin_list_shifts(
     return {"logs": store.list_shift_logs(machine_id=machine_id, limit=limit, phase=phase)}
 
 
+def _filter_shift_logs_for_export(
+    machine_id: Optional[str],
+    severity:   Optional[int],
+    shift:      Optional[str],     # '1st shift' | '2nd shift'
+    days:       Optional[int],
+    date_from:  Optional[str],     # YYYY-MM-DD inclusive
+    date_to:    Optional[str],     # YYYY-MM-DD inclusive
+) -> list[dict]:
+    """Same filter semantics as the Shift Logs page so exports match what users see."""
+    logs = store.list_shift_logs(machine_id=machine_id, limit=1000)
+    if not (severity or shift or days or date_from or date_to):
+        return logs
+
+    now = datetime.now(timezone.utc)
+    cutoff_start: Optional[datetime] = None
+    cutoff_end:   Optional[datetime] = None
+    if days and days > 0:
+        cutoff_start = now - timedelta(days=days)
+    else:
+        if date_from:
+            try:
+                cutoff_start = datetime.fromisoformat(date_from).replace(tzinfo=timezone.utc)
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                cutoff_end = (
+                    datetime.fromisoformat(date_to).replace(tzinfo=timezone.utc)
+                    + timedelta(days=1)
+                )
+            except ValueError:
+                pass
+
+    def _shift_band(iso: str) -> str:
+        try:
+            d = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+        except (AttributeError, ValueError):
+            return ""
+        return "1st shift" if 6 <= d.hour < 18 else "2nd shift"
+
+    out: list[dict] = []
+    for l in logs:
+        created = l.get("created_at") or ""
+        if cutoff_start or cutoff_end:
+            try:
+                t = datetime.fromisoformat(created.replace("Z", "+00:00"))
+            except (AttributeError, ValueError):
+                continue
+            if cutoff_start and t < cutoff_start:
+                continue
+            if cutoff_end and t >= cutoff_end:
+                continue
+        if severity is not None and (l.get("severity") or 0) != severity:
+            continue
+        if shift and _shift_band(created) != shift:
+            continue
+        out.append(l)
+    return out
+
+
+def _machine_name_map() -> dict:
+    return {m["id"]: m["display_name"] for m in _list_machines_basic()}
+
+
+def _safe_filename(stem: str, ext: str) -> str:
+    return f"{stem}_{datetime.now().strftime('%Y%m%d_%H%M')}.{ext}"
+
+
+@app.get("/admin/shifts/export.xlsx")
+async def admin_shifts_export_xlsx(
+    machine_id: Optional[str] = None,
+    severity:   Optional[int] = None,
+    shift:      Optional[str] = None,
+    days:       Optional[int] = None,
+    date_from:  Optional[str] = None,
+    date_to:    Optional[str] = None,
+    admin_email: str = Depends(require_admin),
+):
+    logs = _filter_shift_logs_for_export(machine_id, severity, shift, days, date_from, date_to)
+    blob = exports.shift_logs_xlsx(
+        logs,
+        filters={"machine_id": machine_id, "severity": severity, "shift": shift,
+                 "days": days, "date_from": date_from, "date_to": date_to},
+        machine_names=_machine_name_map(),
+    )
+    return Response(
+        content=blob,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{_safe_filename("shift_logs", "xlsx")}"'},
+    )
+
+
+@app.get("/admin/shifts/export.pdf")
+async def admin_shifts_export_pdf(
+    machine_id: Optional[str] = None,
+    severity:   Optional[int] = None,
+    shift:      Optional[str] = None,
+    days:       Optional[int] = None,
+    date_from:  Optional[str] = None,
+    date_to:    Optional[str] = None,
+    admin_email: str = Depends(require_admin),
+):
+    logs = _filter_shift_logs_for_export(machine_id, severity, shift, days, date_from, date_to)
+    blob = exports.shift_logs_pdf(
+        logs,
+        filters={"machine_id": machine_id, "severity": severity, "shift": shift,
+                 "days": days, "date_from": date_from, "date_to": date_to},
+        machine_names=_machine_name_map(),
+    )
+    return Response(
+        content=blob, media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{_safe_filename("shift_logs", "pdf")}"'},
+    )
+
+
+@app.get("/admin/analytics/export.xlsx")
+async def admin_analytics_export_xlsx(
+    days:       Optional[int] = None,
+    date_from:  Optional[str] = None,
+    date_to:    Optional[str] = None,
+    category:   Optional[str] = None,
+    severity:   Optional[int] = None,
+    shift:      Optional[str] = None,
+    machine_id: Optional[str] = None,
+    admin_email: str = Depends(require_admin),
+):
+    data = _compute_analytics(days, date_from, date_to, category, severity, shift, machine_id)
+    blob = exports.analytics_xlsx(
+        data,
+        filters={"days": days, "date_from": date_from, "date_to": date_to,
+                 "category": category, "severity": severity, "shift": shift, "machine_id": machine_id},
+    )
+    return Response(
+        content=blob,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{_safe_filename("analytics", "xlsx")}"'},
+    )
+
+
+@app.get("/admin/analytics/export.pdf")
+async def admin_analytics_export_pdf(
+    days:       Optional[int] = None,
+    date_from:  Optional[str] = None,
+    date_to:    Optional[str] = None,
+    category:   Optional[str] = None,
+    severity:   Optional[int] = None,
+    shift:      Optional[str] = None,
+    machine_id: Optional[str] = None,
+    admin_email: str = Depends(require_admin),
+):
+    data = _compute_analytics(days, date_from, date_to, category, severity, shift, machine_id)
+    blob = exports.analytics_pdf(
+        data,
+        filters={"days": days, "date_from": date_from, "date_to": date_to,
+                 "category": category, "severity": severity, "shift": shift, "machine_id": machine_id},
+    )
+    return Response(
+        content=blob, media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{_safe_filename("analytics", "pdf")}"'},
+    )
+
+
 @app.post("/shifts/{log_id}/acknowledge")
 async def worker_acknowledge_shift(log_id: int, request: Request):
     """Worker-facing: dismiss the handoff banner on the chat page.
@@ -1790,27 +1945,16 @@ def _compute_failure_likelihood(machine_id: str, now: datetime) -> dict:
 # ── /admin/analytics ───────────────────────────────────────────────────────
 
 
-@app.get("/admin/analytics")
-async def admin_analytics(
+def _compute_analytics(
     days:       Optional[int] = None,
-    date_from:  Optional[str] = None,   # YYYY-MM-DD inclusive
-    date_to:    Optional[str] = None,   # YYYY-MM-DD inclusive
-    category:   Optional[str] = None,   # machine category, e.g. "Manufacturing"
-    severity:   Optional[int] = None,   # exact match 1..5
-    shift:      Optional[str] = None,   # 'Morning' | 'Afternoon' | 'Night'
-    machine_id: Optional[str] = None,   # exact machine slug, e.g. "FDM_X300_INDUSTRIAL_3D_PRINTER"
-    admin_email: str = Depends(require_admin),
-):
-    """Aggregate _query_log into the dashboard widgets, with optional filters.
-
-    All filters compose (AND). `days` and `date_from`/`date_to` both narrow
-    the time window — `days` wins if both are supplied (simplest precedence).
-    `category` filters by machine category, looked up via _machine_metadata.
-    `severity` is an exact-match 1..5. `shift` classifies asked_at via
-    `_get_shift`. The 24h hourly bars, failure-likelihood, and depreciation
-    intentionally ignore these — they're either inherently time-bound or
-    per-asset rather than per-query.
-    """
+    date_from:  Optional[str] = None,
+    date_to:    Optional[str] = None,
+    category:   Optional[str] = None,
+    severity:   Optional[int] = None,
+    shift:      Optional[str] = None,
+    machine_id: Optional[str] = None,
+) -> dict:
+    """Shared aggregator for the /admin/analytics JSON and export endpoints."""
     from collections import Counter
 
     now = datetime.now(timezone.utc)
@@ -2013,6 +2157,28 @@ async def admin_analytics(
         "failure_likelihood":   failure_likelihood,
         "depreciation":         depreciation,
     }
+
+
+@app.get("/admin/analytics")
+async def admin_analytics(
+    days:       Optional[int] = None,
+    date_from:  Optional[str] = None,
+    date_to:    Optional[str] = None,
+    category:   Optional[str] = None,
+    severity:   Optional[int] = None,
+    shift:      Optional[str] = None,
+    machine_id: Optional[str] = None,
+    admin_email: str = Depends(require_admin),
+):
+    """Aggregate _query_log into the dashboard widgets, with optional filters.
+
+    All filters compose (AND). `days` and `date_from`/`date_to` both narrow
+    the time window — `days` wins if both are supplied. `shift` classifies
+    asked_at via `_get_shift`. The hourly bars, failure-likelihood, and
+    depreciation are inherently time-bound or per-asset, so they ignore
+    these filters.
+    """
+    return _compute_analytics(days, date_from, date_to, category, severity, shift, machine_id)
 
 
 # ── /admin/audit ───────────────────────────────────────────────────────────

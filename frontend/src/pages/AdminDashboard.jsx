@@ -15,7 +15,7 @@ import {
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useMachines } from '../context/MachineContext';
 import { useAlerts } from '../context/AlertContext';
-import { fetchApi } from '../api/apiClient';
+import { fetchApi, downloadFile } from '../api/apiClient';
 import ShiftLogsPanel from '../components/ShiftLogsPanel';
 import bbImg from '../assets/bb.jpg';
 
@@ -1725,6 +1725,8 @@ const AnalyticsPanel = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
   const [seeding, setSeeding] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting]   = useState(false);
   // Machine + top-N are client-side filters (the backend already returns
   // per-machine breakdowns we can slice). Everything else refetches the
   // analytics endpoint with query params so the backend re-aggregates from
@@ -1775,6 +1777,27 @@ const AnalyticsPanel = () => {
   };
 
   useEffect(() => { load(); }, [load]);
+
+  const buildExportUrl = (format) => {
+    const params = new URLSearchParams();
+    if (days !== 'all')          params.set('days', days);
+    if (category !== 'all')      params.set('category', category);
+    if (severity !== 'all')      params.set('severity', severity);
+    if (shift !== 'all')         params.set('shift', shift);
+    if (machineFilter !== 'all') params.set('machine_id', machineFilter);
+    if (days === 'all' && dateFrom) params.set('date_from', dateFrom);
+    if (days === 'all' && dateTo)   params.set('date_to', dateTo);
+    const qs = params.toString() ? `?${params}` : '';
+    return `/admin/analytics/export.${format}${qs}`;
+  };
+
+  const handleExport = async (format) => {
+    setExportOpen(false);
+    setExporting(true);
+    try { await downloadFile(buildExportUrl(format), `analytics.${format}`); }
+    catch (e) { setError(e.detail || e.message || `Failed to export ${format.toUpperCase()}`); }
+    finally   { setExporting(false); }
+  };
 
   // Full-page spinner only on first load. Once we have data, the inline
   // "Loading…" indicator in the filter row takes over so changing a filter
@@ -1845,6 +1868,38 @@ const AnalyticsPanel = () => {
           >
             {loading ? 'Refreshing...' : 'Refresh Data'}
           </button>
+          <div className="relative">
+            <button
+              onClick={() => setExportOpen(o => !o)}
+              disabled={exporting || loading}
+              className="btn-secondary text-xs px-4 py-2 flex items-center gap-2 disabled:opacity-50"
+              title="Download current view as Excel or PDF"
+            >
+              {exporting ? 'Exporting...' : 'Export'}
+              <ChevronDown size={12} />
+            </button>
+            {exportOpen && (
+              <>
+                <div onClick={() => setExportOpen(false)} className="fixed inset-0 z-40" />
+                <div className="absolute right-0 mt-1 z-50 bg-white border border-tecdia-border rounded-lg shadow-lg min-w-[150px] overflow-hidden">
+                  <button
+                    onClick={() => handleExport('xlsx')}
+                    className="w-full flex items-center justify-between px-3.5 py-2.5 text-left hover:bg-tecdia-accent/5"
+                  >
+                    <span className="text-[12px] font-semibold text-tecdia-textDeep">Excel</span>
+                    <span className="text-[10px] text-tecdia-text/50 font-mono">.xlsx</span>
+                  </button>
+                  <button
+                    onClick={() => handleExport('pdf')}
+                    className="w-full flex items-center justify-between px-3.5 py-2.5 text-left hover:bg-tecdia-accent/5 border-t border-tecdia-border/60"
+                  >
+                    <span className="text-[12px] font-semibold text-tecdia-textDeep">PDF</span>
+                    <span className="text-[10px] text-tecdia-text/50 font-mono">.pdf</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

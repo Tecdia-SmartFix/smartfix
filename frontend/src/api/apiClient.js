@@ -26,6 +26,35 @@ export class ApiError extends Error {
 export const getAuthHeaders = () => ({});
 
 /**
+ * Download a binary endpoint (xlsx/pdf) and trigger a save-as in the browser.
+ * Uses fetch + Blob so HttpOnly session cookies are sent the same way as JSON calls.
+ */
+export const downloadFile = async (endpoint, fallbackName = 'download') => {
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: { ...getAuthHeaders() },
+  });
+  if (!response.ok) {
+    let detail = `HTTP ${response.status}`;
+    try { detail = (await response.json()).detail || detail; } catch { /* binary body, leave as-is */ }
+    throw new ApiError(detail, 'download_failed', response.status);
+  }
+  const disp = response.headers.get('content-disposition') || '';
+  const match = disp.match(/filename="?([^";]+)"?/i);
+  const name  = match ? match[1] : fallbackName;
+  const blob  = await response.blob();
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+/**
  * Core fetch wrapper for JSON endpoints.
  */
 export const fetchApi = async (endpoint, options = {}) => {
