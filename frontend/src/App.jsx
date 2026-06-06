@@ -23,6 +23,8 @@ import CookiePolicy from './pages/LegalNotice';
 import PrivacyPolicy from './pages/DataNotice';
 import CompanyPolicy from './pages/CompanyPolicy';
 import ContactPage from './pages/ContactPage';
+import ShiftLogPage from './pages/ShiftLogPage';
+import ShiftLogSuccess from './pages/ShiftLogSuccess';
 
 /**
  * Wraps <ChatPage /> with a React `key` derived from the ?machine= URL param.
@@ -71,6 +73,9 @@ const AnimatedRoutes = () => {
           <Route path="/machines"     element={<MachinesPage />} />
           <Route path="/contact"      element={<ContactPage />} />
           <Route path="/chat"         element={<ChatRoute />} />
+          <Route path="/shift/start"  element={<ShiftLogPage phase="start" />} />
+          <Route path="/shift/end"    element={<ShiftLogPage phase="end" />} />
+          <Route path="/shift/success" element={<ShiftLogSuccess />} />
           <Route path="/admin/login"  element={<AdminLogin />} />
           <Route path="/admin"        element={
             <ProtectedAdminRoute>

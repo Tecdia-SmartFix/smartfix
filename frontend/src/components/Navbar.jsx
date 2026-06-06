@@ -1,26 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Menu, X, User, LogOut } from 'lucide-react';
-import EndShiftModal from './EndShiftModal';
 import { useStartDiagnosing } from '../context/StartDiagnosingContext';
 import tecdiaLogo from '../assets/cebu_F-Photoroom.png';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [isEndShiftOpen, setIsEndShiftOpen] = useState(false);
-  const [shiftModalPhase, setShiftModalPhase] = useState('end');
   const [hoveredPath, setHoveredPath] = useState(null);
   const { open: openStartDiagnosing } = useStartDiagnosing();
   const location = useLocation();
+  const navigate = useNavigate();
   const showCta = !location.pathname.startsWith('/chat') && !location.pathname.startsWith('/admin');
   const showShiftButtons = location.pathname.startsWith('/chat');
 
   const navMachineParam = new URLSearchParams(location.search).get('machine');
-  const navMachineId = navMachineParam
-    ? navMachineParam.replace(/[^A-Za-z0-9]+/g, '_').toUpperCase()
-    : undefined;
+
+  // Navigate to the new full-page shift form, preserving the current machine
+  // context via query string so the page can fetch its parameters.
+  const goToShift = (phase) => {
+    const qs = navMachineParam ? `?machine=${encodeURIComponent(navMachineParam)}` : '';
+    navigate(`/shift/${phase}${qs}`);
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 24);
@@ -83,7 +85,7 @@ const Navbar = () => {
             {showShiftButtons && (
               <>
                 <button
-                  onClick={() => { setShiftModalPhase('start'); setIsEndShiftOpen(true); }}
+                  onClick={() => goToShift('start')}
                   onMouseEnter={() => setHoveredPath('start-shift')}
                   onMouseLeave={() => setHoveredPath(null)}
                   className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-white transition-colors duration-200 hover:text-white h-full"
@@ -94,7 +96,7 @@ const Navbar = () => {
                   )}
                 </button>
                 <button
-                  onClick={() => { setShiftModalPhase('end'); setIsEndShiftOpen(true); }}
+                  onClick={() => goToShift('end')}
                   onMouseEnter={() => setHoveredPath('end-shift')}
                   onMouseLeave={() => setHoveredPath(null)}
                   className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-white transition-colors duration-200 hover:text-white h-full"
@@ -172,13 +174,13 @@ const Navbar = () => {
             {showShiftButtons && (
               <>
                 <button
-                  onClick={() => { setIsMenuOpen(false); setShiftModalPhase('start'); setIsEndShiftOpen(true); }}
+                  onClick={() => { setIsMenuOpen(false); goToShift('start'); }}
                   className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors w-full text-left"
                 >
                   <ArrowRight size={14} /> Start Shift
                 </button>
                 <button
-                  onClick={() => { setIsMenuOpen(false); setShiftModalPhase('end'); setIsEndShiftOpen(true); }}
+                  onClick={() => { setIsMenuOpen(false); goToShift('end'); }}
                   className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors w-full text-left"
                 >
                   <LogOut size={14} /> End Shift
@@ -201,13 +203,6 @@ const Navbar = () => {
         )}
       </AnimatePresence>
 
-      <EndShiftModal
-        isOpen={isEndShiftOpen}
-        onClose={() => setIsEndShiftOpen(false)}
-        machineId={navMachineId}
-        machineName={navMachineParam || undefined}
-        phase={shiftModalPhase}
-      />
     </nav>
   );
 };

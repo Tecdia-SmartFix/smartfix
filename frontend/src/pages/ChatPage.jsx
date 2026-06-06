@@ -16,7 +16,6 @@ import { useMachines } from '../context/MachineContext';
 import { useAuth } from '../context/AuthContext';
 import { useAlerts } from '../context/AlertContext';
 import { fetchApi } from '../api/apiClient';
-import EndShiftModal from '../components/EndShiftModal';
 import HandoffBanner from '../components/HandoffBanner';
 import BrandMark from '../components/BrandMark';
 import chatLogo from '../assets/chat logo.png';
@@ -200,7 +199,6 @@ const ChatPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [isEndShiftModalOpen, setIsEndShiftModalOpen] = useState(false);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -549,12 +547,6 @@ const ChatPage = () => {
         </main>
       </div>
 
-      <EndShiftModal
-        isOpen={isEndShiftModalOpen}
-        onClose={() => setIsEndShiftModalOpen(false)}
-        machineId={dynamicMachine?.id || machineKey}
-        machineName={machineLabel}
-      />
     </PageWrapper>
   );
 };
