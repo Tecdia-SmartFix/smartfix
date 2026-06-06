@@ -26,8 +26,12 @@ export class ApiError extends Error {
 export const getAuthHeaders = () => ({});
 
 /**
- * Download a binary endpoint (xlsx/pdf) and trigger a save-as in the browser.
+ * Download a binary endpoint (xlsx/pdf) and let the user pick a save location.
  * Uses fetch + Blob so HttpOnly session cookies are sent the same way as JSON calls.
+ *
+ * In Chromium-based browsers the File System Access API shows a native "Save As"
+ * dialog. Safari/Firefox fall through to the standard <a download> path, which
+ * writes to the browser's default download folder.
  */
 export const downloadFile = async (endpoint, fallbackName = 'download') => {
   const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -44,8 +48,31 @@ export const downloadFile = async (endpoint, fallbackName = 'download') => {
   const match = disp.match(/filename="?([^";]+)"?/i);
   const name  = match ? match[1] : fallbackName;
   const blob  = await response.blob();
-  const url   = URL.createObjectURL(blob);
-  const a     = document.createElement('a');
+
+  if (typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function') {
+    const ext = name.split('.').pop().toLowerCase();
+    const acceptMap = {
+      xlsx: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] },
+      pdf:  { 'application/pdf': ['.pdf'] },
+      csv:  { 'text/csv': ['.csv'] },
+    };
+    const types = acceptMap[ext]
+      ? [{ description: `${ext.toUpperCase()} file`, accept: acceptMap[ext] }]
+      : undefined;
+    try {
+      const handle   = await window.showSaveFilePicker({ suggestedName: name, types });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return; // user cancelled the picker
+      // Any other picker failure (e.g. permission policy) falls through to legacy download.
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
   a.href = url;
   a.download = name;
   document.body.appendChild(a);
