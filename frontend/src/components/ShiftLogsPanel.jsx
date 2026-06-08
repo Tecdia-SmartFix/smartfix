@@ -7,26 +7,27 @@ import { useMachines } from '../context/MachineContext';
 // Severity labels are tailored to shift logs (machine-inspection context),
 // not the troubleshooting query log — so "Routine" rather than "Info".
 const SEVERITY_STYLES = {
-  1: { label: '1 - Routine',  color: '#163b2c', bg: '#cfe8db', border: '#7bb89b' },
-  2: { label: '2 - Minor',    color: '#4b3a05', bg: '#fde68a', border: '#eab308' },
-  3: { label: '3 - Degraded', color: '#4b3a05', bg: '#facc15', border: '#a16207' },
-  4: { label: '4 - Critical', color: '#431407', bg: '#fb923c', border: '#c2410c' },
-  5: { label: '5 - Safety',   color: '#ffffff', bg: '#dc2626', border: '#7f1d1d' },
+  1: { label: 'Severity 1',  color: '#1a3d2b', bg: '#c0e1d2', border: '#8ec4ad' },
+  2: { label: 'Severity 2',    color: '#2d3a1a', bg: '#b8cc9a', border: '#8aab5e' },
+  3: { label: 'Severity 3', color: '#3d3010', bg: '#d4c070', border: '#b09a30' },
+  4: { label: 'Severity 4', color: '#5a1a1a', bg: '#dc9b9b', border: '#b86060' },
+  5: { label: 'Severity 5',   color: '#ffffff', bg: '#dc2626', border: '#991b1b' },
 };
 
 // Word-only variants used in the calendar heatmap legend + the filter dropdown.
-const SEVERITY_WORD = { 1: 'Routine', 2: 'Minor', 3: 'Degraded', 4: 'Critical', 5: 'Safety' };
+const SEVERITY_WORD = { 1: 'Severity 1', 2: 'Severity 2', 3: 'Severity 3', 4: 'Severity 4', 5: 'Severity 5' };
 
 const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 const MONTH_NAMES_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const WEEKDAY_LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+// Sun–Sat to match the reference calendar screenshot
+const WEEKDAY_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 const CALENDAR_SEVERITY_STYLES = {
-  1: { label: 'Routine',  color: '#163b2c', bg: '#cfe8db', border: '#7bb89b', dot: '#2e4e40' },
-  2: { label: 'Minor',    color: '#4b3a05', bg: '#fde68a', border: '#eab308', dot: '#ca8a04' },
-  3: { label: 'Degraded', color: '#4b3a05', bg: '#facc15', border: '#a16207', dot: '#a16207' },
-  4: { label: 'Critical', color: '#431407', bg: '#fb923c', border: '#c2410c', dot: '#c2410c' },
-  5: { label: 'Safety',   color: '#ffffff', bg: '#dc2626', border: '#7f1d1d', dot: '#7f1d1d' },
+  1: { label: 'Severity 1', color: '#1a3d2b', bg: '#c0e1d2', border: '#8ec4ad', dot: '#3a7a5a' },
+  2: { label: 'Severity 2', color: '#2d3a1a', bg: '#b8cc9a', border: '#8aab5e', dot: '#6a9a2a' },
+  3: { label: 'Severity 3', color: '#3d3010', bg: '#d4c070', border: '#b09a30', dot: '#9a7a10' },
+  4: { label: 'Severity 4', color: '#5a1a1a', bg: '#dc9b9b', border: '#b86060', dot: '#b84040' },
+  5: { label: 'Severity 5', color: '#ffffff', bg: '#dc2626', border: '#991b1b', dot: '#7f1d1d' },
 };
 
 // ── All available columns ─────────────────────────────────────────────────────
@@ -116,24 +117,27 @@ const dateKeyFromIso = (iso) => {
 
 const formatMonthTitle = (date) => `${MONTH_NAMES_FULL[date.getMonth()]} ${date.getFullYear()}`;
 
+// Format hot-day date as "1 Jun 2026"
 const formatHotDayDate = (dateKey) => {
   const [year, month, day] = dateKey.split('-').map(Number);
   if (!year || !month || !day) return dateKey;
   const d = new Date(year, month - 1, day);
-  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  const monthShort = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+  return `${d.getDate()} ${monthShort} ${d.getFullYear()}`;
 };
 
 const monthStart = (date) => new Date(date.getFullYear(), date.getMonth(), 1);
 
 const addMonths = (date, delta) => new Date(date.getFullYear(), date.getMonth() + delta, 1);
 
+// Build calendar days starting on Sunday — trims the last row if it has no current-month days
 const buildCalendarDays = (monthDate) => {
   const start = monthStart(monthDate);
-  const mondayOffset = (start.getDay() + 6) % 7;
-  const firstCell = new Date(start.getFullYear(), start.getMonth(), 1 - mondayOffset);
+  const sundayOffset = start.getDay(); // 0=Sun, 1=Mon, ...
+  const firstCell = new Date(start.getFullYear(), start.getMonth(), 1 - sundayOffset);
   const todayKey = dateKeyFromDate(new Date());
 
-  return Array.from({ length: 42 }, (_, index) => {
+  const allDays = Array.from({ length: 42 }, (_, index) => {
     const date = new Date(firstCell.getFullYear(), firstCell.getMonth(), firstCell.getDate() + index);
     const key = dateKeyFromDate(date);
     return {
@@ -144,6 +148,10 @@ const buildCalendarDays = (monthDate) => {
       isToday: key === todayKey,
     };
   });
+
+  // Drop the 6th row (indices 35–41) if none of those days belong to the current month
+  const sixthRowHasCurrentMonth = allDays.slice(35).some(d => d.isCurrentMonth);
+  return sixthRowHasCurrentMonth ? allDays : allDays.slice(0, 35);
 };
 
 const summarizeShiftLogsByDay = (logs) => {
@@ -301,7 +309,7 @@ const ShiftLogsPanel = () => {
   const [syncing, setSyncing]             = useState(false);
   const [exportOpen, setExportOpen]       = useState(false);
   const [exporting, setExporting]         = useState(false);
-  const [exportSaved, setExportSaved]     = useState(null); // { name, blob } of last saved export
+  const [exportSaved, setExportSaved]     = useState(null);
   const [visibleMonth, setVisibleMonth]   = useState(() => monthStart(new Date()));
   const [calendarMonthTouched, setCalendarMonthTouched] = useState(false);
 
@@ -331,7 +339,9 @@ const ShiftLogsPanel = () => {
       if (machineFilter) qs.set('machine_id', machineFilter);
       qs.set('limit', '200');
       const data = await fetchApi(`/admin/shifts?${qs.toString()}`);
-      setLogs(data.logs || []);
+      const fetchedLogs = data.logs || [];
+      
+      setLogs(fetchedLogs);
     } catch (e) {
       setError(e.message || 'Failed to load shift logs');
       setLogs([]);
@@ -362,7 +372,7 @@ const ShiftLogsPanel = () => {
     setError('');
     try {
       const result = await downloadFile(buildExportUrl(format), `shift_logs.${format}`);
-      if (result) setExportSaved(result);   // null = user cancelled the picker
+      if (result) setExportSaved(result);
     } catch (e) {
       setError(e.message || `Failed to export ${format.toUpperCase()}`);
     } finally {
@@ -475,39 +485,29 @@ const ShiftLogsPanel = () => {
         onClose={closeColModal}
       />
 
-      <section style={s.hero} className="sl-hero">
-        <div style={s.heroIntro}>
-          <div style={s.heroKicker}>Shift intelligence</div>
-          <h1 style={s.pageTitle}>Shift Logs</h1>
-          <p style={s.heroCopy}>Daily condition history by severity and anomaly volume.</p>
-
-          <div style={s.heroStatsGrid}>
-            {[
-              { num: stats.thisWeek,     lbl: 'Logs this week' },
-              { num: stats.anomalies,    lbl: 'Issues found' },
-              { num: stats.criticalDays, lbl: 'Critical days' },
-              { num: stats.highSev,      lbl: 'Critical alerts' },
-            ].map(item => (
-              <div key={item.lbl} style={s.heroStat}>
-                <span style={s.heroStatNum}>{item.num}</span>
-                <span style={s.heroStatLbl}>{item.lbl}</span>
-              </div>
-            ))}
+      <section style={{ marginBottom: 24 }}>
+        <h1 style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: '#0f172a', margin: '0 0 16px 0', letterSpacing: '-0.02em' }}>
+          Shift Logs
+        </h1>
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 0 }}>
+          <div style={{ padding: '14px 16px', color: '#475569', fontSize: 14, fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>
+            Track machine conditions and automatically detect issues
           </div>
-
-          <div style={s.legendRow}>
-            {[1, 3, 4, 5].map(level => {
-              const sev = CALENDAR_SEVERITY_STYLES[level];
-              return (
-                <span key={level} style={s.legendItem}>
-                  <span style={{ ...s.legendDot, background: sev.dot }} />
-                  {level === 3 ? 'Sev 2-3' : `Sev ${level}`}
-                </span>
-              );
-            })}
+          <div style={{ padding: '12px 16px', borderTop: '1px solid #e2e8f0', color: '#475569', fontSize: 13, fontFamily: "'Inter', sans-serif", display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontWeight: 600, color: '#334155' }}>Logs this week: <span style={{ color: '#2563eb' }}>{stats.thisWeek}</span></span>
+            <span style={{ color: '#cbd5e1' }}>|</span>
+            <span style={{ fontWeight: 600, color: '#334155' }}>Issues found: <span style={{ color: '#2563eb' }}>{stats.anomalies}</span></span>
+            <span style={{ color: '#cbd5e1' }}>|</span>
+            <span style={{ fontWeight: 600, color: '#334155' }}>Critical alerts: <span style={{ color: '#2563eb' }}>{stats.highSev}</span></span>
+            <span style={{ color: '#cbd5e1' }}>|</span>
+            <span style={{ fontWeight: 600, color: '#334155' }}>Critical days: <span style={{ color: '#2563eb' }}>{stats.criticalDays}</span></span>
           </div>
         </div>
+      </section>
 
+      <section style={{ display: 'flex', gap: 20, marginBottom: 24, width: '100%', alignItems: 'stretch' }}>
+
+        {/* ── Calendar ── */}
         <div style={s.calendarPanel}>
           <div style={s.calendarHeader}>
             <button
@@ -524,7 +524,7 @@ const ShiftLogsPanel = () => {
             <div style={s.calendarTitleBlock}>
               <div style={s.calendarTitle}>{formatMonthTitle(visibleMonth)}</div>
               <div style={s.calendarSubtitle}>
-                {selectedDayKey ? `${formatHotDayDate(selectedDayKey)} selected` : 'Severity by local shift date'}
+                {selectedDayKey ? `${formatHotDayDate(selectedDayKey)} selected` : '1 day included'}
               </div>
             </div>
             <button
@@ -540,36 +540,38 @@ const ShiftLogsPanel = () => {
             </button>
           </div>
 
+          {/* Weekday headers: Sun–Sat */}
           <div style={s.weekdayGrid}>
             {WEEKDAY_LABELS.map(day => <span key={day} style={s.weekday}>{day}</span>)}
           </div>
 
+          {/* Calendar rows — flat rectangular cells like the screenshot */}
           <div style={s.calendarGrid}>
-            {calendarDays.map(day => {
+            {calendarDays.map((day, idx) => {
               const summary = calendarByDay[day.key];
               const sev = summary ? CALENDAR_SEVERITY_STYLES[summary.maxSeverity] : null;
               const isSelected = selectedDayKey === day.key;
-              const dayStyle = {
-                ...s.calendarDay,
-                ...(!day.isCurrentMonth ? s.calendarDayOutside : null),
-                ...(summary ? {
-                  background: sev.bg,
-                  borderColor: sev.border,
-                  color: sev.color,
-                  cursor: 'pointer',
-                } : null),
-                ...(summary?.maxSeverity >= 4 ? {
-                  boxShadow: `inset 0 -3px 0 ${sev.dot}`,
-                } : null),
-                ...(summary?.maxSeverity === 5 ? {
-                  boxShadow: '0 0 0 2px rgba(239,68,68,0.38), 0 10px 22px rgba(127,29,29,0.22)',
-                } : null),
+              const isLastRow  = idx >= calendarDays.length - 7; // last row
+
+              const cellStyle = {
+                ...s.calendarCell,
+                color: day.isCurrentMonth ? '#111827' : '#b0b7c3',
+                background: (() => {
+                  if (!day.isCurrentMonth) return '#f3f4f6';
+                  if (summary) return sev.bg;
+                  return '#ffffff';
+                })(),
+                fontWeight: 400,
                 ...(isSelected ? {
-                  borderColor: '#2D8CFF',
-                  boxShadow: summary?.maxSeverity === 5
-                    ? '0 0 0 2px rgba(45,140,255,0.42), 0 10px 22px rgba(127,29,29,0.22)'
-                    : '0 0 0 2px rgba(45,140,255,0.22)',
-                } : null),
+                  border: `2.5px solid ${summary ? sev.dot : '#2D8CFF'}`,
+                } : {
+                  borderLeft: '1px solid #d0d5dd',
+                  borderRight: '1px solid #d0d5dd',
+                  borderTop: '1px solid #d0d5dd',
+                  borderBottom: isLastRow ? '1px solid #d0d5dd' : 'none',
+                }),
+                cursor: summary ? 'pointer' : 'default',
+                outline: 'none',
               };
 
               return (
@@ -578,15 +580,14 @@ const ShiftLogsPanel = () => {
                   type="button"
                   disabled={!summary}
                   onClick={() => handleCalendarDayClick(day.key)}
-                  style={dayStyle}
-                  className={`sl-calendar-day${summary ? ' sl-calendar-day-active' : ''}${summary?.maxSeverity === 5 ? ' sl-calendar-day-alarm' : ''}`}
+                  style={cellStyle}
+                  className={`sl-calendar-cell${summary ? ' sl-calendar-cell-active' : ''}${summary?.maxSeverity === 5 ? ' sl-calendar-cell-alarm' : ''}`}
                   title={summary ? `${summary.count} logs · max severity ${summary.maxSeverity}` : undefined}
                 >
-                  <span style={s.calendarDayTop}>
-                    <span style={{ ...s.calendarDayNum, fontWeight: day.isToday ? 800 : 700 }}>{day.day}</span>
-                    {summary?.maxSeverity === 5 && <span style={s.alarmMark}>!</span>}
-                  </span>
-                  {summary && <span style={{ ...s.calendarCount, color: summary.maxSeverity === 5 ? '#ffffff' : 'inherit' }}>{summary.count}</span>}
+                  <span style={s.cellDayNum}>{day.isCurrentMonth ? day.day : ''}</span>
+                  {summary?.maxSeverity === 5 && (
+                    <span style={s.alarmDot}>!</span>
+                  )}
                 </button>
               );
             })}
@@ -596,10 +597,19 @@ const ShiftLogsPanel = () => {
             <button type="button" onClick={handleAllDays} style={s.allDaysBtn} className="sl-all-days-btn">
               All days
             </button>
-            <span style={s.calendarFootnote}>Local dates · voided logs excluded</span>
+            {/* Severity legend */}
+            <div style={s.legendRow}>
+              {Object.entries(CALENDAR_SEVERITY_STYLES).map(([lvl, st]) => (
+                <span key={lvl} style={s.legendItem}>
+                  <span style={{ ...s.legendSwatch, background: st.bg, border: `1px solid ${st.border}` }} />
+                  <span style={{ color: '#6b7a9e' }}>{st.label}</span>
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 
+        {/* ── Hot Days panel with scroll ── */}
         <div style={s.hotPanel}>
           <div style={s.hotHeader}>
             <span style={s.hotKicker}>Hot days</span>
@@ -608,7 +618,8 @@ const ShiftLogsPanel = () => {
           {hotDays.length === 0 ? (
             <div style={s.hotEmpty}>No shift logs in the loaded window.</div>
           ) : (
-            <div style={s.hotList}>
+            // Scrollable list — max-height so it doesn't grow unbounded
+            <div style={s.hotList} className="sl-hot-list">
               {hotDays.map(day => {
                 const sev = CALENDAR_SEVERITY_STYLES[day.maxSeverity];
                 return (
@@ -618,12 +629,12 @@ const ShiftLogsPanel = () => {
                     onClick={() => handleCalendarDayClick(day.dateKey)}
                     style={{
                       ...s.hotItem,
-                      borderLeftColor: sev.dot,
                       background: selectedDayKey === day.dateKey ? '#eef6ff' : '#ffffff',
                     }}
                     className="sl-hot-item"
                   >
                     <div style={s.hotItemTop}>
+                      {/* Date formatted as "1 Jun 2026" */}
                       <span style={s.hotDate}>{formatHotDayDate(day.dateKey)}</span>
                       <span style={{ ...s.hotSev, color: sev.color, background: sev.bg, borderColor: sev.border }}>
                         Sev {day.maxSeverity}
@@ -641,6 +652,7 @@ const ShiftLogsPanel = () => {
         </div>
       </section>
 
+
       <div style={s.controls}>
         <div style={s.leftControls}>
           <div style={s.selectWrap}>
@@ -655,7 +667,7 @@ const ShiftLogsPanel = () => {
             <select value={severityFilter} onChange={e => setSeverityFilter(e.target.value)} style={s.select} className="sl-select">
               <option value="all">All severities</option>
               {[1, 2, 3, 4, 5].map(n => (
-                <option key={n} value={String(n)}>{`Severity ${n} — ${SEVERITY_WORD[n]}`}</option>
+                <option key={n} value={String(n)}>{`Severity ${n}`}</option>
               ))}
             </select>
           </div>
@@ -713,7 +725,6 @@ const ShiftLogsPanel = () => {
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-          {/* ── Select Columns button ── */}
           <button onClick={openColModal} style={s.linkBtn} className="sl-col-btn">
             <div style={s.linkIconBox}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -734,7 +745,6 @@ const ShiftLogsPanel = () => {
             <span style={s.linkText}>Refresh</span>
           </button>
 
-          {/* ── Export menu ── */}
           <div style={{ position: 'relative' }}>
             <button
               onClick={() => setExportOpen(o => !o)}
@@ -797,24 +807,24 @@ const ShiftLogsPanel = () => {
                     {colVisible('time')      && <th style={s.th}>Time</th>}
                     {colVisible('shift')     && <th style={s.th}>Shift</th>}
                     {colVisible('phase')     && <th style={s.th}>Phase</th>}
-	                    {colVisible('machine')   && <th style={s.th}>Machine</th>}
-	                    {colVisible('worker')    && <th style={s.th}>Worker</th>}
-	                    {colVisible('severity')  && <th style={s.th}>Severity</th>}
-	                  </tr>
-	                </thead>
-	                <tbody>
-	                  {filtered.map((log) => {
-	                    const isVoid = !!log.void_at;
-	                    const isOpen = selectedLog?.id === log.id;
+                    {colVisible('machine')   && <th style={s.th}>Machine</th>}
+                    {colVisible('worker')    && <th style={s.th}>Worker</th>}
+                    {colVisible('severity')  && <th style={s.th}>Severity</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((log) => {
+                    const isVoid = !!log.void_at;
+                    const isOpen = selectedLog?.id === log.id;
 
-	                    return (
+                    return (
                       <tr
                         key={log.id}
                         onClick={() => setSelectedId(log.id)}
                         style={{
                           ...s.tr,
                           background: isOpen ? '#deeeff' : '#ffffff',
-                          borderLeft: isOpen ? '3px solid #2D8CFF' : '3px solid transparent',
+                         borderLeft: isOpen ? '3px solid #2D8CFF' : '3px solid transparent',
                           opacity: isVoid ? 0.55 : 1,
                         }}
                         className="sl-row"
@@ -870,8 +880,8 @@ const ShiftLogsPanel = () => {
                             </td>
                           );
                         })()}
-	                      </tr>
-	                    );
+                      </tr>
+                    );
                   })}
                 </tbody>
               </table>
@@ -887,18 +897,18 @@ const ShiftLogsPanel = () => {
           return ReactDOM.createPortal(
             <>
               <div onClick={() => setSelectedId(null)} style={s.modalBackdrop} />
-	              <div style={s.detailPanel}>
-	                <button onClick={() => setSelectedId(null)} style={s.detailCloseBtn}>✕</button>
-	                <div style={s.detailHeader}>
-	                  <div style={s.detailHeaderLeft}>
-	                    <span style={{ ...s.sevBadge, color: sev.color, background: sev.bg, borderColor: sev.border }}>
-	                      Severity {selectedLog.severity} - {sev.label.split(' - ')[1] || sev.label}
-	                    </span>
-	                    <div style={s.detailMachine}>{machineNameFor(selectedLog.machine_id)}</div>
-	                    <div style={s.detailSubline}>
-	                      {selectedLog.phase === 'start' ? 'Pre-shift checklist' : 'End-of-shift log'} · {fmtTs(selectedLog.created_at)}
-	                    </div>
-	                  </div>
+              <div style={s.detailPanel}>
+                <button onClick={() => setSelectedId(null)} style={s.detailCloseBtn}>✕</button>
+                <div style={s.detailHeader}>
+                  <div style={s.detailHeaderLeft}>
+                    <span style={{ ...s.sevBadge, color: sev.color, background: sev.bg, borderColor: sev.border }}>
+                      Severity {selectedLog.severity} - {sev.label.split(' - ')[1] || sev.label}
+                    </span>
+                    <div style={s.detailMachine}>{machineNameFor(selectedLog.machine_id)}</div>
+                    <div style={s.detailSubline}>
+                      {selectedLog.phase === 'start' ? 'Pre-shift checklist' : 'End-of-shift log'} · {fmtTs(selectedLog.created_at)}
+                    </div>
+                  </div>
                 </div>
 
                 <div style={s.detailGrid} className="sl-detail-grid">
@@ -971,40 +981,40 @@ const ShiftLogsPanel = () => {
                   </div>
                 )}
 
-	              <div style={s.divider} />
+                <div style={s.divider} />
 
-              {voidingId === selectedLog.id ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={s.sectionLabel}>Reason for voiding</div>
-                  <input
-                    autoFocus type="text" value={voidReason}
-                    onChange={e => setVoidReason(e.target.value)}
-                    placeholder="e.g. submitted by mistake"
-                    style={s.voidInput} className="sl-input"
-                  />
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={() => { setVoidingId(null); setVoidReason(''); }} style={s.cancelBtn} className="sl-cancel-btn">Cancel</button>
-                    <button onClick={() => handleVoid(selectedLog.id)} disabled={!voidReason.trim()} style={s.confirmBtn}>Confirm void</button>
+                {voidingId === selectedLog.id ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={s.sectionLabel}>Reason for voiding</div>
+                    <input
+                      autoFocus type="text" value={voidReason}
+                      onChange={e => setVoidReason(e.target.value)}
+                      placeholder="e.g. submitted by mistake"
+                      style={s.voidInput} className="sl-input"
+                    />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={() => { setVoidingId(null); setVoidReason(''); }} style={s.cancelBtn} className="sl-cancel-btn">Cancel</button>
+                      <button onClick={() => handleVoid(selectedLog.id)} disabled={!voidReason.trim()} style={s.confirmBtn}>Confirm void</button>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => handleAcknowledge(selectedLog.id)}
-                    disabled={selectedLog.acknowledged}
-                    style={s.ackBtn}
-                    className="sl-ack-btn"
-                  >
-                    {selectedLog.acknowledged ? 'Acknowledged' : 'Acknowledge'}
-                  </button>
-                  {!isVoid && (
-                    <button onClick={() => { setVoidingId(selectedLog.id); setVoidReason(''); }} style={s.voidBtn} className="sl-void-btn">
-                      Void
+                ) : (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => handleAcknowledge(selectedLog.id)}
+                      disabled={selectedLog.acknowledged}
+                      style={s.ackBtn}
+                      className="sl-ack-btn"
+                    >
+                      {selectedLog.acknowledged ? 'Acknowledged' : 'Acknowledge'}
                     </button>
-                  )}
-                </div>
-              )}
-            </div>
+                    {!isVoid && (
+                      <button onClick={() => { setVoidingId(selectedLog.id); setVoidReason(''); }} style={s.voidBtn} className="sl-void-btn">
+                        Void
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </>
           , document.body);
         })()}
@@ -1015,56 +1025,25 @@ const ShiftLogsPanel = () => {
 
 const s = {
   root: { fontFamily: "'Inter', sans-serif", background: '#ffffff', color: '#2e4e40', minHeight: '100vh', padding: '0 24px 28px' },
-  hero: {
-    display: 'grid',
-    gridTemplateColumns: 'minmax(210px, 0.8fr) minmax(360px, 1.15fr) minmax(230px, 0.9fr)',
-    gap: 14,
-    alignItems: 'stretch',
-    margin: '0 0 22px',
-  },
-  heroIntro: {
-    background: '#ffffff',
-    border: '1px solid #d7e1ee',
-    borderRadius: 8,
-    padding: 18,
-    minWidth: 0,
-    boxShadow: '0 14px 34px rgba(15,28,63,0.06)',
-  },
-  heroKicker: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#2D8CFF', marginBottom: 8 },
-  pageTitle: { fontFamily: "'Sora', sans-serif", fontSize: 'clamp(22px,3vw,32px)', fontWeight: 800, color: '#0f172a', letterSpacing: 0, margin: '0' },
-  heroCopy: { fontFamily: "'Inter', sans-serif", fontSize: 13, lineHeight: 1.5, color: '#4a6080', margin: '8px 0 16px' },
-  heroStatsGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 },
-  heroStat: {
-    minHeight: 68,
-    border: '1px solid #e2e8f0',
-    borderRadius: 6,
-    padding: '10px 11px',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    background: '#f8fbff',
-  },
-  heroStatNum: { fontFamily: "'Sora', sans-serif", fontSize: 24, fontWeight: 800, lineHeight: 1, color: '#0f172a' },
-  heroStatLbl: { fontSize: 11, fontWeight: 700, color: '#5a6d88', lineHeight: 1.25 },
-  legendRow: { display: 'flex', flexWrap: 'wrap', gap: '8px 10px', marginTop: 14, paddingTop: 14, borderTop: '1px solid #e2e8f0' },
-  legendItem: { display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: '#53657d' },
-  legendDot: { width: 8, height: 8, borderRadius: '50%', flexShrink: 0 },
+
+  // ── Calendar ──────────────────────────────────────────────────────────────
   calendarPanel: {
     background: '#ffffff',
     border: '1px solid #c9d8ee',
-    borderRadius: 8,
-    padding: 16,
-    minWidth: 0,
-    boxShadow: '0 18px 44px rgba(45,140,255,0.08)',
-  },
-  calendarHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 },
-  monthBtn: {
-    width: 32,
-    height: 32,
     borderRadius: 6,
-    border: '1px solid #c9d8ee',
+    padding: '14px 16px 12px',
+    flex: '1 1 50%',
+    minWidth: 0,
+    boxShadow: '0 2px 8px rgba(45,140,255,0.06)',
+  },
+  calendarHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10 },
+  monthBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 4,
+    border: '1px solid #d0d5dd',
     background: '#ffffff',
-    color: '#2D8CFF',
+    color: '#374151',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1072,76 +1051,164 @@ const s = {
     flexShrink: 0,
   },
   calendarTitleBlock: { textAlign: 'center', minWidth: 0 },
-  calendarTitle: { fontFamily: "'Sora', sans-serif", fontSize: 17, fontWeight: 800, color: '#0f172a', lineHeight: 1.15 },
-  calendarSubtitle: { fontSize: 11, fontWeight: 700, color: '#6b7a9e', marginTop: 3 },
-  weekdayGrid: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 6, marginBottom: 6 },
-  weekday: { textAlign: 'center', fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7a8ca8' },
-  calendarGrid: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 6 },
-  calendarDay: {
-    aspectRatio: '1 / 1',
-    minHeight: 42,
-    border: '1px solid #e5e7eb',
-    borderRadius: 8,
-    background: '#f8fafc',
-    color: '#8391a7',
-    padding: 5,
+  calendarTitle: { fontFamily: "'Sora', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827', lineHeight: 1.2 },
+  calendarSubtitle: { fontSize: 11, fontWeight: 500, color: '#6b7a9e', marginTop: 2 },
+
+  // 7-column grid, no gap — borders create the lines
+  weekdayGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+    borderTop: '1px solid #d0d5dd',
+    borderLeft: '1px solid #d0d5dd',
+    marginBottom: 0,
+  },
+  weekday: {
+    textAlign: 'center',
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: '0.04em',
+    color: '#4b5563',
+    padding: '6px 0',
+    borderRight: '1px solid #d0d5dd',
+    borderBottom: '1px solid #d0d5dd',
+    background: '#f9fafb',
+  },
+
+  calendarGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+    borderLeft: '1px solid #d0d5dd',
+  },
+
+  // Each cell: flat rectangle, matches the screenshot
+  calendarCell: {
+    position: 'relative',
+    minHeight: 56,
+    padding: '6px 8px 5px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    cursor: 'default',
-    transition: 'transform 0.12s, border-color 0.12s, box-shadow 0.12s, background 0.12s',
+    justifyContent: 'flex-start',
+    transition: 'background 0.1s',
+    boxSizing: 'border-box',
+    // borders set per-cell inline (top + right always, bottom only on last row, left varies for selection)
   },
-  calendarDayOutside: { opacity: 0.38 },
-  calendarDayTop: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 },
-  calendarDayNum: { fontFamily: "'Sora', sans-serif", fontSize: 13, lineHeight: 1 },
-  alarmMark: {
-    width: 15,
-    height: 15,
+  cellDayNum: {
+    fontFamily: "'Inter', sans-serif",
+    fontSize: 15,
+    fontWeight: 'inherit',
+    lineHeight: 1.2,
+    color: 'inherit',
+  },
+  cellCount: {
+    fontFamily: "'IBM Plex Mono', monospace",
+    fontSize: 10,
+    fontWeight: 700,
+    lineHeight: 1,
+    marginTop: 3,
+  },
+  alarmDot: {
+    position: 'absolute',
+    top: 4,
+    right: 5,
+    width: 13,
+    height: 13,
     borderRadius: '50%',
     background: '#7f1d1d',
     color: '#ffffff',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontFamily: "'IBM Plex Mono', monospace",
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 900,
     lineHeight: 1,
-    boxShadow: '0 0 0 1px rgba(255,255,255,0.65)',
   },
-  calendarCount: { alignSelf: 'flex-end', fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 700, lineHeight: 1, color: 'inherit' },
-  calendarFooter: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 12, paddingTop: 12, borderTop: '1px solid #e2e8f0' },
-  allDaysBtn: { border: '1px solid #c9d8ee', borderRadius: 6, background: '#ffffff', color: '#2D8CFF', fontSize: 12, fontWeight: 800, padding: '7px 11px', cursor: 'pointer' },
-  calendarFootnote: { fontSize: 11, fontWeight: 600, color: '#7a8ca8', textAlign: 'right' },
+
+  calendarFooter: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTop: '1px solid #e2e8f0',
+  },
+  allDaysBtn: {
+    alignSelf: 'flex-start',
+    border: '1px solid #c9d8ee',
+    borderRadius: 4,
+    background: '#ffffff',
+    color: '#2D8CFF',
+    fontSize: 11,
+    fontWeight: 700,
+    padding: '5px 10px',
+    cursor: 'pointer',
+  },
+  legendRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '5px 10px',
+  },
+  legendItem: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 5,
+    fontSize: 10,
+    fontWeight: 600,
+    color: '#6b7a9e',
+  },
+  legendSwatch: {
+    width: 10,
+    height: 10,
+    borderRadius: 2,
+    flexShrink: 0,
+  },
+
+  // ── Hot Days ──────────────────────────────────────────────────────────────
   hotPanel: {
     background: '#ffffff',
     border: '1px solid #d7e1ee',
-    borderRadius: 8,
+    borderRadius: 6,
     padding: 16,
+    flex: '1 1 50%',
     minWidth: 0,
-    boxShadow: '0 14px 34px rgba(15,28,63,0.06)',
+    boxShadow: '0 2px 8px rgba(15,28,63,0.06)',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
   },
-  hotHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  hotHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexShrink: 0 },
   hotKicker: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#0f172a' },
-  hotCount: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 800, color: '#2D8CFF', border: '1px solid #c9d8ee', borderRadius: 6, padding: '3px 7px' },
-  hotEmpty: { minHeight: 174, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#7a8ca8', fontSize: 12, fontWeight: 600, border: '1px dashed #d7e1ee', borderRadius: 8, padding: 16 },
-  hotList: { display: 'flex', flexDirection: 'column', gap: 9 },
+  hotCount: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 800, color: '#2D8CFF', border: '1px solid #c9d8ee', borderRadius: 4, padding: '2px 6px' },
+  hotEmpty: { minHeight: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#7a8ca8', fontSize: 12, fontWeight: 600, border: '1px dashed #d7e1ee', borderRadius: 6, padding: 12 },
+  // Scrollable hot list
+  hotList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    overflowY: 'scroll',
+    flex: 1,
+    minHeight: 0,
+    maxHeight: 260,
+    paddingRight: 4,
+  },
   hotItem: {
     width: '100%',
     border: '1px solid #e2e8f0',
-    borderLeft: '4px solid #2D8CFF',
-    borderRadius: 8,
-    padding: '10px 11px',
+    borderRadius: 6,
+    padding: '9px 10px',
     textAlign: 'left',
     cursor: 'pointer',
     transition: 'background 0.12s, border-color 0.12s, transform 0.12s',
+    flexShrink: 0,
   },
-  hotItemTop: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 7 },
-  hotDate: { fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 800, color: '#0f172a' },
-  hotSev: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 800, border: '1px solid', borderRadius: 4, padding: '2px 6px', whiteSpace: 'nowrap' },
-  hotMachine: { fontSize: 12, fontWeight: 800, color: '#2e4e40', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  hotMeta: { fontSize: 11, fontWeight: 600, color: '#6b7a9e', marginTop: 3 },
+  hotItemTop: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 5 },
+  // "1 Jun 2026" — compact but readable
+  hotDate: { fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 700, color: '#0f172a' },
+  hotSev: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 800, border: '1px solid', borderRadius: 3, padding: '2px 5px', whiteSpace: 'nowrap' },
+  hotMachine: { fontSize: 11, fontWeight: 700, color: '#2e4e40', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  hotMeta: { fontSize: 11, fontWeight: 500, color: '#6b7a9e', marginTop: 3 },
+
+  // ── Controls ──────────────────────────────────────────────────────────────
   controls: { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
   leftControls: {
     display: 'grid',
@@ -1247,7 +1314,6 @@ const s = {
   detailHeaderLeft: { display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 },
   detailMachine: { fontFamily: "'Sora', sans-serif", fontSize: 20, fontWeight: 800, color: '#0f172a', lineHeight: 1.15 },
   detailSubline: { fontSize: 12, fontWeight: 700, color: '#5a6d88' },
-  unackBadge: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, fontWeight: 600, color: '#2D8CFF', letterSpacing: '0.04em', marginTop: 2 },
   divider: { height: 1, background: '#e5e7eb', margin: '16px 0' },
   detailGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginBottom: 12 },
   metaCard: { border: '1px solid #e2e8f0', borderRadius: 8, background: '#f8fafc', padding: '9px 10px', minWidth: 0 },
@@ -1291,34 +1357,37 @@ const CSS = `
   .sl-void-btn:hover { border-color: #dc9b9b !important; color: #844d4d !important; }
   .sl-cancel-btn:hover { background: #f2f4f7 !important; }
   .sl-export-item:hover { background: #eef4ff !important; }
-  .sl-icon-btn:hover { background: #eef6ff !important; border-color: #2D8CFF !important; }
-  .sl-calendar-day-active:hover { transform: translateY(-1px); border-color: #2D8CFF !important; }
-  .sl-calendar-day-alarm { animation: sl-alarm-glow 1.9s ease-in-out infinite; }
+  .sl-icon-btn:hover { background: #f3f6fa !important; border-color: #9fb3d0 !important; }
+  .sl-calendar-cell-active:hover { filter: brightness(0.96); }
+  .sl-calendar-cell-alarm { animation: sl-alarm-glow 1.9s ease-in-out infinite; }
   .sl-all-days-btn:hover { background: #eef6ff !important; border-color: #2D8CFF !important; }
-  .sl-hot-item:hover { background: #f8fbff !important; border-color: #c9d8ee !important; transform: translateY(-1px); }
+  .sl-hot-item:hover { background: #f8fbff !important; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(15,28,63,0.08); }
   .sl-input:focus  { border-bottom-color: #2D8CFF !important; }
   .sl-select:focus { border-bottom-color: #2D8CFF !important; }
   .sl-spinner { width: 20px; height: 20px; border: 2px solid #e2e8f4; border-top-color: #2D8CFF; border-radius: 50%; animation: sl-spin 0.7s linear infinite; }
   @keyframes sl-spin  { to { transform: rotate(360deg); } }
-  @keyframes sl-pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
   @keyframes sl-alarm-glow {
     0%, 100% { filter: saturate(1); }
-    50% { filter: saturate(1.28); }
+    50% { filter: saturate(1.28) brightness(0.97); }
   }
   thead th:last-child { border-right: none !important; }
   tbody td:last-child { border-right: none !important; }
-  @media (max-width: 1180px) {
-    .sl-hero { grid-template-columns: 1fr 1fr !important; }
-    .sl-hero > div:first-child { grid-column: 1 / -1; }
+  /* Scrollbar for hot-days list — matches analytics Top Errors */
+  .sl-hot-list::-webkit-scrollbar { width: 12px; height: 12px; }
+  .sl-hot-list::-webkit-scrollbar-track { background: #ffffff; }
+  .sl-hot-list::-webkit-scrollbar-thumb { background: #888888; border: 3px solid #ffffff; border-radius: 6px; }
+  .sl-hot-list::-webkit-scrollbar-thumb:hover { background: #666666; }
+  .sl-hot-list::-webkit-scrollbar-button { background-color: #ffffff; display: block; height: 12px; width: 12px; }
+  .sl-hot-list::-webkit-scrollbar-button:single-button:vertical:decrement {
+    background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'%3E%3Cpath d='M4 0L8 6H0z' fill='%23888888'/%3E%3C/svg%3E") no-repeat center center;
   }
+  .sl-hot-list::-webkit-scrollbar-button:single-button:vertical:increment {
+    background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'%3E%3Cpath d='M0 0h8L4 6z' fill='%23888888'/%3E%3C/svg%3E") no-repeat center center;
+  }
+  .sl-hot-list::-webkit-scrollbar-button:hover { background-color: #f5f5f5; }
   @media (max-width: 760px) {
-    .sl-hero { grid-template-columns: 1fr !important; }
     .sl-detail-grid { grid-template-columns: 1fr 1fr !important; }
     .sl-detail-content-grid { grid-template-columns: 1fr !important; }
-  }
-  @media (max-width: 520px) {
-    .sl-hero { gap: 10px !important; }
-    .sl-calendar-day { min-height: 36px !important; padding: 4px !important; }
   }
 `;
 

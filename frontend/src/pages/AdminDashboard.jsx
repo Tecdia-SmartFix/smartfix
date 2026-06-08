@@ -1002,11 +1002,10 @@ const AUDIT_COLUMNS = [
   { key: 'actor',    label: 'Principal' },
   { key: 'resource', label: 'Resource' },
   { key: 'ip',       label: 'Origin IP' },
-  { key: 'status',   label: 'Status' },
-  { key: 'payload',  label: 'Payload' }
+  { key: 'status',   label: 'Status' }
 ];
 
-const DEFAULT_VISIBLE = ['ts', 'event', 'actor', 'resource', 'ip', 'status', 'payload'];
+const DEFAULT_VISIBLE = ['ts', 'event', 'actor', 'resource', 'ip', 'status'];
 
 const SelectColumnsModal = ({ visible, draft, onToggle, onUpdate, onClose, ALL_COLUMNS }) => {
   if (!visible) return null;
@@ -1225,7 +1224,6 @@ const AuditPanel = () => {
                   {colVisible('resource') && <th style={s.th}>Resource</th>}
                   {colVisible('ip') && <th style={s.th}>Origin IP</th>}
                   {colVisible('status') && <th style={s.th}>Status</th>}
-                  {colVisible('payload') && <th style={{ ...s.th, textAlign: 'right' }}>Payload</th>}
                 </tr>
               </thead>
               <tbody>
@@ -1239,14 +1237,13 @@ const AuditPanel = () => {
                   return (
                     <React.Fragment key={`${e.ts}-${i}`}>
                       <tr
-                        onClick={() => toggleExpanded(i)}
-                        style={{ ...s.tr, ...(isOpen ? s.trOpen : {}) }}
+                        style={s.tr}
                         className="audit-row"
                       >
                         {/* Timestamp */}
                         {colVisible('ts') && (
                           <td style={s.td}>
-                            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: isOpen ? '#2D8CFF' : '#0f1c3f', fontWeight: isOpen ? 600 : 400 }}>
+                            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#0f1c3f', fontWeight: 400 }}>
                               {fmtTs(e.ts)}
                             </span>
                           </td>
@@ -1293,37 +1290,7 @@ const AuditPanel = () => {
                             </span>
                           </td>
                         )}
-
-                        {/* Expand */}
-                        {colVisible('payload') && (
-                          <td style={{ ...s.td, textAlign: 'right' }}>
-                            {hasDetail && (
-                              <button
-                                onClick={ev => { ev.stopPropagation(); toggleExpanded(i); }}
-                                style={{ ...s.expandBtn, ...(isOpen ? s.expandBtnOpen : {}) }}
-                                className="expand-btn"
-                                aria-label={isOpen ? 'Collapse payload' : 'Expand payload'}
-                              >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-                                  <polyline points="6 9 12 15 18 9"/>
-                                </svg>
-                              </button>
-                            )}
-                          </td>
-                        )}
                       </tr>
-
-                      {/* Payload drawer */}
-                      {isOpen && hasDetail && (
-                        <tr>
-                          <td colSpan={visibleColumns.length} style={{ padding: 0 }}>
-                            <div style={s.payloadWrap}>
-                              <div style={s.payloadLabel}>Event payload</div>
-                              <pre style={s.payloadPre}>{JSON.stringify(e.details, null, 2)}</pre>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
                     </React.Fragment>
                   );
                 })}
@@ -1521,9 +1488,9 @@ const P = {
   activeB: '#e8f3ff',
 };
 
-const SEV_DONUT  = { 1: '#c0e1d2', 2: '#b8cc9a', 3: '#d4c070', 4: '#dc9b9b', 5: '#0f1c3f' };
+const SEV_DONUT  = { 1: '#c0e1d2', 2: '#b8cc9a', 3: '#d4c070', 4: '#dc9b9b', 5: '#dc2626' };
 const SEV_LABEL  = { 1: 'Informational', 2: 'Minor', 3: 'Degraded', 4: 'Production Impact', 5: 'Safety Risk' };
-const SEV_BORDER = { 1: '#8ecfb8', 2: '#b8d4b5', 3: '#d4c88a', 4: '#dc9b9b', 5: '#505c7a' };
+const SEV_BORDER = { 1: '#8ecfb8', 2: '#b8d4b5', 3: '#d4c88a', 4: '#dc9b9b', 5: '#991b1b' };
 
 /* ─── Shared atoms ─────────────────────────────────────────────────── */
 const ANALYTICS_CSS = `
@@ -2391,16 +2358,16 @@ const ChartTooltip = ({ active, payload, label, suffix = '', formatter }) => {
   if (!active || !payload || !payload.length) return null;
   return (
     <div style={{
-      background: P.deep, color: '#fff', padding: '8px 12px',
+      background: '#fff', color: '#0f1c3f', padding: '8px 12px',
       borderRadius: 6, ...mono, fontSize: 11, fontWeight: 600,
-      boxShadow: '0 4px 12px rgba(15,28,63,.25)',
+      boxShadow: '0 4px 12px rgba(15,28,63,.15)', border: '1px solid #dbe6f4'
     }}>
-      <div style={{ fontWeight: 700, marginBottom: 6, color: '#fff', letterSpacing: '.04em' }}>{label}</div>
+      <div style={{ fontWeight: 700, marginBottom: 6, color: '#0f1c3f', letterSpacing: '.04em' }}>{label}</div>
       {payload.map((p, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
           <span style={{ width: 8, height: 8, borderRadius: 2, background: p.color, flexShrink: 0 }} />
-          <span style={{ flex: 1, color: '#cbd6f0' }}>{p.name}</span>
-          <span style={{ fontWeight: 700, color: '#fff' }}>
+          <span style={{ flex: 1, color: '#4a6080' }}>{p.name}</span>
+          <span style={{ fontWeight: 700, color: '#0f1c3f' }}>
             {formatter ? formatter(p.value) : `${p.value}${suffix}`}
           </span>
         </div>
@@ -3180,16 +3147,7 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            {alertThreshold && (
-              <div style={{ background: '#f4f8fc', border: '1px solid #9fb3d0', padding: '8px 12px', marginBottom: 20 }}>
-                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: '#2b446b' }}>
-                  Alerts fire when score ≥ {alertThreshold} of 25.
-                  {dedupSeconds > 0 && (
-                    <> Repeats for the same machine + code within {Math.round(dedupSeconds / 60)} min are auto-deduped.</>
-                  )}
-                </div>
-              </div>
-            )}
+
 
             {Object.keys(snoozes).length > 0 && (
               <div className="mb-6 flex flex-wrap items-center gap-2 text-[13px] text-slate-800">
