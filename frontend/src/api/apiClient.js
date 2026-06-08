@@ -29,28 +29,23 @@ export const getAuthHeaders = () => ({});
  * Download a binary endpoint (xlsx/pdf) and let the user pick a save location.
  * Uses fetch + Blob so HttpOnly session cookies are sent the same way as JSON calls.
  *
- * In Chromium-based browsers the File System Access API shows a native "Save As"
- * dialog. Safari/Firefox fall through to the standard <a download> path, which
- * writes to the browser's default download folder.
+ * Implementation note: in Chromium browsers we open the Save As picker BEFORE
+ * the fetch. showSaveFilePicker needs transient user activation, and awaiting
+ * a network round-trip first can drop that activation and break the picker —
+ * or, worse, succeed the picker but break the fallback path so "nothing
+ * happens" after the user picks a location. Open the picker while activation
+ * is still fresh, then fetch, then write to the chosen file.
+ *
+ * Safari / Firefox don't expose showSaveFilePicker, so they always take the
+ * <a download> path that saves to the browser's default download folder.
  */
 export const downloadFile = async (endpoint, fallbackName = 'download') => {
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    method: 'GET',
-    credentials: 'include',
-    headers: { ...getAuthHeaders() },
-  });
-  if (!response.ok) {
-    let detail = `HTTP ${response.status}`;
-    try { detail = (await response.json()).detail || detail; } catch { /* binary body, leave as-is */ }
-    throw new ApiError(detail, 'download_failed', response.status);
-  }
-  const disp = response.headers.get('content-disposition') || '';
-  const match = disp.match(/filename="?([^";]+)"?/i);
-  const name  = match ? match[1] : fallbackName;
-  const blob  = await response.blob();
+  const ext = fallbackName.split('.').pop().toLowerCase();
 
+  // ── Step 1: open Save As (synchronous after the user gesture) ──
+  let saveHandle = null;
+  let cancelled  = false;
   if (typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function') {
-    const ext = name.split('.').pop().toLowerCase();
     const acceptMap = {
       xlsx: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] },
       pdf:  { 'application/pdf': ['.pdf'] },
@@ -60,25 +55,60 @@ export const downloadFile = async (endpoint, fallbackName = 'download') => {
       ? [{ description: `${ext.toUpperCase()} file`, accept: acceptMap[ext] }]
       : undefined;
     try {
-      const handle   = await window.showSaveFilePicker({ suggestedName: name, types });
-      const writable = await handle.createWritable();
+      saveHandle = await window.showSaveFilePicker({ suggestedName: fallbackName, types });
+    } catch (err) {
+      if (err && err.name === 'AbortError') {
+        cancelled = true; // user dismissed the Save As dialog
+      }
+      // Other errors: fall through to <a download>.
+    }
+  }
+  if (cancelled) return null;
+
+  // ── Step 2: fetch the body ──
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: { ...getAuthHeaders() },
+  });
+  if (!response.ok) {
+    let detail = `HTTP ${response.status}`;
+    try { detail = (await response.json()).detail || detail; } catch { /* binary body */ }
+    throw new ApiError(detail, 'download_failed', response.status);
+  }
+  const blob = await response.blob();
+
+  // ── Step 3a: write to the chosen file if the user picked one ──
+  if (saveHandle) {
+    try {
+      const writable = await saveHandle.createWritable();
       await writable.write(blob);
       await writable.close();
-      return;
+      // Return the blob alongside the chosen name so the caller can offer an
+      // in-app "Open" affordance — showSaveFilePicker doesn't surface the
+      // file in the browser download tray, so we keep the bytes around.
+      return { name: saveHandle.name || fallbackName, blob };
     } catch (err) {
-      if (err && err.name === 'AbortError') return; // user cancelled the picker
-      // Any other picker failure (e.g. permission policy) falls through to legacy download.
+      // Don't fall through — user activation was consumed by the picker.
+      // eslint-disable-next-line no-console
+      console.error('Save failed after picking location:', err);
+      throw new ApiError(`Save failed: ${err?.message || err}`, 'save_failed');
     }
   }
 
-  const url = URL.createObjectURL(blob);
-  const a   = document.createElement('a');
+  // ── Step 3b: legacy <a download> path (no picker available) ──
+  const disp  = response.headers.get('content-disposition') || '';
+  const match = disp.match(/filename="?([^";]+)"?/i);
+  const name  = match ? match[1] : fallbackName;
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement('a');
   a.href = url;
   a.download = name;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  return { name, blob };
 };
 
 /**

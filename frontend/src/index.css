@@ -464,3 +464,14 @@
     transform: translate(15px, 10px) scale(1.02);
   }
 }
+
+/* Inspection-sheet table — borders on every cell (rows + columns), with the
+   outer container's rounded corners handling the perimeter. */
+.sheet-table th,
+.sheet-table td {
+  border-right: 1px solid #E5E7EB;
+  border-bottom: 1px solid #E5E7EB;
+}
+.sheet-table th:last-child,
+.sheet-table td:last-child { border-right: 0; }
+.sheet-table tr:last-child td { border-bottom: 0; }

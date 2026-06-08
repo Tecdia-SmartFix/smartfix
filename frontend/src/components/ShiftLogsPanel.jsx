@@ -1,25 +1,31 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { fetchApi, downloadFile } from '../api/apiClient';
+import DownloadToast from './DownloadToast';
 import { useMachines } from '../context/MachineContext';
 
+// Severity labels are tailored to shift logs (machine-inspection context),
+// not the troubleshooting query log — so "Routine" rather than "Info".
 const SEVERITY_STYLES = {
-  1: { label: '1 - Info',     color: '#163b2c', bg: '#cfe8db', border: '#7bb89b' },
+  1: { label: '1 - Routine',  color: '#163b2c', bg: '#cfe8db', border: '#7bb89b' },
   2: { label: '2 - Minor',    color: '#4b3a05', bg: '#fde68a', border: '#eab308' },
   3: { label: '3 - Degraded', color: '#4b3a05', bg: '#facc15', border: '#a16207' },
-  4: { label: '4 - Impact',   color: '#431407', bg: '#fb923c', border: '#c2410c' },
+  4: { label: '4 - Critical', color: '#431407', bg: '#fb923c', border: '#c2410c' },
   5: { label: '5 - Safety',   color: '#ffffff', bg: '#dc2626', border: '#7f1d1d' },
 };
+
+// Word-only variants used in the calendar heatmap legend + the filter dropdown.
+const SEVERITY_WORD = { 1: 'Routine', 2: 'Minor', 3: 'Degraded', 4: 'Critical', 5: 'Safety' };
 
 const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 const MONTH_NAMES_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const WEEKDAY_LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
 const CALENDAR_SEVERITY_STYLES = {
-  1: { label: 'Info',     color: '#163b2c', bg: '#cfe8db', border: '#7bb89b', dot: '#2e4e40' },
+  1: { label: 'Routine',  color: '#163b2c', bg: '#cfe8db', border: '#7bb89b', dot: '#2e4e40' },
   2: { label: 'Minor',    color: '#4b3a05', bg: '#fde68a', border: '#eab308', dot: '#ca8a04' },
   3: { label: 'Degraded', color: '#4b3a05', bg: '#facc15', border: '#a16207', dot: '#a16207' },
-  4: { label: 'Impact',   color: '#431407', bg: '#fb923c', border: '#c2410c', dot: '#c2410c' },
+  4: { label: 'Critical', color: '#431407', bg: '#fb923c', border: '#c2410c', dot: '#c2410c' },
   5: { label: 'Safety',   color: '#ffffff', bg: '#dc2626', border: '#7f1d1d', dot: '#7f1d1d' },
 };
 
@@ -295,6 +301,7 @@ const ShiftLogsPanel = () => {
   const [syncing, setSyncing]             = useState(false);
   const [exportOpen, setExportOpen]       = useState(false);
   const [exporting, setExporting]         = useState(false);
+  const [exportSaved, setExportSaved]     = useState(null); // { name, blob } of last saved export
   const [visibleMonth, setVisibleMonth]   = useState(() => monthStart(new Date()));
   const [calendarMonthTouched, setCalendarMonthTouched] = useState(false);
 
@@ -352,9 +359,15 @@ const ShiftLogsPanel = () => {
   const handleExport = async (format) => {
     setExportOpen(false);
     setExporting(true);
-    try { await downloadFile(buildExportUrl(format), `shift_logs.${format}`); }
-    catch (e) { setError(e.message || `Failed to export ${format.toUpperCase()}`); }
-    finally   { setExporting(false); }
+    setError('');
+    try {
+      const result = await downloadFile(buildExportUrl(format), `shift_logs.${format}`);
+      if (result) setExportSaved(result);   // null = user cancelled the picker
+    } catch (e) {
+      setError(e.message || `Failed to export ${format.toUpperCase()}`);
+    } finally {
+      setExporting(false);
+    }
   };
 
   const { activeLogs, byDay: calendarByDay } = useMemo(() => summarizeShiftLogsByDay(logs), [logs]);
@@ -451,6 +464,8 @@ const ShiftLogsPanel = () => {
   return (
     <div style={s.root}>
       <style>{CSS}</style>
+
+      <DownloadToast saved={exportSaved} onDismiss={() => setExportSaved(null)} />
 
       <SelectColumnsModal
         visible={colModalOpen}
@@ -639,11 +654,9 @@ const ShiftLogsPanel = () => {
             <div style={s.selectLabel}>Severity</div>
             <select value={severityFilter} onChange={e => setSeverityFilter(e.target.value)} style={s.select} className="sl-select">
               <option value="all">All severities</option>
-              <option value="1">Severity 1</option>
-              <option value="2">Severity 2</option>
-              <option value="3">Severity 3</option>
-              <option value="4">Severity 4</option>
-              <option value="5">Severity 5</option>
+              {[1, 2, 3, 4, 5].map(n => (
+                <option key={n} value={String(n)}>{`Severity ${n} — ${SEVERITY_WORD[n]}`}</option>
+              ))}
             </select>
           </div>
           <div style={s.selectWrap}>

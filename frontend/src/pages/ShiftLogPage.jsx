@@ -129,9 +129,12 @@ const ShiftLogPage = ({ phase = 'end' }) => {
     return () => { cancelled = true; };
   }, [machineId, phase]);
 
-  // ── Pre-shift: pull the last few end-of-shift values for context ─────────
+  // ── Pull the last 3 end-of-shift values for trend context (both phases) ──
+  // For pre-shift the worker sees what the machine looked like at end of the
+  // previous shift; for end-shift the worker can compare today's reading
+  // against the recent trend.
   useEffect(() => {
-    if (!machineId || phase !== 'start') { setRecentByKey({}); return; }
+    if (!machineId) { setRecentByKey({}); return; }
     let cancelled = false;
     fetchApi(`/machines/${machineId}/shifts/recent?limit=3&phase=end`)
       .then(data => {
@@ -147,7 +150,7 @@ const ShiftLogPage = ({ phase = 'end' }) => {
       })
       .catch(() => !cancelled && setRecentByKey({}));
     return () => { cancelled = true; };
-  }, [machineId, phase]);
+  }, [machineId]);
 
   // ── Persist draft on every change so a refresh doesn't lose work ─────────
   useEffect(() => {
@@ -234,19 +237,27 @@ const ShiftLogPage = ({ phase = 'end' }) => {
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-tecdia-background text-tecdia-textDeep pt-[64px]">
-      {/* Sticky header — sits just below the global Navbar */}
+      {/* Document title bar — wide, dense, looks like the header of a printed form */}
       <header className="sticky top-[64px] z-30 border-b border-tecdia-border bg-white">
-        <div className="mx-auto flex max-w-[760px] items-center justify-between gap-4 px-5 py-3 sm:px-8">
+        <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-4 py-2.5 sm:px-6">
           <button
             onClick={exitToChat}
-            className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.14em] text-tecdia-secondary transition-colors hover:text-tecdia-textDeep"
+            className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.12em] text-tecdia-secondary transition-colors hover:text-tecdia-textDeep"
           >
             <ArrowLeft size={14} strokeWidth={2.5} />
             Back to chat
           </button>
+          <div className="hidden items-baseline gap-3 sm:flex">
+            <span className="text-[12px] font-black uppercase tracking-[0.18em] text-tecdia-textDeep">
+              Equipment Inspection Report
+            </span>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-tecdia-muted">
+              SF-{phase === 'start' ? 'PRE' : 'END'}-001 · Rev 06.2026
+            </span>
+          </div>
           <div className="flex items-center gap-3">
             <div
-              className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${
+              className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${
                 phase === 'start'
                   ? 'bg-tecdia-accent/10 text-tecdia-accent'
                   : 'bg-orange-50 text-orange-600'
@@ -256,7 +267,7 @@ const ShiftLogPage = ({ phase = 'end' }) => {
             </div>
             <button
               onClick={exitToChat}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-tecdia-border text-tecdia-secondary transition-colors hover:bg-gray-50 hover:text-tecdia-textDeep"
+              className="flex h-7 w-7 items-center justify-center border border-tecdia-border text-tecdia-secondary transition-colors hover:bg-gray-50 hover:text-tecdia-textDeep"
               aria-label="Close"
             >
               <X size={14} strokeWidth={2.5} />
@@ -265,30 +276,32 @@ const ShiftLogPage = ({ phase = 'end' }) => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[760px] px-5 pb-40 pt-8 sm:px-8">
-        {/* Intro */}
-        <section className="mb-6">
-          <h1 className="text-[clamp(1.8rem,4vw,2.6rem)] font-black leading-tight text-tecdia-textDeep">
-            {copy.heading}
-          </h1>
-          <p className="mt-3 text-[15px] leading-relaxed text-tecdia-secondary">
-            {copy.sub}
-          </p>
-        </section>
-
-        {/* Inspection-sheet metadata strip — mirrors the four header cells on
-            a paper 設備点検表: equipment, inspector, shift, date. */}
-        <div className="mb-7 overflow-hidden rounded-2xl border border-tecdia-border bg-white">
-          <div className="grid grid-cols-2 divide-tecdia-border sm:grid-cols-4 sm:divide-x">
+      <main className="mx-auto max-w-[1280px] px-3 pb-40 pt-5 sm:px-6">
+        {/* Document header — title block + metadata strip, like the top of a
+            printed inspection form. The brief sub-text sits inside so it
+            doesn't push the form down. */}
+        <div className="mb-5 border border-tecdia-border bg-white">
+          <div className="border-b border-tecdia-border px-5 py-4">
+            <div className="flex items-baseline justify-between gap-4">
+              <h1 className="text-[clamp(1.2rem,2.4vw,1.7rem)] font-black uppercase tracking-tight text-tecdia-textDeep">
+                {copy.eyebrow}
+              </h1>
+              <span className="hidden font-mono text-[10px] uppercase tracking-wider text-tecdia-muted sm:inline">
+                Form SF-{phase === 'start' ? 'PRE' : 'END'}-001
+              </span>
+            </div>
+            <p className="mt-1 text-[13px] text-tecdia-secondary">{copy.sub}</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4">
             <MetaCell label="Machine" value={machineName} />
             <MetaCell label="Inspector" value="You" />
             <MetaCell label="Shift" value={currentShift()} />
-            <MetaCell label="Date" value={fmtToday()} mono />
+            <MetaCell label="Date · Time" value={fmtToday()} mono />
           </div>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center rounded-3xl border border-tecdia-border bg-white py-16 text-tecdia-muted">
+          <div className="flex items-center justify-center border border-tecdia-border bg-white py-12 text-tecdia-muted">
             <Loader2 size={18} className="animate-spin" />
             <span className="ml-2 text-sm">Loading parameters…</span>
           </div>
@@ -304,17 +317,17 @@ const ShiftLogPage = ({ phase = 'end' }) => {
             body="Ask your admin to configure the checks and readings for this machine in the admin dashboard."
           />
         ) : (
-          <form onSubmit={submit} className="space-y-7">
-            {/* ── Visual checks (inspection-sheet table) ───────────────── */}
+          <form onSubmit={submit} className="space-y-5">
+            {/* ── 1. Point of inspection ───────────────────────────────── */}
             {parameters.visual_checks?.length > 0 && (
-              <Section title="Point of inspection" hint="Tap each row. ○ marks the item OK; ✕ flags it for your admin.">
-                <div className="overflow-hidden rounded-2xl border border-tecdia-border bg-white">
-                  <table className="w-full border-collapse">
+              <Section number="1" title="Point of inspection" hint="For each item, tap OK if it looks fine or FLAG to mark a problem for your admin.">
+                <div className="border border-tecdia-border bg-white">
+                  <table className="sheet-table w-full border-collapse">
                     <thead>
                       <tr className="bg-gray-50/60">
-                        <th className="w-12 border-b border-tecdia-border px-2 py-3 text-center text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: SHEET_RED }}>#</th>
-                        <th className="border-b border-tecdia-border px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: SHEET_RED }}>Check item</th>
-                        <th className="w-44 border-b border-tecdia-border px-3 py-3 text-center text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: SHEET_RED }}>Status</th>
+                        <th className="w-10 px-2 py-2.5 text-center text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: SHEET_RED }}>#</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: SHEET_RED }}>Check item</th>
+                        <th className="w-48 px-3 py-2.5 text-center text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: SHEET_RED }}>Status</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -324,27 +337,42 @@ const ShiftLogPage = ({ phase = 'end' }) => {
                         return (
                           <tr
                             key={c.key}
-                            onClick={() => toggleCheck(c.key)}
-                            className={`cursor-pointer border-b border-tecdia-border transition-colors last:border-b-0 ${
-                              isAnomaly ? 'bg-orange-50/60 hover:bg-orange-50' : 'hover:bg-gray-50/60'
-                            }`}
+                            className={isAnomaly ? 'bg-orange-50/50' : ''}
                           >
-                            <td className="w-12 px-2 py-4 text-center font-mono text-[12px] text-tecdia-muted tabular-nums">{idx + 1}</td>
-                            <td className="px-4 py-4 text-[14px] font-medium text-tecdia-textDeep">{c.label}</td>
-                            <td className="w-44 px-3 py-3 text-center">
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); toggleCheck(c.key); }}
-                                className={`inline-flex min-w-[112px] items-center justify-center gap-2 rounded-full px-4 py-2 text-[12px] font-bold uppercase tracking-[0.12em] transition-colors ${
-                                  isAnomaly
-                                    ? 'bg-orange-500 text-white hover:bg-orange-600'
-                                    : 'bg-emerald-500 text-white hover:bg-emerald-600'
-                                }`}
-                              >
-                                {isAnomaly
-                                  ? <><AlertTriangle size={13} strokeWidth={2.8} /> Flag</>
-                                  : <><Check size={13} strokeWidth={3} /> OK</>}
-                              </button>
+                            <td className="w-10 px-2 py-2.5 text-center font-mono text-[12px] text-tecdia-muted tabular-nums">{idx + 1}</td>
+                            <td className="px-4 py-2.5 text-[14px] font-medium text-tecdia-textDeep">{c.label}</td>
+                            <td className="w-48 px-3 py-2 text-center">
+                              {/* Two-button toggle — like radio buttons on a paper form */}
+                              <div className="inline-flex overflow-hidden border border-tecdia-border">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    // Force the "OK" (non-anomaly) state for this check.
+                                    setVisualChecks(s => ({ ...s, [c.key]: !c.anomaly_when }));
+                                  }}
+                                  className={`flex min-w-[64px] items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] transition-colors ${
+                                    !isAnomaly
+                                      ? 'bg-emerald-600 text-white'
+                                      : 'bg-white text-tecdia-secondary hover:bg-gray-50'
+                                  }`}
+                                >
+                                  <Check size={12} strokeWidth={3} /> OK
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    // Force the "FLAG" (anomaly) state for this check.
+                                    setVisualChecks(s => ({ ...s, [c.key]: !!c.anomaly_when }));
+                                  }}
+                                  className={`flex min-w-[64px] items-center justify-center gap-1.5 border-l border-tecdia-border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] transition-colors ${
+                                    isAnomaly
+                                      ? 'bg-orange-500 text-white'
+                                      : 'bg-white text-tecdia-secondary hover:bg-gray-50'
+                                  }`}
+                                >
+                                  <AlertTriangle size={12} strokeWidth={2.8} /> Flag
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -355,43 +383,42 @@ const ShiftLogPage = ({ phase = 'end' }) => {
               </Section>
             )}
 
-            {/* ── Numeric readings (inspection-sheet table) ───────────── */}
+            {/* ── 2. Measurements ─────────────────────────────────────── */}
             {parameters.numeric_readings?.length > 0 && (
               <Section
+                number="2"
                 title="Measurements"
                 hint={
                   phase === 'start'
-                    ? 'Glance at each gauge. Out-of-range values will be flagged automatically.'
-                    : 'Record what you see at end of shift. Anything outside the expected range is flagged for the next shift.'
+                    ? 'Glance at each gauge and enter what you see. Out-of-range values are flagged automatically.'
+                    : 'Enter what you see at the end of shift. Anything outside the expected range is flagged for the next shift.'
                 }
               >
-                <div className="overflow-hidden rounded-2xl border border-tecdia-border bg-white">
-                  <table className="w-full border-collapse">
+                <div className="border border-tecdia-border bg-white">
+                  <table className="sheet-table w-full border-collapse">
                     <thead>
                       <tr className="bg-gray-50/60">
-                        <th className="hidden w-12 border-b border-tecdia-border px-2 py-3 text-center text-[10px] font-black uppercase tracking-[0.16em] sm:table-cell" style={{ color: SHEET_RED }}>#</th>
-                        <th className="border-b border-tecdia-border px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: SHEET_RED }}>Measurement</th>
-                        <th className="hidden border-b border-tecdia-border px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.16em] sm:table-cell" style={{ color: SHEET_RED }}>Expected</th>
-                        <th className="w-36 border-b border-tecdia-border px-3 py-3 text-left text-[10px] font-black uppercase tracking-[0.16em] sm:w-44" style={{ color: SHEET_RED }}>Your reading</th>
+                        <th className="hidden w-10 px-2 py-2.5 text-center text-[10px] font-black uppercase tracking-[0.16em] sm:table-cell" style={{ color: SHEET_RED }}>#</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: SHEET_RED }}>Measurement</th>
+                        <th className="hidden px-4 py-2.5 text-left text-[10px] font-black uppercase tracking-[0.16em] sm:table-cell" style={{ color: SHEET_RED }}>Expected</th>
+                        <th className="w-36 px-3 py-2.5 text-left text-[10px] font-black uppercase tracking-[0.16em] sm:w-44" style={{ color: SHEET_RED }}>Your reading</th>
                       </tr>
                     </thead>
                     <tbody>
                       {parameters.numeric_readings.map((r, idx) => {
                         const Icon   = iconFor(r.label, r.unit);
                         const drift  = isReadingOutOfRange(r);
-                        const recent = phase === 'start' ? (recentByKey[r.key] || []) : [];
+                        const recent = recentByKey[r.key] || [];
                         const rangeText = (r.expected_min != null || r.expected_max != null)
                           ? `${r.expected_min ?? '—'}${r.expected_max != null ? ` – ${r.expected_max}` : ''}${r.unit ? ` ${r.unit}` : ''}`
                           : '—';
                         return (
                           <tr
                             key={r.key}
-                            className={`border-b border-tecdia-border last:border-b-0 ${
-                              drift ? 'bg-orange-50/40' : ''
-                            }`}
+                            className={drift ? 'bg-orange-50/40' : ''}
                           >
-                            <td className="hidden w-12 px-2 py-4 text-center align-top font-mono text-[12px] text-tecdia-muted tabular-nums sm:table-cell">{idx + 1}</td>
-                            <td className="px-4 py-4 align-top">
+                            <td className="hidden w-10 px-2 py-3 text-center align-top font-mono text-[12px] text-tecdia-muted tabular-nums sm:table-cell">{idx + 1}</td>
+                            <td className="px-4 py-3 align-top">
                               <div className="flex items-center gap-2">
                                 <Icon size={14} className="shrink-0 text-tecdia-accent" strokeWidth={2.4} />
                                 <span className="text-[14px] font-medium text-tecdia-textDeep">
@@ -408,10 +435,11 @@ const ShiftLogPage = ({ phase = 'end' }) => {
                                   {recent.map((v, i) => (
                                     <span
                                       key={i}
-                                      className={`inline-flex items-center rounded border px-1.5 py-0.5 font-mono text-[11px] font-bold tabular-nums ${
+                                      title={i === 0 ? 'Most recent end-of-shift reading' : `${i + 1} shifts ago`}
+                                      className={`inline-flex items-center border font-mono font-bold tabular-nums ${
                                         i === 0
-                                          ? 'border-tecdia-accent/40 bg-tecdia-accent/10 text-tecdia-accent'
-                                          : 'border-tecdia-border bg-tecdia-background text-tecdia-secondary'
+                                          ? 'border-tecdia-accent bg-tecdia-accent px-2 py-1 text-[12px] text-white'
+                                          : 'border-tecdia-border bg-white px-1.5 py-0.5 text-[11px] text-tecdia-secondary'
                                       }`}
                                     >
                                       {v}
@@ -420,10 +448,10 @@ const ShiftLogPage = ({ phase = 'end' }) => {
                                 </div>
                               )}
                             </td>
-                            <td className="hidden px-4 py-4 align-top text-[13px] font-medium text-tecdia-secondary sm:table-cell tabular-nums">
+                            <td className="hidden px-4 py-3 align-top text-[13px] font-medium text-tecdia-secondary sm:table-cell tabular-nums">
                               {rangeText}
                             </td>
-                            <td className="w-36 px-3 py-3 align-top sm:w-44">
+                            <td className="w-36 px-3 py-2.5 align-top sm:w-44">
                               <input
                                 id={`reading-${r.key}`}
                                 type="text"
@@ -431,10 +459,10 @@ const ShiftLogPage = ({ phase = 'end' }) => {
                                 value={readings[r.key] ?? ''}
                                 onChange={(e) => updateReading(r.key, e.target.value)}
                                 placeholder="—"
-                                className={`w-full rounded-lg border px-3 py-2 text-center text-[15px] font-bold tabular-nums outline-none transition-colors ${
+                                className={`w-full border px-3 py-1.5 text-center text-[15px] font-bold tabular-nums outline-none transition-colors ${
                                   drift
-                                    ? 'border-orange-400 bg-orange-50 text-orange-700 focus:ring-2 focus:ring-orange-200'
-                                    : 'border-tecdia-border bg-tecdia-background text-tecdia-textDeep focus:border-tecdia-accent focus:bg-white focus:ring-2 focus:ring-tecdia-accent/15'
+                                    ? 'border-orange-400 bg-orange-50 text-orange-700 focus:ring-1 focus:ring-orange-300'
+                                    : 'border-tecdia-border bg-white text-tecdia-textDeep focus:border-tecdia-accent focus:ring-1 focus:ring-tecdia-accent/40'
                                 }`}
                               />
                               {drift && (
@@ -452,21 +480,21 @@ const ShiftLogPage = ({ phase = 'end' }) => {
               </Section>
             )}
 
-            {/* ── Notes ──────────────────────────────────────────────── */}
-            <Section title="Notes" hint="Anything the next shift should know? Optional.">
+            {/* ── 3. Notes & remarks ─────────────────────────────────── */}
+            <Section number="3" title="Notes & remarks" hint="Anything the next shift should know? Optional.">
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="e.g. cleaned coolant tank, replaced belt at 14:30…"
-                className="h-28 w-full resize-none rounded-2xl border border-tecdia-border bg-white px-4 py-3 text-[14px] text-tecdia-textDeep outline-none transition-colors focus:border-tecdia-accent focus:ring-2 focus:ring-tecdia-accent/15"
+                className="h-24 w-full resize-none border border-tecdia-border bg-white px-3.5 py-2.5 text-[14px] text-tecdia-textDeep outline-none transition-colors focus:border-tecdia-accent focus:ring-1 focus:ring-tecdia-accent/40"
               />
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {NOTE_SUGGESTIONS.map(s => (
                   <button
                     key={s}
                     type="button"
                     onClick={() => appendNote(s)}
-                    className="rounded-full border border-tecdia-border bg-white px-3 py-1.5 text-[12px] font-semibold text-tecdia-secondary transition-colors hover:border-tecdia-accent hover:text-tecdia-accent"
+                    className="border border-tecdia-border bg-white px-2.5 py-1 text-[12px] font-semibold text-tecdia-secondary transition-colors hover:border-tecdia-accent hover:text-tecdia-accent"
                   >
                     + {s}
                   </button>
@@ -474,8 +502,15 @@ const ShiftLogPage = ({ phase = 'end' }) => {
               </div>
             </Section>
 
+            {/* ── Signature / acknowledgment block ───────────────────── */}
+            <div className="grid grid-cols-1 border border-tecdia-border bg-white sm:grid-cols-3">
+              <SigCell label="Inspector" value="You" />
+              <SigCell label="Shift" value={currentShift()} />
+              <SigCell label="Filled at" value={fmtToday()} mono />
+            </div>
+
             {error && (
-              <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] font-semibold text-red-700">
+              <div className="flex items-start gap-2 border border-red-200 bg-red-50 px-4 py-3 text-[13px] font-semibold text-red-700">
                 <AlertCircle size={14} strokeWidth={2.6} className="mt-0.5 shrink-0" />
                 {error}
               </div>
@@ -484,21 +519,21 @@ const ShiftLogPage = ({ phase = 'end' }) => {
         )}
       </main>
 
-      {/* Sticky footer — Skip + Submit, always reachable */}
+      {/* Sticky footer — Skip + flag preview + Submit */}
       <footer className="fixed bottom-0 left-0 right-0 z-30 border-t border-tecdia-border bg-white">
-        <div className="mx-auto flex max-w-[760px] items-center justify-between gap-4 px-5 py-3 sm:px-8">
+        <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-4 py-2.5 sm:px-6">
           <button
             type="button"
             onClick={submit}
             disabled={submitting || !machineId}
-            className="text-[12px] font-bold text-tecdia-muted transition-colors hover:text-tecdia-textDeep disabled:opacity-40"
+            className="text-[12px] font-bold uppercase tracking-[0.12em] text-tecdia-muted transition-colors hover:text-tecdia-textDeep disabled:opacity-40"
           >
             {copy.skipLabel}
           </button>
 
           <div className="flex items-center gap-3">
             {anomalyPreview > 0 && (
-              <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1 text-[11px] font-bold text-orange-700">
+              <span className="hidden sm:inline-flex items-center gap-1.5 border border-orange-200 bg-orange-50 px-2.5 py-1 text-[11px] font-bold text-orange-700">
                 <AlertTriangle size={12} strokeWidth={2.6} />
                 {anomalyPreview} {anomalyPreview === 1 ? 'issue' : 'issues'} will be flagged
               </span>
@@ -507,7 +542,7 @@ const ShiftLogPage = ({ phase = 'end' }) => {
               type="button"
               onClick={submit}
               disabled={submitting || !machineId}
-              className="flex items-center gap-2 rounded-full bg-tecdia-accent px-6 py-2.5 text-[13px] font-bold uppercase tracking-[0.12em] text-white shadow-sm transition-all hover:bg-tecdia-hover disabled:opacity-50"
+              className="flex items-center gap-2 bg-tecdia-accent px-5 py-2.5 text-[12px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-tecdia-hover disabled:opacity-50"
             >
               {submitting && <Loader2 size={14} className="animate-spin" />}
               {submitting ? 'Submitting…' : copy.submitLabel}
@@ -520,20 +555,27 @@ const ShiftLogPage = ({ phase = 'end' }) => {
   );
 };
 
-const Section = ({ title, hint, children }) => (
+const Section = ({ number, title, hint, children }) => (
   <section>
-    <div className="mb-3 flex items-baseline gap-3">
-      <span className="h-[2px] w-6" style={{ background: SHEET_RED }} />
-      <h2 className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: SHEET_RED }}>{title}</h2>
+    <div className="mb-2 flex items-baseline gap-2 border-b border-tecdia-border pb-1.5">
+      {number && (
+        <span
+          className="flex h-5 w-5 items-center justify-center font-mono text-[11px] font-bold text-white"
+          style={{ background: SHEET_RED }}
+        >
+          {number}
+        </span>
+      )}
+      <h2 className="text-[12px] font-black uppercase tracking-[0.18em]" style={{ color: SHEET_RED }}>{title}</h2>
     </div>
-    {hint && <p className="mb-3 text-[12px] text-tecdia-muted">{hint}</p>}
+    {hint && <p className="mb-2.5 text-[12px] italic text-tecdia-muted">{hint}</p>}
     {children}
   </section>
 );
 
 const MetaCell = ({ label, value, mono = false }) => (
-  <div className="border-b border-tecdia-border p-3.5 last:border-b-0 sm:border-b-0">
-    <div className="text-[9px] font-black uppercase tracking-[0.2em]" style={{ color: SHEET_RED }}>
+  <div className="border-r border-t border-tecdia-border p-3 first:border-t-0 sm:border-t-0 [&:nth-child(2n)]:border-r-0 sm:[&:nth-child(2n)]:border-r sm:last:border-r-0">
+    <div className="text-[9px] font-black uppercase tracking-[0.18em]" style={{ color: SHEET_RED }}>
       {label}
     </div>
     <div className={`mt-1 truncate text-[13px] font-bold text-tecdia-textDeep ${mono ? 'font-mono tabular-nums' : ''}`}>
@@ -542,13 +584,24 @@ const MetaCell = ({ label, value, mono = false }) => (
   </div>
 );
 
-const EmptyCard = ({ title, body, cta }) => (
-  <div className="rounded-3xl border border-tecdia-border bg-white px-6 py-12 text-center">
-    <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-tecdia-accent/10 text-tecdia-accent">
-      <AlertCircle size={18} strokeWidth={2.4} />
+const SigCell = ({ label, value, mono = false }) => (
+  <div className="border-t border-tecdia-border p-3 first:border-t-0 sm:border-l sm:border-t-0 sm:first:border-l-0">
+    <div className="text-[9px] font-black uppercase tracking-[0.18em] text-tecdia-muted">
+      {label}
     </div>
-    <div className="text-[15px] font-bold text-tecdia-textDeep">{title}</div>
-    <div className="mt-1.5 text-[13px] text-tecdia-secondary">{body}</div>
+    <div className={`mt-0.5 text-[13px] font-bold text-tecdia-textDeep ${mono ? 'font-mono tabular-nums' : ''}`}>
+      {value}
+    </div>
+  </div>
+);
+
+const EmptyCard = ({ title, body, cta }) => (
+  <div className="border border-tecdia-border bg-white px-6 py-10 text-center">
+    <div className="mx-auto mb-3 flex h-9 w-9 items-center justify-center bg-tecdia-accent/10 text-tecdia-accent">
+      <AlertCircle size={16} strokeWidth={2.4} />
+    </div>
+    <div className="text-[14px] font-bold text-tecdia-textDeep">{title}</div>
+    <div className="mt-1 text-[13px] text-tecdia-secondary">{body}</div>
     {cta && <div className="mt-4 text-[13px]">{cta}</div>}
   </div>
 );

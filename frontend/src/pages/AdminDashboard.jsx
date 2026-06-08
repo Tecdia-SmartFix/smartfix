@@ -16,6 +16,7 @@ import { useAdminAuth } from '../context/AdminAuthContext';
 import { useMachines } from '../context/MachineContext';
 import { useAlerts } from '../context/AlertContext';
 import { fetchApi, downloadFile } from '../api/apiClient';
+import DownloadToast from '../components/DownloadToast';
 import ShiftLogsPanel from '../components/ShiftLogsPanel';
 import bbImg from '../assets/bb.jpg';
 
@@ -1727,6 +1728,7 @@ const AnalyticsPanel = () => {
   const [seeding, setSeeding] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting]   = useState(false);
+  const [exportSaved, setExportSaved] = useState(null); // { name, blob } of last saved export
   // Machine + top-N are client-side filters (the backend already returns
   // per-machine breakdowns we can slice). Everything else refetches the
   // analytics endpoint with query params so the backend re-aggregates from
@@ -1794,9 +1796,15 @@ const AnalyticsPanel = () => {
   const handleExport = async (format) => {
     setExportOpen(false);
     setExporting(true);
-    try { await downloadFile(buildExportUrl(format), `analytics.${format}`); }
-    catch (e) { setError(e.detail || e.message || `Failed to export ${format.toUpperCase()}`); }
-    finally   { setExporting(false); }
+    setError(null);
+    try {
+      const result = await downloadFile(buildExportUrl(format), `analytics.${format}`);
+      if (result) setExportSaved(result);   // null = user cancelled the picker
+    } catch (e) {
+      setError(e.detail || e.message || `Failed to export ${format.toUpperCase()}`);
+    } finally {
+      setExporting(false);
+    }
   };
 
   // Full-page spinner only on first load. Once we have data, the inline
@@ -1845,6 +1853,8 @@ const AnalyticsPanel = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+      <DownloadToast saved={exportSaved} onDismiss={() => setExportSaved(null)} />
+
       {/* ── header + refresh ───────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
