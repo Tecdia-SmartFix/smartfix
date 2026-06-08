@@ -92,6 +92,16 @@ CREATE TABLE IF NOT EXISTS app_config (
     value      TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS admin_sessions (
+    session_id TEXT PRIMARY KEY,
+    email      TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires_at
+    ON admin_sessions(expires_at);
 """
 
 
@@ -458,3 +468,48 @@ def latest_shift_log(machine_id: str, phase: str | None = "end") -> dict | None:
     sql += " ORDER BY created_at DESC, id DESC LIMIT 1"
     row = _conn().execute(sql, args).fetchone()
     return _row_to_log(row) if row else None
+
+
+def create_admin_session(session_id: str, email: str, days: int) -> None:
+    """Create an admin session that expires in the given number of days."""
+    from datetime import timedelta
+    expires_at = (datetime.now(timezone.utc) + timedelta(days=days)).isoformat(
+        timespec="seconds"
+    )
+    conn = _conn()
+    with conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO admin_sessions (session_id, email, expires_at, created_at) VALUES (?, ?, ?, ?)",
+            (session_id, email, expires_at, _now_iso()),
+        )
+
+
+def get_admin_session(session_id: str) -> dict[str, Any] | None:
+    """Retrieve an admin session by ID. Returns None if expired or not found."""
+    row = _conn().execute(
+        "SELECT email, expires_at FROM admin_sessions WHERE session_id = ?",
+        (session_id,),
+    ).fetchone()
+    if not row:
+        return None
+    # Check if expired
+    expires_at = datetime.fromisoformat(row["expires_at"])
+    if datetime.now(timezone.utc) > expires_at:
+        # Clean up expired session
+        delete_admin_session(session_id)
+        return None
+    return {"email": row["email"], "expires_at": expires_at}
+
+
+def delete_admin_session(session_id: str) -> str | None:
+    """Delete an admin session and return the associated email, or None."""
+    conn = _conn()
+    with conn:
+        row = conn.execute(
+            "SELECT email FROM admin_sessions WHERE session_id = ?",
+            (session_id,),
+        ).fetchone()
+        if row:
+            conn.execute("DELETE FROM admin_sessions WHERE session_id = ?", (session_id,))
+            return row["email"]
+    return None
