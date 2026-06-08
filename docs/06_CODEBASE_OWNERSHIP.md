@@ -23,7 +23,7 @@ Read the table as: "if this directory or file breaks, who is the first person to
 | Path | Primary owner | Secondary | Notes |
 |---|---|---|---|
 | `src/api.py` | Vijay | ehtisham2005 | The whole HTTP surface lives here. Recent additions: admin gating, machine PATCH, shift voiding, alert ack/snooze, runtime config, custom icon serving. |
-| `src/store.py` | Vijay | — | SQLite schema, migrations, anomaly compute, shift-log CRUD. |
+| `src/store.py` | Vijay | ehtisham2005 | SQLite schema, migrations, anomaly compute, shift-log CRUD. |
 | `src/db.py` | Vijay | — | Chroma persistent client wiring. |
 | `src/retriever.py` | ehtisham2005 | — | Embed-query + Chroma similarity search. |
 | `src/rag_pipeline.py` | ehtisham2005 | Vijay | Glues retriever + prompt builder + LLM. |
