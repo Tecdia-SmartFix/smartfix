@@ -1,16 +1,15 @@
 # 06 — Codebase Ownership
 
-> Who owns which area of the code. **This document is a fill-in template** — names and contact info are placeholders; please update before handover.
+> Who owns which area of the code. Names, contacts, and module ownership for the SmartFix team.
 
 ## Team members
 
-| Name | Primary role | Email / handle |
-|---|---|---|
-| **Vijay** | _TBD — backend / integration / DevEx_ | _<email>_ |
-| **Eshita Kasera** | _TBD — frontend / UI design_ | _<email>_ |
-| **ehtisham2005** | _TBD — backend / RAG pipeline / analytics_ | _<email>_ |
-
-> **Action**: fill in the role + contact column before handover. Pull from team directory / Slack profiles.
+| Name | Primary role | Email | Phone |
+|---|---|---|---|
+| **Vijay V S** | Backend / integration / DevEx | vijay080504@gmail.com | +91 63833 38499 |
+| **Eshita Kasera** | Frontend / UI design | eshita.kasera70@gmail.com | +91 78785 01935 |
+| **Mohammed Ehtishaam T** (`ehtisham2005`) | Backend / RAG pipeline / analytics | ehti1233@gmail.com | +91 88257 76241 |
+| **Govind Tiwari** | QA + testing — end-to-end flows, regression, release sign-off | govindtiwari1705@gmail.com | +91 96254 44565 |
 
 ---
 
@@ -88,6 +87,16 @@ Read the table as: "if this directory or file breaks, who is the first person to
 | `docs/0*.md` (this handover set) | the engineer doing the handover |
 | `docs/supplementary/` | shared — last-touched-it owns it |
 
+### QA + Testing
+
+| Area | Primary owner | Notes |
+|---|---|---|
+| End-to-end worker flow (pre-shift → ask → answer → end-shift) | Govind Tiwari | Manual regression pass before each release. |
+| End-to-end admin flow (login → machines → parameters → alerts → analytics → audit) | Govind Tiwari | Includes the dev-only `/auth/_dev/capture-session` backdoor verification. |
+| Cross-browser smoke tests (Chrome, Safari, Firefox) | Govind Tiwari | Pay extra attention to the chat streaming + ChromaDB queries on Safari. |
+| Bug reports + repro steps | Govind Tiwari | Filed against the primary owner of the affected module above. |
+| Release sign-off | Govind Tiwari | Final approval before any merge to `main`. |
+
 ---
 
 ## Active work / known WIP
@@ -127,4 +136,5 @@ Updated as of 2026-05-27.
 3. Ping the primary owner from the table above.
 4. Backend logic that touches multiple modules: Vijay first.
 5. Anything visual / layout / brand: Eshita first.
-6. RAG / ingestion / Groq behavior: ehtisham2005 first.
+6. RAG / ingestion / Groq behavior: Md Ehtishaam (`ehtisham2005`) first.
+7. A bug you can't reproduce, or "is this expected?" — Govind Tiwari has the regression matrix.

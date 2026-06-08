@@ -1,0 +1,86 @@
+{
+  "capturedAt": "2026-06-08T19:21:28.306Z",
+  "results": [
+    {
+      "name": "01_landing",
+      "status": "ok"
+    },
+    {
+      "name": "02_features",
+      "status": "ok"
+    },
+    {
+      "name": "03_integrations",
+      "status": "ok"
+    },
+    {
+      "name": "04_machines_list",
+      "status": "ok"
+    },
+    {
+      "name": "05_chat_empty",
+      "status": "ok"
+    },
+    {
+      "name": "06_chat_with_answer",
+      "status": "ok"
+    },
+    {
+      "name": "07_chat_alert_fired",
+      "status": "ok"
+    },
+    {
+      "name": "08_admin_login",
+      "status": "ok"
+    },
+    {
+      "name": "09_admin_machines",
+      "status": "ok"
+    },
+    {
+      "name": "10_admin_add_machine",
+      "status": "ok"
+    },
+    {
+      "name": "11_admin_alerts",
+      "status": "ok"
+    },
+    {
+      "name": "12_admin_analytics",
+      "status": "ok"
+    },
+    {
+      "name": "12b_admin_analytics_charts",
+      "status": "ok"
+    },
+    {
+      "name": "13_admin_shift_logs",
+      "status": "ok"
+    },
+    {
+      "name": "14_admin_audit_log",
+      "status": "ok"
+    },
+    {
+      "name": "15_start_shift_modal",
+      "status": "ok"
+    },
+    {
+      "name": "16_end_shift_modal",
+      "status": "ok"
+    },
+    {
+      "name": "17_handoff_detail",
+      "status": "failed",
+      "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: /view details/i }).first()\n"
+    },
+    {
+      "name": "18_edit_parameters_form",
+      "status": "ok"
+    },
+    {
+      "name": "19_analytics_full_page",
+      "status": "ok"
+    }
+  ]
+}

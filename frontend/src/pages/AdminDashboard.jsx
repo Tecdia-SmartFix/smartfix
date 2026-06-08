@@ -3245,10 +3245,10 @@ const AdminDashboard = () => {
                           already shows the state + a "lift" link). */}
                       <div className="mt-4 flex items-center gap-3">
                         {alert.acknowledged_at ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-bold font-inter text-black">
-                            <CheckCircle size={13} />
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-300 bg-emerald-50 text-[12px] font-bold font-inter text-emerald-700 uppercase tracking-wider">
+                            <CheckCircle size={13} strokeWidth={2.6} />
                             Acknowledged
-                            {alert.acknowledged_by && <span className="font-medium">· {alert.acknowledged_by}</span>}
+                            {alert.acknowledged_by && <span className="font-medium normal-case tracking-normal">· {alert.acknowledged_by}</span>}
                           </span>
                         ) : (
                           <button

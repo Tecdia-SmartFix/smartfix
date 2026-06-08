@@ -1,0 +1,384 @@
+/* A4 portrait pages — 794 × 1123 px at 96 DPI. */
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+html,
+body {
+  background: #d8dee2;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #111111;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.pdf-root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+@media screen {
+  .pdf-root {
+    gap: 24px;
+    padding: 32px 0 64px;
+  }
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff;
+  }
+  .pdf-page {
+    box-shadow: none !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
+
+.pdf-page {
+  width: 794px;
+  height: 1123px;
+  background: #ffffff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 30px 60px rgba(17, 17, 17, 0.18);
+  page-break-after: always;
+  break-after: page;
+}
+
+.pdf-page:last-child {
+  page-break-after: auto;
+  break-after: auto;
+}
+
+.pdf-page--dark {
+  background: #0b1018;
+  color: #ffffff;
+}
+
+.pdf-page__inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pdf-header,
+.pdf-footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 48px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: rgba(17, 17, 17, 0.55);
+}
+
+.pdf-page--dark .pdf-header,
+.pdf-page--dark .pdf-footer {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.pdf-header__brand,
+.pdf-footer__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.pdf-header__dot,
+.pdf-footer__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2b8cff;
+}
+
+.pdf-body {
+  flex: 1;
+  padding: 12px 56px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  overflow: hidden;
+}
+
+.pdf-body--tight {
+  padding: 12px 56px 16px;
+  gap: 18px;
+}
+
+.pdf-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: rgba(43, 140, 255, 0.10);
+  color: #2b8cff;
+  border-radius: 999px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.pdf-title {
+  font-family: 'Sora', sans-serif;
+  font-weight: 800;
+  font-size: 36px;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  color: #111111;
+}
+
+.pdf-page--dark .pdf-title {
+  color: #ffffff;
+}
+
+.pdf-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #5f5f5f;
+  max-width: 580px;
+}
+
+.pdf-page--dark .pdf-subtitle {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.pdf-h2 {
+  font-family: 'Sora', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: #111111;
+}
+
+.pdf-h3 {
+  font-family: 'Sora', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.005em;
+  color: #111111;
+  margin: 0;
+}
+
+.pdf-text {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: #3f3f46;
+}
+
+.pdf-page--dark .pdf-text {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.pdf-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(43, 140, 255, 0.10);
+  color: #2b8cff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.pdf-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.pdf-os-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.pdf-os-label::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #94a3b8;
+}
+
+.pdf-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.pdf-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(17, 17, 17, 0.04);
+}
+
+.pdf-card--flush {
+  padding: 0;
+  overflow: hidden;
+}
+
+.pdf-card__label {
+  font-family: 'Inter', sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: rgba(17, 17, 17, 0.45);
+}
+
+.pdf-card__title {
+  font-family: 'Sora', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.pdf-card__body {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #5f5f5f;
+}
+
+.pdf-pagenum {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.pdf-shot {
+  position: relative;
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 14px 36px rgba(17, 17, 17, 0.10);
+  background: #ffffff;
+  isolation: isolate;
+}
+
+.pdf-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.pdf-cover-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(at 20% 30%, rgba(43, 140, 255, 0.25), transparent 50%),
+    radial-gradient(at 80% 70%, rgba(16, 185, 210, 0.20), transparent 55%);
+  pointer-events: none;
+}
+
+.pdf-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(17, 17, 17, 0.12),
+    transparent
+  );
+}
+
+.pdf-page--dark .pdf-divider {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.18),
+    transparent
+  );
+}
+
+.pdf-callout-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.pdf-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pdf-checklist__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.pdf-checklist__box {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid #2b8cff;
+  flex-shrink: 0;
+  margin-top: 2px;
+  position: relative;
+}
+
+.pdf-checklist__title {
+  font-family: 'Sora', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.pdf-checklist__hint {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.pdf-mono-inline {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  padding: 1px 6px;
+  background: rgba(17, 17, 17, 0.06);
+  border-radius: 5px;
+  color: #2b8cff;
+  overflow-wrap: anywhere;
+}

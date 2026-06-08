@@ -922,7 +922,10 @@ const ShiftLogsPanel = () => {
                       <span style={s.metaKey}>{k}</span>
                       <span style={{
                         ...s.metaVal,
-                        color: k === 'Status' && !selectedLog.acknowledged ? '#c2410c' : '#0f172a',
+                        // Status badge: orange if pending, green once acknowledged.
+                        color: k === 'Status'
+                          ? (selectedLog.acknowledged ? '#047857' : '#c2410c')
+                          : '#0f172a',
                         fontFamily: k === 'Station' ? "'IBM Plex Mono', monospace" : "'Inter', sans-serif",
                       }}>{v}</span>
                     </div>
@@ -1002,10 +1005,10 @@ const ShiftLogsPanel = () => {
                     <button
                       onClick={() => handleAcknowledge(selectedLog.id)}
                       disabled={selectedLog.acknowledged}
-                      style={s.ackBtn}
+                      style={selectedLog.acknowledged ? s.ackBtnDone : s.ackBtn}
                       className="sl-ack-btn"
                     >
-                      {selectedLog.acknowledged ? 'Acknowledged' : 'Acknowledge'}
+                      {selectedLog.acknowledged ? '✓ Acknowledged' : 'Acknowledge'}
                     </button>
                     {!isVoid && (
                       <button onClick={() => { setVoidingId(selectedLog.id); setVoidReason(''); }} style={s.voidBtn} className="sl-void-btn">
@@ -1343,7 +1346,8 @@ const s = {
     display: 'inline-block', fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600,
     padding: '3px 10px', borderRadius: 999, border: '1px solid', whiteSpace: 'nowrap', letterSpacing: '0.01em',
   },
-  ackBtn: { flex: 1, fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, padding: '8px 0', border: 'none', borderRadius: 4, background: '#2D8CFF', color: '#ffffff', cursor: 'pointer', transition: 'all 0.12s' },
+  ackBtn:     { flex: 1, fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, padding: '8px 0', border: 'none',                       borderRadius: 4, background: '#2D8CFF', color: '#ffffff', cursor: 'pointer', transition: 'all 0.12s' },
+  ackBtnDone: { flex: 1, fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 700, padding: '8px 0', border: '1px solid #10b981',          borderRadius: 4, background: '#ecfdf5', color: '#047857', cursor: 'default', transition: 'all 0.12s' },
   voidBtn: { fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 4, background: '#fff', color: '#6d7c74', cursor: 'pointer', transition: 'all 0.12s' },
   voidInput: { width: '100%', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, padding: '6px 0', border: 'none', borderBottom: '1px solid #dc9b9b', background: '#fff', color: '#2e4e40', outline: 'none' },
   cancelBtn: { flex: 1, fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, padding: '8px 0', border: '1px solid #e5e7eb', borderRadius: 4, background: '#fff', color: '#6d7c74', cursor: 'pointer' },

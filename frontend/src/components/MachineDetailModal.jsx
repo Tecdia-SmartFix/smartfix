@@ -221,6 +221,28 @@ const MachineDetailModal = ({ machine, isOpen, onClose }) => {
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+          {/* Quick-pick suggestions for the numeric reading "Unit" combobox.
+              Browsers render this as a dropdown next to the input when the
+              admin clicks/types in the unit field. Free text still works. */}
+          <datalist id="param-unit-suggestions">
+            <option value="°C">Celsius (temperature)</option>
+            <option value="°F">Fahrenheit (temperature)</option>
+            <option value="K">Kelvin (temperature)</option>
+            <option value="bar">bar (pressure)</option>
+            <option value="psi">psi (pressure)</option>
+            <option value="kPa">kPa (pressure)</option>
+            <option value="MPa">MPa (pressure)</option>
+            <option value="RPM">RPM (rotational speed)</option>
+            <option value="L/min">L/min (flow rate)</option>
+            <option value="m³/h">m³/h (flow rate)</option>
+            <option value="mm">mm (length)</option>
+            <option value="μm">μm (length)</option>
+            <option value="V">V (voltage)</option>
+            <option value="A">A (current)</option>
+            <option value="kW">kW (power)</option>
+            <option value="Hz">Hz (frequency)</option>
+            <option value="%">% (percentage)</option>
+          </datalist>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -384,6 +406,7 @@ const MachineDetailModal = ({ machine, isOpen, onClose }) => {
                           <input
                             type="text"
                             placeholder="Unit"
+                            list="param-unit-suggestions"
                             value={r.unit || ''}
                             onChange={(e) => updateReading(idx, 'unit', e.target.value)}
                             className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-[13px] text-white outline-none focus:border-[#70dceb]"

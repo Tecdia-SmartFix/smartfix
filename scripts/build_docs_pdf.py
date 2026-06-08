@@ -38,6 +38,8 @@ DOC_FILES = [
     DOCS / "04_ROUTES_AND_ENDPOINTS.md",
     DOCS / "05_TECH_AND_DEPENDENCIES.md",
     DOCS / "06_CODEBASE_OWNERSHIP.md",
+    DOCS / "07_API_CONTRACT.md",
+    DOCS / "08_SYSTEM_PROMPT.md",
 ]
 
 # Light CSS so mdpdf's default rendering looks closer to a polished
