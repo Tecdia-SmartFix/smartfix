@@ -1991,6 +1991,7 @@ const AnalyticsPanel = () => {
   // Build dropdown options from whatever machines actually show up in the
   // analytics payload — avoids listing stale machines that have no activity.
   const machineOptions = Array.from(new Set([
+    ...(machines || []).map(m => m.id),
     ...(per_machine || []).map(m => m.machine_id),
     ...(code_frequency || []).map(c => c.machine).filter(Boolean),
   ])).sort();
