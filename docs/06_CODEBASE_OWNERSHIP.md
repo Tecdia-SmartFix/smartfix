@@ -38,7 +38,6 @@ Read the table as: "if this directory or file breaks, who is the first person to
 | Path | Primary owner | Secondary | Notes |
 |---|---|---|---|
 | `pages/ShiftLogSuccess.jsx` | Eshita | — | Post-submission success screen. |
-| `pages/CompanyPolicy.jsx` | Eshita | — | Legal policy text display. |
 | `components/TecdiaPage.jsx` | Eshita | — | Master layout wrapper for marketing. |
 | `components/AdminProfileMenu.jsx` | Eshita | — | Top-right admin dropdown. |
 | `components/DownloadToast.jsx` | Eshita | — | Export success pop-up. |
@@ -54,6 +53,7 @@ Read the table as: "if this directory or file breaks, who is the first person to
 | `pages/Cookie/Privacy/Data/LegalNotice` | Eshita | — | Legal stubs. |
 | `components/MachineCard.jsx` | Eshita | Vijay | Expand-in-place card. |
 | `components/MachineDetailModal.jsx` | Vijay | — | Admin parameter editor + metadata edit + re-ingest button. |
+| `pages/CompanyPolicy.jsx` | Eshita | — | Legal policy text display. |
 | `components/EndShiftModal.jsx` | Vijay | — | Phase-aware shift log form. |
 | `components/HandoffBanner.jsx` | Vijay | — | Previous-shift anomaly banner. |
 | `components/ShiftLogsPanel.jsx` | Vijay | Eshita | Admin shift logs table + void UI. |
