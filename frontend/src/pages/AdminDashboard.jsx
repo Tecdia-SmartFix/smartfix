@@ -2002,10 +2002,10 @@ const AnalyticsPanel = () => {
       {/* ── header + refresh ───────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-tecdia-textDeep flex items-center gap-2.5">
+          <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }} className="flex items-center gap-2.5">
             Fleet Analytics
           </h2>
-          <p className="text-[11px] font-medium text-tecdia-text/40 uppercase tracking-widest mt-1 ml-8">Real-time system diagnostics & query analytics</p>
+          <p className="text-[11px] font-medium text-tecdia-text/40 uppercase tracking-widest mt-1">Real-time system diagnostics & query analytics</p>
         </div>
         <div className="flex items-center gap-2 w-fit">
           <button
@@ -2953,8 +2953,6 @@ const AdminDashboard = () => {
                 </div>
               );
             })}
-            <div className="ml-1 h-6 w-px bg-white/15" />
-            <AdminProfileMenu />
           </div>
         </div>
       </div>

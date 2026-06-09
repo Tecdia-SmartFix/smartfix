@@ -955,7 +955,7 @@ const ShiftLogsPanel = () => {
                 <div style={s.detailHeader}>
                   <div style={s.detailHeaderLeft}>
                     <span style={{ ...s.sevBadge, color: sev.color, background: sev.bg, borderColor: sev.border }}>
-                      Severity {selectedLog.severity} - {sev.label.split(' - ')[1] || sev.label}
+                      {sev.label.includes(' - ') ? `Severity ${selectedLog.severity} - ${sev.label.split(' - ')[1]}` : `Severity ${selectedLog.severity}`}
                     </span>
                     <div style={s.detailMachine}>{machineNameFor(selectedLog.machine_id)}</div>
                     <div style={s.detailSubline}>

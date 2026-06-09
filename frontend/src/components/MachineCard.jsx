@@ -93,8 +93,8 @@ const MachineCard = ({
           </div>
         )}
 
-        {/* Delete (admin only, non-default machines) */}
-        {onDelete && !isDefault && (
+        {/* Delete button (available for all machines) */}
+        {onDelete && (
           <div className="absolute top-4 right-4 z-10">
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(machine.id, machine.name); }}

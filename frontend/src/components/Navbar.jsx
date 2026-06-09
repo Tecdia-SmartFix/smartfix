@@ -5,6 +5,7 @@ import { ArrowRight, Menu, X, User, LogOut, ShieldCheck } from 'lucide-react';
 import { useStartDiagnosing } from '../context/StartDiagnosingContext';
 import { useAuth } from '../context/AuthContext';
 import tecdiaLogo from '../assets/cebu_F-Photoroom.png';
+import AdminProfileMenu from './AdminProfileMenu';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -138,10 +139,11 @@ const Navbar = () => {
               )}
             </Link>
 
-            {/* Public "Admin" entry point — only when no admin session.
-                Once signed in, the cyan AdminProfileMenu pill is the one
-                and only admin affordance, so this link would just be a
-                second door to the same room. */}
+            {isAdmin && location.pathname.startsWith('/admin') && (
+              <div className="ml-2 flex items-center h-full">
+                <AdminProfileMenu />
+              </div>
+            )}
             {!isAdmin && (
               <Link
                 to="/admin/login"

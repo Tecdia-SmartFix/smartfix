@@ -44,7 +44,6 @@ const DownloadToast = ({ saved, onDismiss, autoDismissMs = 8000 }) => {
         padding: '12px 14px',
         background: '#ffffff',
         border: '1px solid #b6e6cf',
-        borderLeft: '4px solid #10b981',
         borderRadius: 6,
         boxShadow: '0 10px 30px rgba(15, 28, 63, 0.16)',
         fontFamily: "'Inter', sans-serif",
