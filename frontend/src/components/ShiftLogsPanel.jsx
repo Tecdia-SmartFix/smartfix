@@ -1222,25 +1222,28 @@ const s = {
     minWidth: 0,
   },
   selectWrap: { display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 },
-  selectLabel: { fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6d7c74' },
+  // Label / value colors are deliberately near-black so the filter row reads
+  // as primary content, not muted helper text. Same values are mirrored in
+  // AnalyticsPanel and AuditPanel for cross-page consistency.
+  selectLabel: { fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#374151' },
   select: {
-    fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500,
-    padding: '6px 24px 6px 0px', border: 'none', borderBottom: '1px solid #e5e7eb',
-    background: '#fff', color: '#2e4e40', outline: 'none', cursor: 'pointer', appearance: 'none',
+    fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600,
+    padding: '6px 24px 6px 0px', border: 'none', borderBottom: '1px solid #cbd5e1',
+    background: '#fff', color: '#0f172a', outline: 'none', cursor: 'pointer', appearance: 'none',
     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%232D8CFF' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
     backgroundRepeat: 'no-repeat', backgroundPosition: 'right center',
     width: '100%', minWidth: 0,
   },
   searchWrap: { display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 },
   searchInput: {
-    fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500,
-    padding: '6px 10px 6px 24px', border: 'none', borderBottom: '1px solid #e5e7eb',
-    background: '#fff', color: '#2e4e40', outline: 'none', width: '100%', boxSizing: 'border-box',
+    fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600,
+    padding: '6px 10px 6px 24px', border: 'none', borderBottom: '1px solid #cbd5e1',
+    background: '#fff', color: '#0f172a', outline: 'none', width: '100%', boxSizing: 'border-box',
   },
   dateInput: {
-    fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500,
-    padding: '6px 0', border: 'none', borderBottom: '1px solid #e5e7eb',
-    background: '#fff', color: '#2e4e40', outline: 'none', width: '100%', boxSizing: 'border-box',
+    fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600,
+    padding: '6px 0', border: 'none', borderBottom: '1px solid #cbd5e1',
+    background: '#fff', color: '#0f172a', outline: 'none', width: '100%', boxSizing: 'border-box',
   },
   linkBtn: {
     display: 'flex', alignItems: 'center', gap: 6,

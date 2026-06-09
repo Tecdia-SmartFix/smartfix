@@ -2184,20 +2184,135 @@ async def admin_analytics(
 # ── /admin/audit ───────────────────────────────────────────────────────────
 
 
+def _filter_audit_entries(
+    limit:         int,
+    action_prefix: Optional[str],
+    actor:         Optional[str],
+    status:        Optional[str],
+    days:          Optional[int],
+    date_from:     Optional[str],
+    date_to:       Optional[str],
+) -> list[dict]:
+    """Shared audit filter logic for the JSON list and the export endpoints.
+
+    Reads the most recent 1000 entries from the on-disk audit log, then
+    applies the remaining filters in memory. Days/from/to mirror the same
+    semantics as the analytics + shift-log endpoints.
+    """
+    raw = audit.read(limit=1000, action_prefix=action_prefix)
+    if not (actor or status or days or date_from or date_to):
+        return raw[:limit]
+
+    now = datetime.now(timezone.utc)
+    cutoff_start: Optional[datetime] = None
+    cutoff_end:   Optional[datetime] = None
+    if days and days > 0:
+        cutoff_start = now - timedelta(days=days)
+    else:
+        if date_from:
+            try:
+                cutoff_start = datetime.fromisoformat(date_from).replace(tzinfo=timezone.utc)
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                cutoff_end = (
+                    datetime.fromisoformat(date_to).replace(tzinfo=timezone.utc)
+                    + timedelta(days=1)
+                )
+            except ValueError:
+                pass
+
+    actor_needle = actor.strip().lower() if actor else None
+    status_target = status.strip().lower() if status else None
+
+    out: list[dict] = []
+    for e in raw:
+        if cutoff_start or cutoff_end:
+            try:
+                t = datetime.fromisoformat((e.get("ts") or "").replace("Z", "+00:00"))
+            except (AttributeError, ValueError):
+                continue
+            if cutoff_start and t < cutoff_start:
+                continue
+            if cutoff_end and t >= cutoff_end:
+                continue
+        if actor_needle and actor_needle not in (e.get("actor") or "").lower():
+            continue
+        if status_target and (e.get("status") or "").lower() != status_target:
+            continue
+        out.append(e)
+        if len(out) >= limit:
+            break
+    return out
+
+
 @app.get("/admin/audit")
 async def admin_audit(
-    limit: int = 200,
+    limit:         int = 200,
     action_prefix: Optional[str] = None,
-    admin_email: str = Depends(require_admin),
+    actor:         Optional[str] = None,
+    status:        Optional[str] = None,
+    days:          Optional[int] = None,
+    date_from:     Optional[str] = None,
+    date_to:       Optional[str] = None,
+    admin_email:   str = Depends(require_admin),
 ):
-    """Return the most recent audit entries (newest first).
+    """Return the most recent audit entries (newest first), with optional filters.
 
-    Filterable by action prefix (e.g. `machine.` or `auth.`) for the UI.
-    Backed by data/audit.jsonl — see src/audit.py.
+    Filterable by action prefix (e.g. `machine.` or `auth.`), actor substring,
+    status (`success` / `failure`), and time window (`days` preset or explicit
+    `date_from` / `date_to`). Backed by data/audit.jsonl — see src/audit.py.
     """
     if not 1 <= limit <= 1000:
         raise APIError(422, "limit must be 1–1000", "validation_error")
-    return {"entries": audit.read(limit=limit, action_prefix=action_prefix)}
+    entries = _filter_audit_entries(limit, action_prefix, actor, status, days, date_from, date_to)
+    return {"entries": entries}
+
+
+@app.get("/admin/audit/export.xlsx")
+async def admin_audit_export_xlsx(
+    action_prefix: Optional[str] = None,
+    actor:         Optional[str] = None,
+    status:        Optional[str] = None,
+    days:          Optional[int] = None,
+    date_from:     Optional[str] = None,
+    date_to:       Optional[str] = None,
+    admin_email:   str = Depends(require_admin),
+):
+    entries = _filter_audit_entries(1000, action_prefix, actor, status, days, date_from, date_to)
+    blob = exports.audit_logs_xlsx(
+        entries,
+        filters={"action_prefix": action_prefix, "actor": actor, "status": status,
+                 "days": days, "date_from": date_from, "date_to": date_to},
+    )
+    return Response(
+        content=blob,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{_safe_filename("audit_log", "xlsx")}"'},
+    )
+
+
+@app.get("/admin/audit/export.pdf")
+async def admin_audit_export_pdf(
+    action_prefix: Optional[str] = None,
+    actor:         Optional[str] = None,
+    status:        Optional[str] = None,
+    days:          Optional[int] = None,
+    date_from:     Optional[str] = None,
+    date_to:       Optional[str] = None,
+    admin_email:   str = Depends(require_admin),
+):
+    entries = _filter_audit_entries(1000, action_prefix, actor, status, days, date_from, date_to)
+    blob = exports.audit_logs_pdf(
+        entries,
+        filters={"action_prefix": action_prefix, "actor": actor, "status": status,
+                 "days": days, "date_from": date_from, "date_to": date_to},
+    )
+    return Response(
+        content=blob, media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{_safe_filename("audit_log", "pdf")}"'},
+    )
 
 
 # ── /admin/_seed-analytics ─────────────────────────────────────────────────

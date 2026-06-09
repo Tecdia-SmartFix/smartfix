@@ -93,6 +93,12 @@ def _filter_summary(filters: dict) -> str:
         parts.append(f"Severity: {filters['severity']}")
     if filters.get("shift"):
         parts.append(f"Shift: {filters['shift']}")
+    if filters.get("action_prefix"):
+        parts.append(f"Action: {filters['action_prefix']}*")
+    if filters.get("actor"):
+        parts.append(f"Actor: {filters['actor']}")
+    if filters.get("status"):
+        parts.append(f"Status: {filters['status']}")
     if filters.get("days"):
         d = filters["days"]
         parts.append(f"Last {d} day{'s' if int(d) != 1 else ''}")
@@ -539,6 +545,182 @@ def analytics_pdf(data: dict, filters: dict) -> bytes:
          for d in data.get("depreciation", [])],
         [usable_w * 0.42, usable_w * 0.15, usable_w * 0.20, usable_w * 0.23],
     )
+
+    doc.build(story, onFirstPage=_page_footer, onLaterPages=_page_footer)
+    return buf.getvalue()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Audit log — XLSX
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _fmt_audit_ts(iso: Optional[str]) -> str:
+    if not iso:
+        return "—"
+    try:
+        d = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+    except (AttributeError, ValueError):
+        return iso
+    return d.strftime("%d %b %Y · %H:%M:%S")
+
+
+def audit_logs_xlsx(entries: list[dict], filters: dict) -> bytes:
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Audit Log"
+
+    thin = Side(border_style="thin", color=BORDER_HEX)
+    box  = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    ws["A1"] = "Audit Log Export"
+    ws["A1"].font = Font(name="Calibri", size=18, bold=True, color="0F1C3F")
+    ws.merge_cells("A1:G1")
+
+    ws["A2"] = f"{_filter_summary(filters)}  ·  Generated {datetime.now().strftime('%d %b %Y %H:%M')}"
+    ws["A2"].font = Font(name="Calibri", size=10, color="5A72A0", italic=True)
+    ws.merge_cells("A2:G2")
+
+    total = len(entries)
+    success = sum(1 for e in entries if (e.get("status") or "").lower() == "success")
+    failures = total - success
+    ws["A3"] = f"Total events: {total}    Successes: {success}    Failures: {failures}"
+    ws["A3"].font = Font(name="Calibri", size=11, bold=True, color="1A53A1")
+    ws.merge_cells("A3:G3")
+    ws.row_dimensions[3].height = 22
+
+    ws.append([])
+
+    headers = ["Timestamp", "Action", "Actor", "Target", "Status", "IP", "Details"]
+    ws.append(headers)
+    header_row = ws.max_row
+    for col_idx, _ in enumerate(headers, start=1):
+        c = ws.cell(row=header_row, column=col_idx)
+        c.font = Font(name="Calibri", size=11, bold=True, color=HEADER_FG)
+        c.fill = PatternFill("solid", fgColor=HEADER_BG)
+        c.alignment = Alignment(vertical="center", horizontal="left")
+        c.border = box
+    ws.row_dimensions[header_row].height = 26
+    ws.freeze_panes = ws.cell(row=header_row + 1, column=1)
+
+    fail_fill = PatternFill("solid", fgColor="FDE7E7")
+    fail_fg   = "B91C1C"
+    ok_fill   = PatternFill("solid", fgColor="ECFDF5")
+    ok_fg     = "047857"
+
+    for i, e in enumerate(entries):
+        is_success = (e.get("status") or "").lower() == "success"
+        details = e.get("details") or {}
+        details_str = ", ".join(f"{k}={v}" for k, v in details.items()) if isinstance(details, dict) else str(details)
+        row_vals = [
+            _fmt_audit_ts(e.get("ts")),
+            e.get("action") or "—",
+            e.get("actor") or "—",
+            e.get("target") or "—",
+            (e.get("status") or "—").title(),
+            e.get("ip") or "—",
+            details_str or "—",
+        ]
+        ws.append(row_vals)
+        r = ws.max_row
+        zebra = (i % 2 == 1)
+        for col_idx in range(1, len(row_vals) + 1):
+            c = ws.cell(row=r, column=col_idx)
+            c.font = Font(name="Calibri", size=10, color="2E4E40")
+            c.alignment = Alignment(vertical="center", wrap_text=(col_idx == 7))
+            c.border = box
+            if zebra:
+                c.fill = PatternFill("solid", fgColor=ZEBRA_BG)
+        # Status pill
+        sc = ws.cell(row=r, column=5)
+        sc.font = Font(name="Calibri", size=10, bold=True, color=(ok_fg if is_success else fail_fg))
+        sc.fill = ok_fill if is_success else fail_fill
+        sc.alignment = Alignment(vertical="center", horizontal="center")
+
+    widths = [22, 30, 28, 28, 12, 16, 50]
+    for i, w in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+    buf = BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Audit log — PDF
+# ─────────────────────────────────────────────────────────────────────────────
+
+def audit_logs_pdf(entries: list[dict], filters: dict) -> bytes:
+    buf = BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=landscape(A4),
+        leftMargin=15 * mm, rightMargin=15 * mm,
+        topMargin=15 * mm, bottomMargin=18 * mm,
+        title="Audit Log Export",
+    )
+    s = _styles()
+
+    story: list = [
+        Paragraph("Audit Log Export", s["title"]),
+        Paragraph(_filter_summary(filters), s["sub"]),
+        Paragraph(f"Generated {datetime.now().strftime('%d %b %Y %H:%M')}", s["sub"]),
+        Spacer(1, 8),
+    ]
+
+    total = len(entries)
+    success = sum(1 for e in entries if (e.get("status") or "").lower() == "success")
+    failures = total - success
+    story.append(Paragraph(
+        f"Total events: {total}     Successes: {success}     Failures: {failures}",
+        s["kpi"],
+    ))
+
+    headers = ["Timestamp", "Action", "Actor", "Target", "Status", "IP", "Details"]
+    rows: list[list] = [headers]
+    for e in entries:
+        details = e.get("details") or {}
+        details_str = ", ".join(f"{k}={v}" for k, v in details.items()) if isinstance(details, dict) else str(details)
+        rows.append([
+            _fmt_audit_ts(e.get("ts")),
+            Paragraph(e.get("action") or "—", s["cell_b"]),
+            Paragraph(e.get("actor") or "—", s["cell"]),
+            Paragraph(e.get("target") or "—", s["cell"]),
+            (e.get("status") or "—").title(),
+            e.get("ip") or "—",
+            Paragraph(details_str or "—", s["cell"]),
+        ])
+
+    # 277mm usable in landscape A4 minus margins.
+    col_widths = [30 * mm, 38 * mm, 36 * mm, 36 * mm, 20 * mm, 24 * mm, 53 * mm]
+
+    # Build the table directly so we can tint the Status column per-row.
+    t = Table(rows, colWidths=col_widths, repeatRows=1)
+    style = [
+        ("BACKGROUND",  (0, 0), (-1, 0), colors.HexColor("#5A72A0")),
+        ("TEXTCOLOR",   (0, 0), (-1, 0), colors.white),
+        ("FONTNAME",    (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE",    (0, 0), (-1, 0), 9),
+        ("ALIGN",       (0, 0), (-1, 0), "LEFT"),
+        ("VALIGN",      (0, 0), (-1, -1), "MIDDLE"),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
+        ("TOPPADDING",    (0, 0), (-1, 0), 6),
+        ("GRID",        (0, 0), (-1, -1), 0.25, colors.HexColor("#D0D7E2")),
+    ]
+    for i in range(1, len(rows)):
+        if i % 2 == 0:
+            style.append(("BACKGROUND", (0, i), (-1, i), colors.HexColor("#F4F8FC")))
+        is_success = str(rows[i][4]).lower() == "success"
+        style.append((
+            "BACKGROUND", (4, i), (4, i),
+            colors.HexColor("#ECFDF5") if is_success else colors.HexColor("#FDE7E7"),
+        ))
+        style.append((
+            "TEXTCOLOR", (4, i), (4, i),
+            colors.HexColor("#047857") if is_success else colors.HexColor("#B91C1C"),
+        ))
+        style.append(("FONTNAME", (4, i), (4, i), "Helvetica-Bold"))
+        style.append(("ALIGN",    (4, i), (4, i), "CENTER"))
+    t.setStyle(TableStyle(style))
+    story.append(t)
 
     doc.build(story, onFirstPage=_page_footer, onLaterPages=_page_footer)
     return buf.getvalue()

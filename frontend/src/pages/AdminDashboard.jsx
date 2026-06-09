@@ -18,6 +18,7 @@ import { useAlerts } from '../context/AlertContext';
 import { fetchApi, downloadFile } from '../api/apiClient';
 import DownloadToast from '../components/DownloadToast';
 import ShiftLogsPanel from '../components/ShiftLogsPanel';
+import AdminProfileMenu from '../components/AdminProfileMenu';
 import bbImg from '../assets/bb.jpg';
 
 import laserImg from '../assets/laser.png';
@@ -1079,9 +1080,21 @@ const AuditPanel = () => {
   const [entries, setEntries]   = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
-  const [filter, setFilter]     = useState('all');
+  // Filter state — mirrors the shape of ShiftLogs/Analytics filters so the
+  // export endpoint can share filter params with the JSON route.
+  const [actionFilter, setActionFilter] = useState('all');  // 'all' | 'auth.' | 'machine.' | 'shift.' | 'alert.'
+  const [statusFilter, setStatusFilter] = useState('all');  // 'all' | 'success' | 'failure'
+  const [daysFilter,   setDaysFilter]   = useState('all');  // 'all' | '1' | '7' | '30'
+  const [dateFrom, setDateFrom]         = useState('');
+  const [dateTo, setDateTo]             = useState('');
+  const [actorSearch, setActorSearch]   = useState('');
   const [expanded, setExpanded] = useState(new Set());
   const [syncing, setSyncing]   = useState(false);
+
+  // Export menu state — same pattern as AnalyticsPanel.
+  const [exportOpen, setExportOpen]     = useState(false);
+  const [exporting, setExporting]       = useState(false);
+  const [exportSaved, setExportSaved]   = useState(null);
 
   // Column visibility
   const [colModalVisible, setColModalVisible] = useState(false);
@@ -1092,9 +1105,9 @@ const AuditPanel = () => {
     setDraftColumns(visibleColumns);
     setColModalVisible(true);
   };
-  
+
   const toggleCol = (k) => setDraftColumns(p => p.includes(k) ? p.filter(x => x !== k) : [...p, k]);
-  
+
   const applyCols = () => {
     if (draftColumns.length === 0) return alert('Select at least one column.');
     setVisibleColumns(AUDIT_COLUMNS.filter(c => draftColumns.includes(c.key)).map(c => c.key));
@@ -1103,11 +1116,24 @@ const AuditPanel = () => {
 
   const colVisible = (k) => visibleColumns.includes(k);
 
-  const load = useCallback(async (f = filter) => {
+  // Build the same URLSearchParams the export endpoints expect, so the JSON
+  // /admin/audit fetch and the .xlsx/.pdf downloads see identical scope.
+  const buildAuditQuery = useCallback(() => {
+    const qs = new URLSearchParams();
+    if (actionFilter !== 'all') qs.set('action_prefix', actionFilter);
+    if (statusFilter !== 'all') qs.set('status', statusFilter);
+    if (daysFilter !== 'all')   qs.set('days', daysFilter);
+    if (daysFilter === 'all' && dateFrom) qs.set('date_from', dateFrom);
+    if (daysFilter === 'all' && dateTo)   qs.set('date_to', dateTo);
+    if (actorSearch.trim())     qs.set('actor', actorSearch.trim());
+    return qs;
+  }, [actionFilter, statusFilter, daysFilter, dateFrom, dateTo, actorSearch]);
+
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      const qs = new URLSearchParams({ limit: '200' });
-      if (f !== 'all') qs.set('action_prefix', f === 'auth' ? 'auth.' : 'machine.');
+      const qs = buildAuditQuery();
+      qs.set('limit', '200');
       const d = await fetchApi(`/admin/audit?${qs}`);
       setEntries(d.entries || []);
       setError(null);
@@ -1116,14 +1142,30 @@ const AuditPanel = () => {
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [buildAuditQuery]);
 
-  useEffect(() => { load(filter); }, [filter, load]);
+  useEffect(() => { load(); }, [load]);
 
   const handleSync = async () => {
     setSyncing(true);
-    await load(filter);
+    await load();
     setSyncing(false);
+  };
+
+  const handleExport = async (format) => {
+    setExportOpen(false);
+    setExporting(true);
+    setError(null);
+    try {
+      const qs = buildAuditQuery();
+      const q  = qs.toString();
+      const result = await downloadFile(`/admin/audit/export.${format}${q ? `?${q}` : ''}`, `audit_log.${format}`);
+      if (result) setExportSaved(result);
+    } catch (e) {
+      setError(e.detail || e.message || `Failed to export ${format.toUpperCase()}`);
+    } finally {
+      setExporting(false);
+    }
   };
 
   const toggleExpanded = (idx) => {
@@ -1134,9 +1176,8 @@ const AuditPanel = () => {
     });
   };
 
-  const filtered = filter === 'all'
-    ? entries
-    : entries.filter(e => (e.action || '').startsWith(filter === 'auth' ? 'auth.' : 'machine.'));
+  // The backend already applies every filter — render the response as-is.
+  const filtered = entries;
 
   return (
     <div style={s.root}>
@@ -1158,27 +1199,72 @@ const AuditPanel = () => {
         <p style={s.pageDesc}>Append-only security record · last 200 events</p>
       </div>
 
-      {/* Controls */}
+      <DownloadToast saved={exportSaved} onDismiss={() => setExportSaved(null)} />
+
+      {/* Controls — underline-style filter dropdowns + right-side actions.
+          Layout mirrors ShiftLogsPanel so the three admin tables read the
+          same way. */}
       <div style={s.controls}>
-        <div style={s.filterWrap}>
-          {[
-            { id: 'all',     label: 'All activity',    icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z"/></svg> },
-            { id: 'auth',    label: 'Authentication',   icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> },
-            { id: 'machine', label: 'Machine events',   icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> },
-          ].map(f => (
-            <button
-              key={f.id}
-              onClick={() => { setFilter(f.id); setExpanded(new Set()); }}
-              style={s.linkBtn}
+        <div style={s.leftControls}>
+          <div style={s.selectWrap}>
+            <div style={s.selectLabel}>Action</div>
+            <select value={actionFilter} onChange={e => setActionFilter(e.target.value)} style={s.select}>
+              <option value="all">All activity</option>
+              <option value="auth.">Authentication</option>
+              <option value="machine.">Machine events</option>
+              <option value="shift.">Shift logs</option>
+              <option value="alert.">Alerts</option>
+            </select>
+          </div>
+          <div style={s.selectWrap}>
+            <div style={s.selectLabel}>Status</div>
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={s.select}>
+              <option value="all">All statuses</option>
+              <option value="success">Success</option>
+              <option value="failure">Failure</option>
+            </select>
+          </div>
+          <div style={s.selectWrap}>
+            <div style={s.selectLabel}>Time range</div>
+            <select
+              value={daysFilter}
+              onChange={e => { setDaysFilter(e.target.value); if (e.target.value !== 'all') { setDateFrom(''); setDateTo(''); } }}
+              style={s.select}
             >
-              <div style={{ ...s.linkIconBox, background: filter === f.id ? '#0f1c3f' : '#2D8CFF' }}>
-                {f.icon}
-              </div>
-              <span style={{ ...s.linkText, fontWeight: filter === f.id ? 700 : 400 }}>{f.label}</span>
-            </button>
-          ))}
+              <option value="all">All time</option>
+              <option value="1">Last 24 hours</option>
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
+            </select>
+          </div>
+          <div style={s.selectWrap}>
+            <div style={s.selectLabel}>From</div>
+            <input
+              type="date" value={dateFrom}
+              onChange={e => { setDateFrom(e.target.value); if (e.target.value) setDaysFilter('all'); }}
+              style={s.dateInput}
+            />
+          </div>
+          <div style={s.selectWrap}>
+            <div style={s.selectLabel}>To</div>
+            <input
+              type="date" value={dateTo}
+              onChange={e => { setDateTo(e.target.value); if (e.target.value) setDaysFilter('all'); }}
+              style={s.dateInput}
+            />
+          </div>
+          <div style={s.searchWrap}>
+            <div style={s.selectLabel}>Actor</div>
+            <input
+              type="text" value={actorSearch}
+              onChange={e => setActorSearch(e.target.value)}
+              placeholder="email, ip, anonymous…"
+              style={s.searchInputAudit}
+            />
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
           <button onClick={openColModal} style={s.linkBtn}>
             <div style={s.linkIconBox}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -1188,6 +1274,47 @@ const AuditPanel = () => {
             </div>
             <span style={s.linkText}>Select columns</span>
           </button>
+
+          <button onClick={handleSync} style={s.linkBtn}>
+            <div style={s.linkIconBox}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                style={{ flexShrink: 0, transition: 'transform 0.6s', transform: syncing ? 'rotate(360deg)' : 'none' }}>
+                <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+            </div>
+            <span style={s.linkText}>Refresh</span>
+          </button>
+
+          {/* Export menu — mirrors AnalyticsPanel + ShiftLogsPanel */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setExportOpen(o => !o)}
+              disabled={exporting}
+              style={s.linkBtn}
+            >
+              <div style={s.linkIconBox}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/>
+                </svg>
+              </div>
+              <span style={s.linkText}>{exporting ? 'Exporting…' : 'Export'}</span>
+            </button>
+            {exportOpen && (
+              <>
+                <div onClick={() => setExportOpen(false)} style={s.exportBackdrop} />
+                <div style={s.exportMenu}>
+                  <button onClick={() => handleExport('xlsx')} style={s.exportItem}>
+                    <span style={s.exportItemLabel}>Excel</span>
+                    <span style={s.exportItemHint}>.xlsx</span>
+                  </button>
+                  <button onClick={() => handleExport('pdf')} style={s.exportItem}>
+                    <span style={s.exportItemLabel}>PDF</span>
+                    <span style={s.exportItemHint}>.pdf</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1329,12 +1456,61 @@ const s = {
   },
   pageDesc: { fontSize: 13, color: '#6b7a9e' },
 
-  controls: { 
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-    background: 'none', border: 'none', borderRadius: 0, 
-    padding: '0', marginBottom: 20, boxShadow: 'none'
+  controls: {
+    display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
+    flexWrap: 'wrap', gap: 12,
+    background: 'none', border: 'none', borderRadius: 0,
+    padding: '0', marginBottom: 20, boxShadow: 'none',
+  },
+  leftControls: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+    alignItems: 'end',
+    gap: '12px 16px',
+    flex: 1,
+    minWidth: 0,
   },
   filterWrap: { display: 'flex', gap: 16, alignItems: 'center' },
+  // Underline filter inputs — same near-black palette as Shift Logs.
+  selectWrap: { display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 },
+  selectLabel: {
+    fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 700,
+    letterSpacing: '0.12em', textTransform: 'uppercase', color: '#374151',
+  },
+  select: {
+    fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600,
+    padding: '6px 24px 6px 0px', border: 'none', borderBottom: '1px solid #cbd5e1',
+    background: '#fff', color: '#0f172a', outline: 'none', cursor: 'pointer', appearance: 'none',
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%232D8CFF' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat', backgroundPosition: 'right center',
+    width: '100%', minWidth: 0,
+  },
+  searchWrap: { display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 },
+  searchInputAudit: {
+    fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600,
+    padding: '6px 0', border: 'none', borderBottom: '1px solid #cbd5e1',
+    background: '#fff', color: '#0f172a', outline: 'none',
+    width: '100%', boxSizing: 'border-box',
+  },
+  dateInput: {
+    fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600,
+    padding: '6px 0', border: 'none', borderBottom: '1px solid #cbd5e1',
+    background: '#fff', color: '#0f172a', outline: 'none',
+    width: '100%', boxSizing: 'border-box',
+  },
+  exportBackdrop: { position: 'fixed', inset: 0, zIndex: 998 },
+  exportMenu: {
+    position: 'absolute', top: '100%', right: 0, marginTop: 6, zIndex: 999,
+    background: '#fff', border: '1px solid #9fb3d0', borderRadius: 6,
+    boxShadow: '0 6px 24px rgba(15,28,63,0.12)', minWidth: 140, overflow: 'hidden',
+  },
+  exportItem: {
+    width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    gap: 12, padding: '10px 14px', border: 'none', background: 'transparent',
+    cursor: 'pointer', fontFamily: "'Inter', sans-serif",
+  },
+  exportItemLabel: { fontSize: 12, fontWeight: 600, color: '#0f1c3f' },
+  exportItemHint:  { fontSize: 11, color: '#6b7a9e', fontFamily: "'IBM Plex Mono', monospace" },
   linkBtn: {
     display: 'flex', alignItems: 'center', gap: 6,
     background: 'none', border: 'none', cursor: 'pointer', padding: 0, outline: 'none',
@@ -1646,9 +1822,12 @@ const TopQuestions = ({ questions }) => {
 // Sleek native-select wrapper used in the AnalyticsPanel filter row. Keeps
 // the native <select> for accessibility/keyboard nav, but skins it with a
 // custom chevron and the same surface treatment as the rest of the panel.
+// Underline-only style — same visual as the Shift Logs filter row so the
+// admin pages share one filter idiom. Label is near-black uppercase, value
+// is near-black weight-600, sits on a thin gray underline.
 const AnalyticsFilter = ({ label, value, onChange, options, width = 160 }) => (
-  <div className="flex flex-col gap-1.5">
-    <label className="text-[10px] font-bold text-tecdia-text/45 uppercase tracking-[0.16em]">
+  <div className="flex flex-col gap-1.5" style={{ minWidth: 0 }}>
+    <label className="text-[9px] font-bold tracking-[0.12em] uppercase text-[#374151]">
       {label}
     </label>
     <div className="relative">
@@ -1656,33 +1835,31 @@ const AnalyticsFilter = ({ label, value, onChange, options, width = 160 }) => (
         value={value}
         onChange={(e) => onChange(e.target.value)}
         style={{ minWidth: width }}
-        className="appearance-none bg-white border border-tecdia-border/80 rounded-lg pl-3.5 pr-9 py-2 text-[13px] font-semibold text-tecdia-textDeep outline-none transition-colors hover:border-tecdia-accent/60 focus:border-tecdia-accent focus:ring-2 focus:ring-tecdia-accent/20 cursor-pointer"
+        className="appearance-none w-full bg-white border-0 border-b border-[#cbd5e1] pl-0 pr-6 py-1.5 text-[12px] font-semibold text-[#0f172a] outline-none transition-colors focus:border-tecdia-accent cursor-pointer"
       >
         {options.map(opt => (
           <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}
       </select>
       <ChevronDown
-        size={14}
-        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-tecdia-text/50"
+        size={12}
+        strokeWidth={2.6}
+        className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-[#2D8CFF]"
       />
     </div>
   </div>
 );
 
-// Native date input styled to match AnalyticsFilter so the row looks uniform.
-// Empty string = "no bound on this side" — backend treats both dates as
-// optional, so leaving either blank just relaxes that end of the window.
 const AnalyticsDateFilter = ({ label, value, onChange }) => (
-  <div className="flex flex-col gap-1.5">
-    <label className="text-[10px] font-bold text-tecdia-text/45 uppercase tracking-[0.16em]">
+  <div className="flex flex-col gap-1.5" style={{ minWidth: 0 }}>
+    <label className="text-[9px] font-bold tracking-[0.12em] uppercase text-[#374151]">
       {label}
     </label>
     <input
       type="date"
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="bg-white border border-tecdia-border/80 rounded-lg px-3 py-2 text-[13px] font-semibold text-tecdia-textDeep outline-none transition-colors hover:border-tecdia-accent/60 focus:border-tecdia-accent focus:ring-2 focus:ring-tecdia-accent/20"
+      className="bg-white border-0 border-b border-[#cbd5e1] px-0 py-1.5 text-[12px] font-semibold text-[#0f172a] outline-none transition-colors focus:border-tecdia-accent"
     />
   </div>
 );
@@ -2542,7 +2719,20 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'add' ? 'add' : 'machines');
+  // The set of legitimate tab ids — used both to validate the ?tab=
+  // URL param at mount AND to keep the active tab synced when callers
+  // (e.g. the AdminProfileMenu dropdown's "Settings" / "Audit log" links)
+  // navigate to /admin?tab=settings while we're already on /admin.
+  const VALID_TABS = ['machines', 'add', 'alerts', 'analytics', 'shift_logs', 'audit', 'settings'];
+  const tabFromUrl = (() => {
+    const q = searchParams.get('tab');
+    return VALID_TABS.includes(q) ? q : 'machines';
+  })();
+  const [activeTab, setActiveTab] = useState(tabFromUrl);
+  useEffect(() => {
+    if (tabFromUrl !== activeTab) setActiveTab(tabFromUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabFromUrl]);
   const [form, setForm] = useState(EMPTY_FORM);
 
   // Derived from `form` so the left-side live preview re-renders every
@@ -2745,7 +2935,7 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Stats Badges */}
+          {/* Stats Badges + Admin Profile Menu */}
           <div className="flex items-center flex-wrap gap-2">
             {(() => {
               const defaultCount = machines.filter(m => isDefault(m.id)).length;
@@ -2762,6 +2952,8 @@ const AdminDashboard = () => {
                 </div>
               );
             })}
+            <div className="ml-1 h-6 w-px bg-white/15" />
+            <AdminProfileMenu />
           </div>
         </div>
       </div>

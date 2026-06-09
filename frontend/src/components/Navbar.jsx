@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Menu, X, User, LogOut } from 'lucide-react';
+import { ArrowRight, Menu, X, User, LogOut, ShieldCheck } from 'lucide-react';
 import { useStartDiagnosing } from '../context/StartDiagnosingContext';
+import { useAuth } from '../context/AuthContext';
 import tecdiaLogo from '../assets/cebu_F-Photoroom.png';
 
 const Navbar = () => {
@@ -10,10 +11,16 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [hoveredPath, setHoveredPath] = useState(null);
   const { open: openStartDiagnosing } = useStartDiagnosing();
+  const { user, isAdmin } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const showCta = !location.pathname.startsWith('/chat') && !location.pathname.startsWith('/admin');
   const showShiftButtons = location.pathname.startsWith('/chat');
+  // The admin dashboard already shows a profile menu, so the badge there
+  // would be redundant. On every other route it's the clearest signal
+  // that the current session is administrative — especially on /chat,
+  // where Start/End Shift buttons make it look like a worker view.
+  const showAdminBadge = isAdmin && !location.pathname.startsWith('/admin');
 
   const navMachineParam = new URLSearchParams(location.search).get('machine');
 
@@ -82,6 +89,16 @@ const Navbar = () => {
 
           {/* Right Side */}
           <div className="hidden md:flex items-center gap-8 h-full">
+            {showAdminBadge && (
+              <Link
+                to="/admin"
+                title={user.email ? `Signed in as ${user.email}` : 'Open admin dashboard'}
+                className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white transition-colors hover:bg-white/[0.12]"
+              >
+                <ShieldCheck size={11} strokeWidth={2.6} className="text-white/70" />
+                Admin
+              </Link>
+            )}
             {showShiftButtons && (
               <>
                 <button
@@ -121,17 +138,23 @@ const Navbar = () => {
               )}
             </Link>
 
-            <Link 
-              to="/admin/login" 
-              onMouseEnter={() => setHoveredPath('/admin/login')}
-              onMouseLeave={() => setHoveredPath(null)}
-              className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-white transition-colors duration-200 hover:text-white h-full mr-2"
-            >
-              <User size={14} /> Admin
-              {hoveredPath === '/admin/login' && (
-                <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#2b8cff] to-[#10b9d2]" />
-              )}
-            </Link>
+            {/* Public "Admin" entry point — only when no admin session.
+                Once signed in, the cyan AdminProfileMenu pill is the one
+                and only admin affordance, so this link would just be a
+                second door to the same room. */}
+            {!isAdmin && (
+              <Link
+                to="/admin/login"
+                onMouseEnter={() => setHoveredPath('/admin/login')}
+                onMouseLeave={() => setHoveredPath(null)}
+                className="relative flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-white transition-colors duration-200 hover:text-white h-full mr-2"
+              >
+                <User size={14} /> Admin
+                {hoveredPath === '/admin/login' && (
+                  <motion.div layoutId="navbar-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#2b8cff] to-[#10b9d2]" />
+                )}
+              </Link>
+            )}
             {showCta && (
               <button
                 type="button"
@@ -171,6 +194,16 @@ const Navbar = () => {
           >
             <Link to="/features" onClick={() => setIsMenuOpen(false)} className="text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors">Features</Link>
             <hr className="border-white/15" />
+            {showAdminBadge && (
+              <Link
+                to="/admin"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-1.5 self-start rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white"
+              >
+                <ShieldCheck size={11} strokeWidth={2.6} className="text-white/70" />
+                Admin
+              </Link>
+            )}
             {showShiftButtons && (
               <>
                 <button
@@ -187,9 +220,11 @@ const Navbar = () => {
                 </button>
               </>
             )}
-            <Link to="/admin/login" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors">
-              <User size={14} /> Admin Login
-            </Link>
+            {!isAdmin && (
+              <Link to="/admin/login" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors">
+                <User size={14} /> Admin Login
+              </Link>
+            )}
             {showCta && (
               <button
                 type="button"
