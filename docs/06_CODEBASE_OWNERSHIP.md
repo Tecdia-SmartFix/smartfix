@@ -38,13 +38,13 @@ Read the table as: "if this directory or file breaks, who is the first person to
 | Path | Primary owner | Secondary | Notes |
 |---|---|---|---|
 | `pages/AdminDashboard.jsx` | Vijay + Eshita | — | Largest file. Vijay owns the logic / wiring; Eshita owns the visual design + tab layouts. **Coordinate before large rewrites.** |
-| `pages/AdminLogin.jsx` | Vijay | Eshita | Split-card sign-in. |
+| `pages/AdminLogin.jsx` | Eshita | Vijay | Split-card sign-in. |
 | `pages/LandingPage.jsx` | Eshita | Vijay | Marketing hero + scroll-hijack carousel. |
-| `pages/ChatPage.jsx` | Vijay | Eshita | Worker chat + sidebar. |
+| `pages/ChatPage.jsx` | Eshita | Vijay | Worker chat + sidebar. |
 | `pages/MachinesPage.jsx` | Eshita | Vijay | Worker-facing machine list. |
 | `pages/FeaturesPage.jsx` / `IntegrationsPage.jsx` / `ContactPage.jsx` | Eshita | — | Marketing. |
 | `pages/Cookie/Privacy/Data/LegalNotice` | Eshita | — | Legal stubs. |
-| `components/MachineCard.jsx` | Vijay | Eshita | Expand-in-place card. |
+| `components/MachineCard.jsx` | Eshita | Vijay | Expand-in-place card. |
 | `components/MachineDetailModal.jsx` | Vijay | — | Admin parameter editor + metadata edit + re-ingest button. |
 | `components/EndShiftModal.jsx` | Vijay | — | Phase-aware shift log form. |
 | `components/HandoffBanner.jsx` | Vijay | — | Previous-shift anomaly banner. |
@@ -52,19 +52,19 @@ Read the table as: "if this directory or file breaks, who is the first person to
 | `components/Navbar.jsx` | Eshita | Vijay | Top nav + Start/End Shift buttons. |
 | `components/Footer.jsx` | Eshita | — | Marketing footer. |
 | `components/BrandMark.jsx` | Vijay | Eshita | Inline Tecdia SVG wordmark. |
-| `components/MessageContent.jsx` | Vijay | — | LLM message renderer (markdown + sources). |
+| `components/MessageContent.jsx` | Eshita | Vijay | Design of message + LLM message renderer (markdown + sources)  |
 | `components/StartDiagnosingModal.jsx` | Eshita | Vijay | Landing-page chat entry modal. |
 | `context/AuthContext.jsx` / `AdminAuthContext.jsx` | Vijay | — | Session state. |
 | `context/MachineContext.jsx` | Vijay | — | Machine list + CRUD wrappers. |
 | `context/AlertContext.jsx` | Vijay | — | Alert list + ack + snooze. |
 | `context/StartDiagnosingContext.jsx` | Eshita | — | Modal open state. |
-| `hooks/useChatHistory.js` | Vijay | — | Per-machine chat persistence (localStorage). |
+| `hooks/useChatHistory.js` | Vijay | Eshita | Per-machine chat persistence (localStorage). |
 | `hooks/useWorkstation.js` | Vijay | — | Workstation-binding fetch. |
-| `api/apiClient.js` | Vijay | — | Centralised `fetchApi` + `ApiError`. |
+| `api/apiClient.js` | Vijay | Eshita | Centralised `fetchApi` + `ApiError`. |
 | `assets/` | Eshita | — | Images, logos, hero photos. |
 | `index.css` | Eshita | Vijay | Global styles + light-mode theme overrides. |
 | `tailwind.config.js` | Eshita | — | Tecdia color palette. |
-| `vite.config.js` | Vijay | — | Dev proxy. |
+| `vite.config.js` | Vijay | Eshita | Dev proxy. |
 
 ### Infra + deploy
 
