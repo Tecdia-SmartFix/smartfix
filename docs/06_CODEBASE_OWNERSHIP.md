@@ -37,7 +37,15 @@ Read the table as: "if this directory or file breaks, who is the first person to
 
 | Path | Primary owner | Secondary | Notes |
 |---|---|---|---|
-| `pages/AdminDashboard.jsx` | Vijay + Eshita | — | Largest file. Vijay owns the logic / wiring; Eshita owns the visual design + tab layouts. **Coordinate before large rewrites.** |
+| `pages/ShiftLogSuccess.jsx` | Eshita | — | Post-submission success screen. |
+| `pages/CompanyPolicy.jsx` | Eshita | — | Legal policy text display. |
+| `components/TecdiaPage.jsx` | Eshita | — | Master layout wrapper for marketing. |
+| `components/AdminProfileMenu.jsx` | Eshita | — | Top-right admin dropdown. |
+| `components/DownloadToast.jsx` | Eshita | — | Export success pop-up. |
+| `pages/ShiftLogPage.jsx` | Eshita | — | Worker shift logging form. |
+| `components/ProtectedAdminRoute.jsx` | Eshita | — | Auth guard for admin pages. |
+| `components/BackgroundAnimation.jsx` | Eshita | — | Animated landing page background. |
+| `pages/AdminDashboard.jsx` | Eshita + Vijay | — | Largest file. Vijay owns the logic / wiring; Eshita owns the visual design + tab layouts. **Coordinate before large rewrites.** |
 | `pages/AdminLogin.jsx` | Eshita | Vijay | Split-card sign-in. |
 | `pages/LandingPage.jsx` | Eshita | Vijay | Marketing hero + scroll-hijack carousel. |
 | `pages/ChatPage.jsx` | Eshita | Vijay | Worker chat + sidebar. |
