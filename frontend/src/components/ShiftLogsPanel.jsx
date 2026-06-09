@@ -200,6 +200,52 @@ const getHotDays = (byDay) => (
     .slice(0, 3)
 );
 
+// ── No-Log Day Popup ──────────────────────────────────────────────────────────
+const NoLogDayPopup = ({ dateKey, onClose }) => {
+  if (!dateKey) return null;
+  return (
+    <>
+      <div onClick={onClose} style={nl.backdrop} />
+      <div style={nl.popup}>
+        <button onClick={onClose} style={nl.closeBtn}>✕</button>
+        <div style={nl.title}>No logs recorded</div>
+        <div style={nl.date}>{formatHotDayDate(dateKey)}</div>
+        <div style={nl.body}>No shift logs were submitted for this date. </div>
+        <button onClick={onClose} style={nl.okBtn} className="nl-ok-btn">Got it</button>
+      </div>
+    </>
+  );
+};
+
+const nl = {
+  backdrop: { position: 'fixed', inset: 0, background: 'rgba(15,28,63,0.15)', zIndex: 1000 },
+  popup: {
+    position: 'fixed', top: '50%', left: '50%',
+    transform: 'translate(-50%, -50%)', zIndex: 1001,
+    background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10,
+    width: 300, padding: '24px 20px 20px',
+    boxShadow: '0 12px 40px rgba(15,28,63,0.14)',
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+    textAlign: 'center',
+  },
+  closeBtn: {
+    position: 'absolute', top: 12, right: 12,
+    background: 'none', border: '1px solid #e2e8f0', borderRadius: 3,
+    color: '#94a3b8', fontSize: 11, fontWeight: 700,
+    width: 22, height: 22, cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+  },
+  title: { fontFamily: "'Sora', sans-serif", fontSize: 15, fontWeight: 700, color: '#0f172a' },
+  date: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 700, color: '#2D8CFF', marginBottom: 4 },
+  body: { fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#64748b', lineHeight: 1.6, marginBottom: 8 },
+  okBtn: {
+    width: '100%', padding: '9px 0', border: 'none', borderRadius: 6,
+    background: '#2D8CFF', color: '#fff',
+    fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700,
+    cursor: 'pointer', transition: 'background 0.15s',
+  },
+};
+
 // ── Select Columns Modal ──────────────────────────────────────────────────────
 const SelectColumnsModal = ({ visible, draft, onToggle, onUpdate, onClose }) => {
   if (!visible) return null;
@@ -289,6 +335,7 @@ const m = {
   },
 };
 
+
 // ── Main Component ────────────────────────────────────────────────────────────
 const ShiftLogsPanel = () => {
   const { machines } = useMachines();
@@ -312,6 +359,7 @@ const ShiftLogsPanel = () => {
   const [exportSaved, setExportSaved]     = useState(null);
   const [visibleMonth, setVisibleMonth]   = useState(() => monthStart(new Date()));
   const [calendarMonthTouched, setCalendarMonthTouched] = useState(false);
+  const [noLogDay, setNoLogDay]           = useState(null);
 
   // Column visibility
   const [visibleCols, setVisibleCols]   = useState(DEFAULT_VISIBLE);
@@ -401,12 +449,15 @@ const ShiftLogsPanel = () => {
     setVisibleMonth(prev => addMonths(prev, delta));
   };
 
-  const handleCalendarDayClick = (dayKey) => {
-    if (!calendarByDay[dayKey]) return;
-    setDateFrom(dayKey);
-    setDateTo(dayKey);
-    setDaysFilter('all');
-    setSelectedId(null);
+  const handleCalendarDayClick = (dayKey, hasLog) => {
+    if (hasLog) {
+      setDateFrom(dayKey);
+      setDateTo(dayKey);
+      setDaysFilter('all');
+      setSelectedId(null);
+    } else {
+      setNoLogDay(dayKey);
+    }
   };
 
   const handleAllDays = () => {
@@ -485,6 +536,8 @@ const ShiftLogsPanel = () => {
         onClose={closeColModal}
       />
 
+      <NoLogDayPopup dateKey={noLogDay} onClose={() => setNoLogDay(null)} />
+
       <section style={{ marginBottom: 24 }}>
         <h1 style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 700, color: '#0f172a', margin: '0 0 16px 0', letterSpacing: '-0.02em' }}>
           Shift Logs
@@ -553,7 +606,7 @@ const ShiftLogsPanel = () => {
               const isSelected = selectedDayKey === day.key;
               const isLastRow  = idx >= calendarDays.length - 7; // last row
 
-              const cellStyle = {
+     const cellStyle = {
                 ...s.calendarCell,
                 color: day.isCurrentMonth ? '#111827' : '#b0b7c3',
                 background: (() => {
@@ -578,8 +631,8 @@ const ShiftLogsPanel = () => {
                 <button
                   key={day.key}
                   type="button"
-                  disabled={!summary}
-                  onClick={() => handleCalendarDayClick(day.key)}
+                  disabled={!day.isCurrentMonth}
+                  onClick={() => day.isCurrentMonth && handleCalendarDayClick(day.key, !!summary)}
                   style={cellStyle}
                   className={`sl-calendar-cell${summary ? ' sl-calendar-cell-active' : ''}${summary?.maxSeverity === 5 ? ' sl-calendar-cell-alarm' : ''}`}
                   title={summary ? `${summary.count} logs · max severity ${summary.maxSeverity}` : undefined}
@@ -1360,6 +1413,7 @@ const s = {
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&family=DM+Mono:wght@400;500&display=swap');
   .sl-row:hover { background: #eef4ff !important; }
+  .nl-ok-btn:hover { background: #1A75E8 !important; }
   .sl-ack-btn:hover:not(:disabled) { background: #1A75E8 !important; }
   .sl-void-btn:hover { border-color: #dc9b9b !important; color: #844d4d !important; }
   .sl-cancel-btn:hover { background: #f2f4f7 !important; }

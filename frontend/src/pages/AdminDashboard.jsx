@@ -2475,11 +2475,12 @@ const ActivityBars = ({ buckets = [] }) => {
               {isHover && (
                 <div style={{
                   position: 'absolute', bottom: '100%', marginBottom: 4,
-                  background: P.deep, color: '#fff',
-                  padding: '4px 8px', borderRadius: 4, ...mono, fontSize: 10, fontWeight: 600,
+                  background: '#fff', color: '#0f1c3f',
+                  border: '1px solid #dbe6f4', boxShadow: '0 4px 12px rgba(15,28,63,.15)',
+                  padding: '6px 10px', borderRadius: 6, ...mono, fontSize: 11, fontWeight: 600,
                   whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 2,
                 }}>
-                  {b.hour} · {b.count || 0}
+                  <span style={{ color: '#4a6080', fontWeight: 500 }}>Time:</span> {b.hour} — {b.count || 0} {(b.count || 0) === 1 ? 'query' : 'queries'}
                 </div>
               )}
               <motion.div
