@@ -214,6 +214,7 @@ const ShiftLogPage = ({ phase = 'end' }) => {
       });
       let finalNotes = notes.trim();
       const cpNotesList = [];
+      const measNotesList = [];
       
       (parameters.visual_checks || []).forEach(c => {
         if (checkpointNotes[c.key]?.trim()) {
@@ -223,12 +224,15 @@ const ShiftLogPage = ({ phase = 'end' }) => {
       (parameters.numeric_readings || []).forEach(r => {
         if (checkpointNotes[r.key]?.trim()) {
           const lbl = r.label + (r.unit ? ` (${r.unit})` : '');
-          cpNotesList.push(`- ${lbl}: ${checkpointNotes[r.key].trim()}`);
+          measNotesList.push(`- ${lbl}: ${checkpointNotes[r.key].trim()}`);
         }
       });
 
       if (cpNotesList.length > 0) {
         finalNotes = (finalNotes ? finalNotes + '\n\n' : '') + 'Checkpoint Notes:\n' + cpNotesList.join('\n');
+      }
+      if (measNotesList.length > 0) {
+        finalNotes = (finalNotes ? finalNotes + '\n\n' : '') + 'Measurement Notes:\n' + measNotesList.join('\n');
       }
 
       await fetchApi('/shifts/log', {

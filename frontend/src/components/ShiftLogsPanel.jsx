@@ -1023,12 +1023,86 @@ const ShiftLogsPanel = () => {
                   </section>
                 </div>
 
-                {selectedLog.notes && (
-                  <div style={s.notesBlock}>
-                    <span style={s.notesLabel}>Notes</span>
-                    <span style={s.notesText}>{selectedLog.notes}</span>
-                  </div>
-                )}
+                {(() => {
+                  if (!selectedLog.notes) return null;
+                  const raw = selectedLog.notes;
+                  
+                  let mainNotes = '';
+                  let cpNotes = '';
+                  let measNotes = '';
+                  
+                  const cpIdx = raw.indexOf('Checkpoint Notes:\n');
+                  const measIdx = raw.indexOf('Measurement Notes:\n');
+                  
+                  if (cpIdx === -1 && measIdx === -1) {
+                    mainNotes = raw.trim();
+                  } else {
+                    const firstIdx = Math.min(
+                      cpIdx !== -1 ? cpIdx : Infinity,
+                      measIdx !== -1 ? measIdx : Infinity
+                    );
+                    mainNotes = raw.substring(0, firstIdx).trim();
+                    
+                    if (cpIdx !== -1) {
+                       const nextIdx = measIdx > cpIdx ? measIdx : Infinity;
+                       cpNotes = raw.substring(cpIdx + 'Checkpoint Notes:\n'.length, nextIdx).trim();
+                    }
+                    if (measIdx !== -1) {
+                       const nextIdx = cpIdx > measIdx ? cpIdx : Infinity;
+                       measNotes = raw.substring(measIdx + 'Measurement Notes:\n'.length, nextIdx).trim();
+                    }
+                  }
+
+                  const renderTable = (notesString) => (
+                    <div style={{ width: '100%', border: '1px solid #b0b0b0', borderRadius: 0, overflow: 'hidden', background: '#fff' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left', tableLayout: 'fixed' }}>
+                        <tbody>
+                          {notesString.split('\n').map((line, idx) => {
+                            const match = line.match(/^- (.*?):\s*(.*)$/);
+                            if (match) {
+                              return (
+                                <tr key={idx} style={{ borderBottom: '1px solid #b0b0b0' }}>
+                                  <th style={{ ...s.th, background: '#5a72a0', width: '35%', borderRight: '1px solid #b0b0b0' }}>{match[1]}</th>
+                                  <td style={{ ...s.td, color: '#0f172a', borderRight: 'none', background: '#fff' }}>{match[2]}</td>
+                                </tr>
+                              );
+                            }
+                            return (
+                              <tr key={idx} style={{ borderBottom: '1px solid #b0b0b0' }}>
+                                <td colSpan={2} style={{ ...s.td, color: '#0f172a', borderRight: 'none', background: '#fff' }}>{line}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+
+                  return (
+                    <div style={{...s.notesBlock, display: 'flex', flexDirection: 'column', gap: 12}}>
+                      {mainNotes && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: 10, alignItems: 'start' }}>
+                          <span style={s.notesLabel}>Notes</span>
+                          <span style={s.notesText}>{mainNotes}</span>
+                        </div>
+                      )}
+                      {mainNotes && (cpNotes || measNotes) && <div style={{ height: 1, background: '#e2e8f0', margin: '0 -11px' }} />}
+                      {cpNotes && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: 10, alignItems: 'start' }}>
+                          <span style={s.notesLabel}>Checklist Notes</span>
+                          {renderTable(cpNotes)}
+                        </div>
+                      )}
+                      {cpNotes && measNotes && <div style={{ height: 1, background: '#e2e8f0', margin: '0 -11px' }} />}
+                      {measNotes && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: 10, alignItems: 'start' }}>
+                          <span style={s.notesLabel}>Measurement Notes</span>
+                          {renderTable(measNotes)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {isVoid && (
                   <div style={s.voidBlock}>
@@ -1389,7 +1463,7 @@ const s = {
   readingVal: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 800, color: '#0f172a' },
   notesBlock: { display: 'grid', gridTemplateColumns: '70px 1fr', gap: 10, alignItems: 'start', marginTop: 12, padding: '9px 11px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#f8fafc' },
   notesLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6d7c74' },
-  notesText: { fontSize: 12, color: '#4e5a52', lineHeight: 1.45 },
+  notesText: { fontSize: 12, color: '#4e5a52', lineHeight: 1.45, whiteSpace: 'pre-wrap' },
   anomalyBlock: { padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 8 },
   anomalyItem: { border: '1px solid #fecaca', borderLeft: '4px solid #dc2626', borderRadius: 7, background: '#fff7f7', padding: '8px 10px' },
   anomalyTitle: { fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 800, color: '#7f1d1d', marginBottom: 3 },
