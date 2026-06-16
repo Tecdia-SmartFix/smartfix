@@ -85,6 +85,7 @@ const ShiftLogPage = ({ phase = 'end' }) => {
   const [readings,     setReadings]     = useState({});
   const [visualChecks, setVisualChecks] = useState({});
   const [notes,        setNotes]        = useState('');
+  const [checkpointNotes, setCheckpointNotes] = useState({});
   const [loading,      setLoading]      = useState(true);
   const [submitting,   setSubmitting]   = useState(false);
   const [error,        setError]        = useState('');
@@ -116,6 +117,7 @@ const ShiftLogPage = ({ phase = 'end' }) => {
             setReadings({ ...initR, ...(d.readings || {}) });
             setVisualChecks({ ...initC, ...(d.visualChecks || {}) });
             setNotes(d.notes || '');
+            setCheckpointNotes(d.checkpointNotes || {});
             return;
           }
         } catch { /* corrupt draft, ignore */ }
@@ -123,6 +125,7 @@ const ShiftLogPage = ({ phase = 'end' }) => {
         setReadings(initR);
         setVisualChecks(initC);
         setNotes('');
+        setCheckpointNotes({});
       })
       .catch(err => !cancelled && setError(`Couldn't load parameters: ${err.message}`))
       .finally(() => !cancelled && setLoading(false));
@@ -158,10 +161,10 @@ const ShiftLogPage = ({ phase = 'end' }) => {
     try {
       sessionStorage.setItem(
         draftKey(phase, machineId),
-        JSON.stringify({ readings, visualChecks, notes }),
+        JSON.stringify({ readings, visualChecks, notes, checkpointNotes }),
       );
     } catch { /* quota exceeded etc., ignore */ }
-  }, [phase, machineId, readings, visualChecks, notes, loading]);
+  }, [phase, machineId, readings, visualChecks, notes, checkpointNotes, loading]);
 
   // ── Live anomaly preview ─────────────────────────────────────────────────
   // Counts how many things would be flagged at submit time so the worker sees
@@ -194,6 +197,7 @@ const ShiftLogPage = ({ phase = 'end' }) => {
 
   const updateReading = (key, value) => setReadings(r => ({ ...r, [key]: value }));
   const toggleCheck   = (key) => setVisualChecks(c => ({ ...c, [key]: !c[key] }));
+  const updateCheckpointNote = (key, value) => setCheckpointNotes(n => ({ ...n, [key]: value }));
   const appendNote    = (txt) => setNotes(n => (n ? `${n.replace(/\s+$/, '')}\n${txt}` : txt));
 
   const submit = async (e) => {
@@ -208,13 +212,32 @@ const ShiftLogPage = ({ phase = 'end' }) => {
         const n = Number(v);
         numeric[k] = Number.isFinite(n) ? n : v;
       });
+      let finalNotes = notes.trim();
+      const cpNotesList = [];
+      
+      (parameters.visual_checks || []).forEach(c => {
+        if (checkpointNotes[c.key]?.trim()) {
+          cpNotesList.push(`- ${c.label}: ${checkpointNotes[c.key].trim()}`);
+        }
+      });
+      (parameters.numeric_readings || []).forEach(r => {
+        if (checkpointNotes[r.key]?.trim()) {
+          const lbl = r.label + (r.unit ? ` (${r.unit})` : '');
+          cpNotesList.push(`- ${lbl}: ${checkpointNotes[r.key].trim()}`);
+        }
+      });
+
+      if (cpNotesList.length > 0) {
+        finalNotes = (finalNotes ? finalNotes + '\n\n' : '') + 'Checkpoint Notes:\n' + cpNotesList.join('\n');
+      }
+
       await fetchApi('/shifts/log', {
         method: 'POST',
         body: JSON.stringify({
           machine_id: machineId,
           readings: numeric,
           visual_checks: visualChecks,
-          notes: notes.trim() || null,
+          notes: finalNotes || null,
           phase,
         }),
       });
@@ -328,6 +351,7 @@ const ShiftLogPage = ({ phase = 'end' }) => {
                         <th className="w-10 px-2 py-2.5 text-center text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: SHEET_RED }}>#</th>
                         <th className="px-4 py-2.5 text-left text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: SHEET_RED }}>Check item</th>
                         <th className="w-48 px-3 py-2.5 text-center text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: SHEET_RED }}>Status</th>
+                        <th className="px-3 py-2.5 text-left text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: SHEET_RED }}>Notes</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -374,6 +398,15 @@ const ShiftLogPage = ({ phase = 'end' }) => {
                                 </button>
                               </div>
                             </td>
+                            <td className="px-3 py-2">
+                              <input
+                                type="text"
+                                placeholder="Add note..."
+                                value={checkpointNotes[c.key] || ''}
+                                onChange={(e) => updateCheckpointNote(c.key, e.target.value)}
+                                className="w-full border border-tecdia-border bg-white px-3 py-1.5 text-[13px] text-tecdia-textDeep outline-none transition-colors focus:border-tecdia-accent focus:ring-1 focus:ring-tecdia-accent/40"
+                              />
+                            </td>
                           </tr>
                         );
                       })}
@@ -402,6 +435,7 @@ const ShiftLogPage = ({ phase = 'end' }) => {
                         <th className="px-4 py-2.5 text-left text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: SHEET_RED }}>Measurement</th>
                         <th className="hidden px-4 py-2.5 text-left text-[10px] font-black uppercase tracking-[0.16em] sm:table-cell" style={{ color: SHEET_RED }}>Expected</th>
                         <th className="w-36 px-3 py-2.5 text-left text-[10px] font-black uppercase tracking-[0.16em] sm:w-44" style={{ color: SHEET_RED }}>Your reading</th>
+                        <th className="px-3 py-2.5 text-left text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: SHEET_RED }}>Notes</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -470,6 +504,15 @@ const ShiftLogPage = ({ phase = 'end' }) => {
                                   {drift === 'low' ? '↓ Below expected' : '↑ Above expected'}
                                 </div>
                               )}
+                            </td>
+                            <td className="px-3 py-2.5 align-top">
+                              <input
+                                type="text"
+                                placeholder="Add note..."
+                                value={checkpointNotes[r.key] || ''}
+                                onChange={(e) => updateCheckpointNote(r.key, e.target.value)}
+                                className="w-full border border-tecdia-border bg-white px-3 py-1.5 text-[13px] text-tecdia-textDeep outline-none transition-colors focus:border-tecdia-accent focus:ring-1 focus:ring-tecdia-accent/40"
+                              />
                             </td>
                           </tr>
                         );
